@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, FileText, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
+import { uploadOrderFile } from '../services/order-services';
 
 interface AddOrderModalProps {
   isOpen: boolean;
@@ -70,10 +71,14 @@ export function AddOrderModal({ isOpen, onClose, onNavigateToOrders }: AddOrderM
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedFile) {
-      // Simulate file upload processing
-      setIsSubmitted(true);
+      try {
+        await uploadOrderFile(selectedFile);
+        setIsSubmitted(true);
+      } catch (error) {
+        alert('File upload failed. Please try again.');
+      }
     }
   };
 
