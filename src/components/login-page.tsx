@@ -26,6 +26,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-indigo-400/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }}></div>
         
         {/* Login form container with enhanced emphasis */}
+        
         <div className="relative w-full max-w-md form-card animate-scale-in hover:shadow-2xl transition-shadow duration-500">
           <LoginForm onLogin={onLogin} />
         </div>
