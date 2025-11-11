@@ -4,7 +4,7 @@ import { DashboardHeader } from "./dashboard-header";
 
 // Import your role-specific pages here
 import PlanningPage from "../pages/PlanningPage";
-// import MaterialIssuePage from "../pages/MaterialIssuePage";
+import MaterialIssuePage from "../pages/MaterialIssuePage";
 // import SemiQcPage from "../pages/SemiQcPage";
 // import PhosphatingPage from "../pages/PhosphatingPage";
 // import AssemblyPage from "../pages/AssemblyPage";
@@ -89,6 +89,8 @@ const DashboardPage: React.FC = () => {
     switch (role) {
       case "planning":
         return <PlanningPage />;
+         case "material-issue":
+        return <MaterialIssuePage />;
       // case "material-issue":
       //   return <MaterialIssuePage />;
       // case "semi-qc":

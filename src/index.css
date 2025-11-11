@@ -5576,3 +5576,14 @@ html {
 .left-364 {
   left: 364px;
 }
+
+table th {
+  font-weight: 700;
+  color: #000;
+}
+
+table th,
+table td {
+  border-left: none;
+  border-right: none;
+}

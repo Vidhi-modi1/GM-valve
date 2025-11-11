@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../components/ui/checkbox';
 import { useOrderContext } from '../components/order-context';
 import { OrderFilters } from '../components/order-filters';
-import { API_URL } from '../config/api.ts'
+import { API_URL } from '../config/api.ts';
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -52,7 +52,7 @@ interface AssemblyOrderData {
   alertStatus: boolean;
 }
 
-export function PlanningPage() {
+export function MaterialIssuePage() {
   // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
@@ -1250,4 +1250,4 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
   );
 }
 
-export default PlanningPage;
+export default MaterialIssuePage;
