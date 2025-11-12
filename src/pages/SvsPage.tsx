@@ -1,4 +1,4 @@
-// src/pages/PlanningPage.tsx
+// src/pages/SvsPage.tsx - PART 1 OF 2
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import {
@@ -22,10 +22,7 @@ import { Checkbox } from '../components/ui/checkbox';
 import { useOrderContext } from '../components/order-context';
 import { OrderFilters } from '../components/order-filters';
 import { API_URL } from '../config/api.ts';
-
 import { DashboardHeader } from "../components/dashboard-header.tsx";
-
-// const API_URL = 'http://192.168.1.17:2010/api';
 
 interface AssemblyOrderData {
   id: string;
@@ -54,8 +51,7 @@ interface AssemblyOrderData {
   alertStatus: boolean;
 }
 
-export function PlanningPage() {
-  // context for remarks & alert status (from your existing order-context)
+export function SvsPage() {
   const {
     updateRemark,
     toggleAlertStatus: toggleAlertStatusContext,
@@ -63,12 +59,10 @@ export function PlanningPage() {
     getAlertStatus
   } = useOrderContext();
 
-  // API data + UI state
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [assemblyLineFilter, setAssemblyLineFilter] = useState('all');
@@ -96,19 +90,13 @@ export function PlanningPage() {
   const [remarksOrder, setRemarksOrder] = useState<AssemblyOrderData | null>(null);
   const [remarksText, setRemarksText] = useState('');
 
-  // Upload file
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [assignStatus, setAssignStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
-  // refs
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // token
   const token = localStorage.getItem('token');
 
-  // Fetch orders from API (POST)
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -124,10 +112,9 @@ export function PlanningPage() {
         }
       );
 
-      // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
       const ok =
         res?.data?.Resp_code === 'true' ||
-        res?.data?.Resp_code === true || // ✅ handle boolean true
+        res?.data?.Resp_code === true ||
         res?.data?.Resp_code === 'RCS';
 
       if (ok && Array.isArray(res.data.data)) {
@@ -155,8 +142,6 @@ export function PlanningPage() {
           inspection: item.inspection || '',
           painting: item.painting || '',
           remarks: item.remarks || '',
-
-          // ✅ Preserve urgent flag properly (backend sends 0 or 1)
           alertStatus:
             item.is_urgent === true ||
             item.is_urgent === 'true' ||
@@ -164,11 +149,14 @@ export function PlanningPage() {
             item.alert_status === 'true' ||
             item.urgent === 1 ||
             item.urgent === '1',
-
         }));
 
-        console.log('✅ Orders fetched:', apiOrders.length, 'records');
-        setOrders(apiOrders);
+        const finishedValveOrders = apiOrders.filter(
+          (o) => String(o.finishedValve).trim().toLowerCase() === 'yes'
+        );
+
+        console.log('✅ SVS Orders fetched:', finishedValveOrders.length, 'records');
+        setOrders(finishedValveOrders);
         setError(null);
         setMessage(null);
       } else {
@@ -187,20 +175,16 @@ export function PlanningPage() {
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // filter option lists
   const assemblyLines = useMemo(() => Array.from(new Set(orders.map((o) => o.assemblyLine))).filter(Boolean).sort(), [orders]);
   const gmsoaNos = useMemo(() => Array.from(new Set(orders.map((o) => o.gmsoaNo))).filter(Boolean).sort(), [orders]);
   const parties = useMemo(() => Array.from(new Set(orders.map((o) => o.party))).filter(Boolean).sort(), [orders]);
 
-  // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
     let filtered = orders.slice();
 
     if (showUrgentOnly) {
-      // Check both: local context flag (getAlertStatus) and server-provided order.alertStatus
       filtered = filtered.filter((o) => getAlertStatus(String(o.id)) || o.alertStatus);
     }
 
@@ -210,13 +194,8 @@ export function PlanningPage() {
 
     if (dateFrom || dateTo) {
       filtered = filtered.filter((order) => {
-        // skip HOLD or invalid dates
         if (!order.assemblyDate || order.assemblyDate === 'HOLD') return false;
 
-        // Accept formats:
-        // dd/mm/yyyy  -> parts length 3
-        // mm/yyyy     -> parts length 2  (treated as first day of month)
-        // yyyy        -> parts length 1  (treated as Jan 1 of year)
         const partsRaw = order.assemblyDate.split(/[\/-]/).map((p) => p.trim());
         const partsNum = partsRaw.map((p) => Number(p));
         if (partsNum.some((n) => isNaN(n))) return false;
@@ -224,15 +203,12 @@ export function PlanningPage() {
         let orderDate: Date | null = null;
 
         if (partsNum.length >= 3) {
-          // dd/mm/yyyy
           const [d, m, y] = partsNum;
           orderDate = new Date(y, m - 1, d);
         } else if (partsNum.length === 2) {
-          // mm/yyyy -> treat as first day of that month
           const [m, y] = partsNum;
           orderDate = new Date(y, m - 1, 1);
         } else if (partsNum.length === 1) {
-          // yyyy -> Jan 1 of that year
           const [y] = partsNum;
           orderDate = new Date(y, 0, 1);
         } else {
@@ -280,7 +256,6 @@ export function PlanningPage() {
     getAlertStatus
   ]);
 
-  // selection helpers
   const toggleRowSelection = (orderId: string) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
@@ -299,7 +274,6 @@ export function PlanningPage() {
 
   const allRowsSelected = filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // Quick Assign logic (local; you can replace with API calls as needed)
   const handleQuickAssign = (order: AssemblyOrderData) => {
     setSelectedOrder(order);
     setQuickAssignOpen(true);
@@ -332,30 +306,19 @@ export function PlanningPage() {
     return Object.keys(errs).length === 0;
   };
 
-  // const handleQuickAssignSave = () => {
-  //   if (!selectedOrder) return;
-  //   if (!validateQuickAssign()) return;
-  //   // TODO: call API to persist assignment
-  //   console.log('Quick assign saved for', selectedOrder.id, { quickAssignStep, quickAssignQty, splitOrder, splitAssignStep, splitAssignQty });
-  //   setQuickAssignOpen(false);
-  // };
-
   const handleQuickAssignCancel = () => {
     setQuickAssignOpen(false);
   };
 
-  // Bin Card / Print
   const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => window.print();
 
-  // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
     setViewedOrder(order);
     setViewDetailsDialogOpen(true);
   };
 
-  // Remarks dialog
   const handleOpenRemarks = (order: AssemblyOrderData) => {
     setRemarksOrder(order);
     setRemarksText(getRemark(order.id) || order.remarks || '');
@@ -371,21 +334,16 @@ export function PlanningPage() {
     }
   };
 
-  // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
     try {
-      // If already marked urgent in local UI, don't re-send
       if (getAlertStatus(orderId)) {
         console.log('Already marked urgent, skipping:', orderId);
         return;
       }
 
-      // Optimistic UI update: mark as urgent immediately
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, alertStatus: true } : o)));
-      // Also update context local state if you use it
-      try { toggleAlertStatusContext(orderId); } catch (e) { /* ignore if context not available */ }
+      try { toggleAlertStatusContext(orderId); } catch (e) { }
 
-      // Send payload exactly as backend expects (camelCase orderId)
       const payload = { orderId: String(orderId), urgent: '1' };
       console.log('Payload sent:', payload);
 
@@ -401,27 +359,18 @@ export function PlanningPage() {
 
       console.log('Mark urgent response:', res.data);
 
-      // If backend returns success, optionally refresh list to get canonical data
       if (res.data?.Resp_code === 'true' || res.data?.Resp_code === true || res.data?.status === true) {
-        // refresh list to get server state (keeps UI consistent)
         await fetchOrders();
       } else {
-        // Backend didn't accept; revert optimistic change and notify
         setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o)));
         console.warn('Backend did not confirm urgent update:', res.data);
       }
     } catch (err: any) {
       console.error('Error marking urgent:', err);
-      // revert optimistic UI on error
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o)));
     }
   };
 
-  // 🧭 Add inside component (top with other states)
-  const [assignStatus, setAssignStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-
-
-  // ✅ Assign order to next workflow stage
   const handleAssignOrder = async () => {
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
@@ -461,7 +410,6 @@ export function PlanningPage() {
         responseMain.data?.status === true;
 
       if (isSuccess) {
-        // --- Split assignment ---
         if (splitOrder && splitQty > 0) {
           const formDataSplit = new FormData();
           formDataSplit.append('orderId', String(selectedOrder.id));
@@ -504,7 +452,6 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
         setTimeout(() => {
           setQuickAssignOpen(false);
           setAssignStatus(null);
@@ -550,118 +497,14 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
     }
   };
 
-  // Upload file
-  // const handleUpload = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!file) {
-  //     setMessage('Please select a file first');
-  //     return;
-  //   }
-
-  //   const fd = new FormData();
-  //   fd.append('file', file);
-
-  //   try {
-  //     setUploading(true);
-
-  //     // NOTE: Do NOT set Content-Type explicitly for multipart/form-data; let browser set the boundary
-  //     const res = await axios.post(`${API_URL}/upload-order-file`, fd, {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`
-  //       }
-  //     });
-
-  //     // Accept several possible success markers from your backend
-  //     if (res.data?.status === true || res.data?.Resp_code === 'RCS' || res.data?.Resp_code === 'true') {
-  //       setMessage('✅ File uploaded successfully');
-
-  //       // reset file input UI
-  //       setFile(null);
-  //       if (fileInputRef.current) fileInputRef.current.value = '';
-
-  //       // refresh list
-  //       await fetchOrders();
-  //     } else {
-  //       setMessage(res.data?.message || 'Upload failed');
-  //     }
-  //   } catch (err) {
-  //     console.error('Upload error', err);
-  //     setMessage('Error uploading file');
-  //   } finally {
-  //     setUploading(false);
-  //     setTimeout(() => setMessage(null), 5000);
-  //   }
-  // };
-  const handleUpload = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!file) {
-    setMessage("Please select a file first");
-    return;
-  }
-
-  const fd = new FormData();
-  fd.append("file", file);
-
-  try {
-    setUploading(true);
-
-    // NOTE: Do NOT set Content-Type explicitly for multipart/form-data; let browser set the boundary
-    const res = await axios.post(`${API_URL}/upload-order-file`, fd, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    // Accept several possible success markers from your backend
-    if (
-      res.data?.status === true ||
-      res.data?.Resp_code === "RCS" ||
-      res.data?.Resp_code === "true"
-    ) {
-      setMessage("✅ File uploaded successfully");
-
-      // reset file input UI
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-      // refresh list
-      await fetchOrders();
-
-      // ✅ Add this block below fetchOrders()
-      // This identifies orders with Finished Valve = Yes
-      const finishedValveOrders = orders.filter(
-        (o) => String(o.finishedValve).trim().toLowerCase() === "yes"
-      );
-
-      // Optional debug log — visible in browser console
-      console.log(
-        "✅ Finished Valve Orders ready for SVS:",
-        finishedValveOrders.length
-      );
-    } else {
-      setMessage(res.data?.message || "Upload failed");
-    }
-  } catch (err) {
-    console.error("Upload error", err);
-    setMessage("Error uploading file");
-  } finally {
-    setUploading(false);
-    setTimeout(() => setMessage(null), 5000);
-  }
-};
-
-
-  // PDF export (simple version) - uses window.print or jsPDF if present
   const handlePrint = () => {
     try {
-      // If you prefer jsPDF, dynamically import and generate PDF as earlier code did.
       window.print();
     } catch (err) {
       console.error('Print error', err);
     }
   };
 
-  // Clear filters
   const clearFilters = () => {
     setAssemblyLineFilter('all');
     setGmsoaFilter('all');
@@ -671,13 +514,14 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
     setDateTo(undefined);
   };
 
-  // UI render
+  // === PART 2 OF 2 - CONTINUES FROM PART 1 ===
+
   return (
     <>
     
-<DashboardHeader
-  role="planning"
-  currentPage="Planning"
+    <DashboardHeader
+  role="svs"
+  currentPage="SVS"
   onLogout={() => {
     localStorage.removeItem("token");
     window.location.href = "/login";
@@ -685,22 +529,19 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
   onNavigate={(page) => {
     window.location.href = `/${page.toLowerCase()}`;
   }}
-  onUploadSuccess={() => fetchOrders()} // refresh after upload
+  onUploadSuccess={() => fetchOrders()}
 />
-    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
 
-      
-      {/* Header */}
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
           <div>
-            <h1 className="text-gray-900 mb-2 text-2xl font-semibold">Orders Management</h1>
-            <p className="text-gray-600">Track and manage assembly line orders and manufacturing workflow</p>
+            <h1 className="text-gray-900 mb-2 text-2xl font-semibold">Stock Valve Store (SVS) Management</h1>
+            <p className="text-gray-600">Track and manage stock valve store orders and manufacturing workflow (Finished Valve = Yes)</p>
           </div>
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                 <Input
@@ -732,11 +573,9 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                 </Button>
               </div>
             </div>
-            {/* Option row - could include more buttons */}
           </div>
         </div>
 
-        {/* Filters */}
         <div className="mt-4">
           <OrderFilters
             assemblyLineFilter={assemblyLineFilter}
@@ -756,46 +595,12 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         </div>
       </div>
 
-      {/* Upload Section */}
-      {/* <form onSubmit={handleUpload} className="bg-white shadow-md p-4 rounded-xl mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-gray-700">Upload Order File</h2>
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.csv"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border p-2 rounded-md"
-          />
-          <Button
-            type="submit"
-            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white flex items-center gap-2"
-            disabled={uploading}
-          >
-            <Plus className="h-4 w-4" />
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
-
-          <Button onClick={() => fetchOrders()} variant="outline" className="ml-2">
-            Refresh
-          </Button>
-
-          <Button onClick={handlePrint} variant="outline" className="ml-2">
-            Export / Print
-          </Button>
-        </div>
-
-        {message && <div className="mt-3 text-sm text-yellow-800 bg-yellow-100 p-2 rounded">{message}</div>}
-      </form> */}
-
-      {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div ref={tableScrollRef} className="relative overflow-x-auto max-w-full" style={{ scrollbarGutter: 'stable' }}>
           <div className="inline-block min-w-full align-middle">
             <table className="min-w-full border-collapse">
               <thead>
                 <tr>
-                  {/* Select all sticky checkbox */}
                   <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
                     <button
                       type="button"
@@ -805,7 +610,6 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       className="peer rounded border p-0.5"
                       aria-label="Select all rows"
                     >
-                      {/* small box visual */}
                       <div className={`w-4 h-4 ${allRowsSelected ? 'bg-blue-600' : 'bg-white border'}`} />
                     </button>
                   </th>
@@ -905,15 +709,6 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                           <ArrowRight className="h-4 w-4 text-green-600" />
                         </Button>
 
-                        {/* <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
-                          title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
-                          onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
-                        >
-                          <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
-                        </Button> */}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -937,8 +732,6 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                               }`}
                           />
                         </Button>
-
-
                       </div>
                     </td>
                   </tr>
@@ -946,14 +739,14 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
               </tbody>
             </table>
             {filteredOrders.length === 0 && (
-              <div className="p-6 text-center text-gray-500">No orders found.</div>
+              <div className="p-6 text-center text-gray-500">No SVS orders found.</div>
             )}
           </div>
         </div>
       </div>
 
       {/* Quick Assign Dialog */}
-      {/* <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
+      <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Quick Assign Order</DialogTitle>
@@ -1079,23 +872,14 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
               Cancel
             </Button>
             <Button
-              onClick={() =>
-                handleAssignOrder(
-                  Number(selectedOrder.id),
-                  Number(selectedOrder.qty),
-                  Number(quickAssignQty),
-                  Number(splitAssignQty),
-                  splitOrder
-                )
-              }
+              onClick={handleAssignOrder}
               className="bg-black hover:bg-gray-800 text-white"
             >
               Assign
             </Button>
           </div>
         </DialogContent>
-      </Dialog> */}
-
+      </Dialog>
 
       {/* Bin Card Dialog */}
       <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
@@ -1319,4 +1103,4 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
   );
 }
 
-export default PlanningPage;
+export default SvsPage;

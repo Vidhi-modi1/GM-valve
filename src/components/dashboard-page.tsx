@@ -47,13 +47,13 @@ const DashboardPage: React.FC = () => {
   const getDefaultPageForRole = (roleName: string): string => {
     switch (roleName) {
       case "planning":
-        return "Orders";
+        return "Planning";
       case "material-issue":
-        return "Orders2";
+        return "MaterialIssue";
       case "semi-qc":
         return "SemiQC";
       case "phosphating-qc":
-        return "AfterPhosphatingQC";
+        return "PhosphatingQC";
       case "assembly":
         return "Assembly";
       case "testing":

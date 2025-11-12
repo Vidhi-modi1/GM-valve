@@ -5587,3 +5587,13 @@ table td {
   border-left: none;
   border-right: none;
 }
+
+button:active,
+button.active {
+    scale: 1;
+}
+
+button:focus {
+  border-color: oklab(42.883% -.0250819 -.146377 / .4) !important;
+  box-shadow: none !important;
+}
