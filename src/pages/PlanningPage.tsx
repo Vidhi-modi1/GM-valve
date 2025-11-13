@@ -347,7 +347,59 @@ export function PlanningPage() {
   // Bin Card / Print
   const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
-  const handlePrintBinCard = () => window.print();
+const handlePrintBinCard = () => {
+  const printContainer = document.getElementById("printable-bin-card");
+  if (!printContainer) return;
+
+  let html = "";
+
+  selectedOrdersData.forEach((order) => {
+    html += `
+      <div style="
+        border:1px solid #ccc;
+        padding:20px;
+        border-radius:10px;
+        margin-bottom:30px;
+        page-break-inside: avoid;
+      ">
+        <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">
+          Assembly Line: ${order.assemblyLine}
+        </h2>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+          <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
+          <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <strong>Item Description:</strong><br>
+          ${order.product}
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+          <div><strong>QTY:</strong> ${order.qty}</div>
+          <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
+        </div>
+
+        <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
+          <strong>Inspected by:</strong>
+          <div style="height:30px; border-bottom:1px solid #555;"></div>
+        </div>
+      </div>`;
+  });
+
+  printContainer.innerHTML = html;
+  printContainer.style.display = "block";
+
+  setTimeout(() => {
+    window.print();
+    printContainer.style.display = "none";
+  }, 200);
+};
+
+
+
+
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
@@ -674,6 +726,8 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
   // UI render
   return (
     <>
+
+        <div id="printable-bin-card" style={{ display: "none" }}></div>
     
 <DashboardHeader
   role="planning"
@@ -1098,12 +1152,8 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
 
 
       {/* Bin Card Dialog */}
-      <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+      {/* <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bin Card - Selected Orders</DialogTitle>
-            <DialogDescription>Review selected orders and print bin card</DialogDescription>
-          </DialogHeader>
 
           <div className="space-y-6 py-4">
             {selectedOrdersData.map((order) => (
@@ -1157,7 +1207,76 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
+
+      {/* Bin Card Preview Dialog */}
+<Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+  <DialogContent className="!max-w-[1000px] max-h-[90vh] overflow-y-auto print-bin-card">
+
+    <DialogHeader>
+      <DialogTitle className="text-xl font-semibold text-gray-900">
+        Bin Card Preview
+      </DialogTitle>
+      <DialogDescription>
+        Review the bin card details before printing.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="space-y-6 py-4">
+      {selectedOrdersData.map((order) => (
+        <div
+          key={order.id}
+          className="border border-gray-300 rounded-xl p-6 bg-white shadow-sm"
+          style={{ marginBottom: "30px" }}  // <- margin bottom fix
+        >
+          <h2 className="text-lg font-bold text-center mb-4">
+            Assembly Line: {order.assemblyLine}
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div>
+              <strong>Assembly Date:</strong> {order.assemblyDate}
+            </div>
+            <div>
+              <strong>GMSOA No - SR. NO:</strong> {order.gmsoaNo} - {order.soaSrNo}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <strong>Item Description:</strong>
+            <p>{order.product}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div>
+              <strong>QTY:</strong> {order.qty}
+            </div>
+            <div>
+              <strong>GM Logo:</strong> {order.gmLogo}
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-300">
+            <strong>Inspected by:</strong>
+            <div className="border-b border-gray-400 h-8"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+      <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handlePrintBinCard} className="bg-blue-600 text-white">
+        <Printer className="h-4 w-4" /> Print
+      </Button>
+    </div>
+
+  </DialogContent>
+</Dialog>
+
+
 
       {/* View Order Details Dialog */}
       <Dialog open={viewDetailsDialogOpen} onOpenChange={setViewDetailsDialogOpen}>
@@ -1315,6 +1434,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         </DialogContent>
       </Dialog>
     </div>
+
     </>
   );
 }
