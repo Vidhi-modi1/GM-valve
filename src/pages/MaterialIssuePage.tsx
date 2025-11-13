@@ -469,40 +469,55 @@ const handleOpenRemarks = (order: AssemblyOrderData) => {
 };
 
 
+
+
 const handleSaveRemarks = async () => {
   if (!remarksOrder) return;
 
+  // Build form-data
   const formData = new FormData();
   formData.append("orderId", String(remarksOrder.id));
   formData.append("remarks", remarksText);
 
   try {
+    // Send to backend
     const res = await axios.post(`${API_URL}/add-remarks`, formData, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    if (res.data?.Resp_code === "true") {
-      // 🔥 UPDATE LOCAL UI LIST
-      setOrders(prev =>
-        prev.map(o =>
-          o.id === remarksOrder.id
-            ? { ...o, remarks: remarksText } // update backend value
-            : o
+    console.log("Add Remarks Response:", res.data);
+
+    const success =
+      res.data?.Resp_code === "true" ||
+      res.data?.Resp_code === true;
+
+    if (success) {
+      // 🔥 Update LOCAL orders list UI also!
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
         )
       );
 
+      // OPTIONAL: update context too if you need it
+      try {
+        updateRemark(remarksOrder.id, remarksText);
+      } catch {}
+
+      // Close dialog
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
       setRemarksText("");
     } else {
-      console.warn("Remarks failed:", res.data);
+      console.warn("Backend rejected remarks:", res.data);
     }
   } catch (err) {
-    console.error("Error saving remark:", err);
+    console.error("Error saving remarks:", err);
   }
 };
+
 
 
   // ✅ Marks urgent one-time only, persists after refresh

@@ -474,74 +474,143 @@ export function AssemblyPage() {
   };
 
   // Remarks dialog
-  const handleOpenRemarks = (order: AssemblyOrderData) => {
-    setRemarksOrder(order);
-    setRemarksText(getRemark(order.id) || order.remarks || "");
-    setRemarksDialogOpen(true);
-  };
+const handleOpenRemarks = (order: AssemblyOrderData) => {
+  setRemarksOrder(order);
+  setRemarksText(order.remarks || ""); // use backend value
+  setRemarksDialogOpen(true);
+};
 
-  const handleSaveRemarks = () => {
-    if (remarksOrder) {
-      updateRemark(remarksOrder.id, remarksText);
+
+const handleSaveRemarks = async () => {
+  if (!remarksOrder) return;
+
+  // Build form-data
+  const formData = new FormData();
+  formData.append("orderId", String(remarksOrder.id));
+  formData.append("remarks", remarksText);
+
+  try {
+    // Send to backend
+    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("Add Remarks Response:", res.data);
+
+    const success =
+      res.data?.Resp_code === "true" ||
+      res.data?.Resp_code === true;
+
+    if (success) {
+      // 🔥 Update LOCAL orders list UI also!
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+        )
+      );
+
+      // OPTIONAL: update context too if you need it
+      try {
+        updateRemark(remarksOrder.id, remarksText);
+      } catch {}
+
+      // Close dialog
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
       setRemarksText("");
+    } else {
+      console.warn("Backend rejected remarks:", res.data);
     }
-  };
+  } catch (err) {
+    console.error("Error saving remarks:", err);
+  }
+};
+
+
 
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
+    console.log("----");
+    console.log("TOGGLE CALLED for:", orderId);
+
     try {
-      // If already marked urgent in local UI, don't re-send
-      if (getAlertStatus(orderId)) {
-        console.log("Already marked urgent, skipping:", orderId);
+      const order = orders.find((o) => o.id === orderId);
+      const currentStatus = order?.alertStatus === true;
+
+      const newStatus = !currentStatus;
+      const urgentValue = newStatus ? "1" : "0";
+
+      console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
+
+      // 🔥 Optimistic UI update + SORTING FIX
+      setOrders((prev) => {
+        const updated = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: newStatus } : o
+        );
+
+        // 🔥 Sort here: urgent (true) → non urgent (false)
+        updated.sort((a, b) => {
+          return (b.alertStatus === true) - (a.alertStatus === true);
+        });
+
+        return updated;
+      });
+
+      const payload = {
+        orderId: String(orderId),
+        urgent: urgentValue,
+      };
+
+      console.log("SENDING PAYLOAD:", payload);
+
+      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("BACKEND RESPONSE:", res.data);
+
+      const success =
+        res.data?.Resp_code === "true" ||
+        res.data?.Resp_code === true ||
+        res.data?.status === true;
+
+      if (!success) {
+        console.log("BACKEND FAILED, REVERTING");
+
+        // Revert + re-sort
+        setOrders((prev) => {
+          const reverted = prev.map((o) =>
+            o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+          );
+
+          reverted.sort((a, b) => {
+            return (b.alertStatus === true) - (a.alertStatus === true);
+          });
+
+          return reverted;
+        });
+
         return;
       }
 
-      // Optimistic UI update: mark as urgent immediately
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, alertStatus: true } : o))
-      );
-      // Also update context local state if you use it
-      try {
-        toggleAlertStatusContext(orderId);
-      } catch (e) {
-        /* ignore if context not available */
-      }
+      console.log("TOGGLE SUCCESSFUL 👍");
+    } catch (err) {
+      console.error("ERROR:", err);
 
-      // Send payload exactly as backend expects (camelCase orderId)
-      const payload = { orderId: String(orderId), urgent: "1" };
-      console.log("Payload sent:", payload);
-
-      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Mark urgent response:", res.data);
-
-      // If backend returns success, optionally refresh list to get canonical data
-      if (
-        res.data?.Resp_code === "true" ||
-        res.data?.Resp_code === true ||
-        res.data?.status === true
-      ) {
-        // refresh list to get server state (keeps UI consistent)
-        await fetchOrders();
-      } else {
-        // Backend didn't accept; revert optimistic change and notify
-        setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o))
+      // revert on error + sort
+      setOrders((prev) => {
+        const reverted = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
         );
-        console.warn("Backend did not confirm urgent update:", res.data);
-      }
-    } catch (err: any) {
-      console.error("Error marking urgent:", err);
-      // revert optimistic UI on error
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o))
-      );
+
+        reverted.sort((a, b) => {
+          return (b.alertStatus === true) - (a.alertStatus === true);
+        });
+
+        return reverted;
+      });
     }
   };
 
@@ -551,152 +620,168 @@ export function AssemblyPage() {
     message: string;
   } | null>(null);
 
-  // ✅ Assign order to next workflow stage
-  const handleAssignOrder = async () => {
-    if (!selectedOrder) return;
-    if (!validateQuickAssign()) return;
+// ✅ Assign order to next workflow stage
+const handleAssignOrder = async () => {
+  if (!selectedOrder) return;
+  if (!validateQuickAssign()) return;
 
-    setAssignStatus({
-      type: "info",
-      message: "Assigning order, please wait...",
+  setAssignStatus({
+    type: "info",
+    message: "Assigning order, please wait...",
+  });
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setAssignStatus({
+        type: "error",
+        message: "Token missing. Please log in again.",
+      });
+      return;
+    }
+
+    const mainQty = Number(quickAssignQty || 0);
+    const splitQty = Number(splitAssignQty || 0);
+
+    // Main FormData
+    const formData = new FormData();
+    formData.append("orderId", String(selectedOrder.id));
+    formData.append("totalQty", String(selectedOrder.qty));
+    formData.append("executedQty", String(mainQty));
+
+    console.log("📤 Assign main payload:", {
+      orderId: selectedOrder.id,
+      totalQty: selectedOrder.qty,
+      executedQty: mainQty,
     });
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setAssignStatus({
-          type: "error",
-          message: "Token missing. Please log in again.",
-        });
-        return;
-      }
+    // --- MAIN ASSIGNMENT ---
+    const responseMain = await axios.post(
+      `${API_URL}/assign-order`,
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const mainQty = Number(quickAssignQty || 0);
-      const splitQty = Number(splitAssignQty || 0);
+    console.log("✅ Main assign response:", responseMain.data);
 
-      const formData = new FormData();
-      formData.append("orderId", String(selectedOrder.id));
-      formData.append("totalQty", String(selectedOrder.qty));
-      formData.append("executedQty", String(mainQty));
+    const isSuccess =
+      responseMain.data?.Resp_code === true ||
+      responseMain.data?.Resp_code === "true" ||
+      responseMain.data?.status === true;
 
-      console.log("📤 Assign main payload (FormData):", {
-        orderId: selectedOrder.id,
-        totalQty: selectedOrder.qty,
-        executedQty: mainQty,
+    if (!isSuccess) {
+      setAssignStatus({
+        type: "error",
+        message:
+          responseMain.data?.Resp_desc || "Order assignment failed.",
       });
+      return;
+    }
 
-      const responseMain = await axios.post(
+    // ----------------------------
+    //  SPLIT ASSIGNMENT (IF ANY)
+    // ----------------------------
+    if (splitOrder && splitQty > 0) {
+      const formDataSplit = new FormData();
+      formDataSplit.append("orderId", String(selectedOrder.id));
+      formDataSplit.append("totalQty", String(selectedOrder.qty));
+      formDataSplit.append("executedQty", String(splitQty));
+      formDataSplit.append("splitOrder", "true");
+
+      const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        formDataSplit,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("✅ Main assign response:", responseMain.data);
+      const isSplitSuccess =
+        responseSplit.data?.Resp_code === true ||
+        responseSplit.data?.Resp_code === "true" ||
+        responseSplit.data?.status === true;
 
-      const isSuccess =
-        responseMain.data?.Resp_code === true ||
-        responseMain.data?.Resp_code === "true" ||
-        responseMain.data?.status === true;
-
-      if (isSuccess) {
-        // --- Split assignment ---
-        if (splitOrder && splitQty > 0) {
-          const formDataSplit = new FormData();
-          formDataSplit.append("orderId", String(selectedOrder.id));
-          formDataSplit.append("totalQty", String(selectedOrder.qty));
-          formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("splitOrder", "true");
-
-          const responseSplit = await axios.post(
-            `${API_URL}/assign-order`,
-            formDataSplit,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-
-          const isSplitSuccess =
-            responseSplit.data?.Resp_code === true ||
-            responseSplit.data?.Resp_code === "true" ||
-            responseSplit.data?.status === true;
-
-          if (isSplitSuccess) {
-            const mainStage = responseMain.data?.data?.to_stage || "next stage";
-            const splitStage =
-              responseSplit.data?.data?.to_stage || "next stage";
-            setAssignStatus({
-              type: "success",
-              message: `✅ Order assigned successfully! 
-Main: ${mainQty} units to ${mainStage} 
-Split: ${splitQty} units to ${splitStage}`,
-            });
-          } else {
-            setAssignStatus({
-              type: "error",
-              message: `⚠️ Main assigned, but split failed: ${
-                responseSplit.data?.Resp_desc || "Unknown error"
-              }`,
-            });
-          }
-        } else {
-          const toStage = responseMain.data?.data?.to_stage || "next stage";
-          const fromStage =
-            responseMain.data?.data?.from_stage || "current stage";
-          setAssignStatus({
-            type: "success",
-            message: `✅ Order assigned successfully! 
-${mainQty} units moved from ${fromStage} → ${toStage}`,
-          });
-        }
-
-        await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
-          setQuickAssignOpen(false);
-          setAssignStatus(null);
-        }, 2000);
-      } else {
+      if (!isSplitSuccess) {
         setAssignStatus({
           type: "error",
-          message: `⚠️ ${
-            responseMain.data?.Resp_desc || "Order assignment failed."
+          message: `⚠️ Main assigned, but split failed: ${
+            responseSplit.data?.Resp_desc || "Unknown error"
           }`,
         });
-      }
-    } catch (error: any) {
-      console.error("❌ Error assigning order:", error);
-
-      if (error.response) {
-        const msg =
-          error.response.data?.message ||
-          error.response.data?.Resp_desc ||
-          "Validation failed.";
-
-        const detailed =
-          error.response.data?.errors &&
-          Object.entries(error.response.data.errors)
-            .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-            .join("\n");
-
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${msg}\n${detailed || ""}`,
-        });
-      } else if (error.request) {
-        setAssignStatus({
-          type: "error",
-          message: "❌ No response from server. Please check your connection.",
-        });
       } else {
         setAssignStatus({
-          type: "error",
-          message: `❌ ${error.message}`,
+          type: "success",
+          message: `✅ Order assigned successfully!
+Main: ${mainQty} units
+Split: ${splitQty} units`,
         });
       }
+    } else {
+      setAssignStatus({
+        type: "success",
+        message: `✅ Order assigned successfully!
+${mainQty} units moved to next stage.`,
+      });
     }
-  };
+
+    // ---------------------------------------------------
+    //  🔥 UPDATE QTY LOCALLY (backend does not update it)
+    // ---------------------------------------------------
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id !== selectedOrder.id) return o;
+
+        const oldExe = o.qtyExe || 0;
+        const addMain = mainQty;
+        const addSplit = splitOrder ? splitQty : 0;
+
+        const newExe = oldExe + addMain + addSplit;
+        const newPending = o.qty - newExe;
+
+        return {
+          ...o,
+          qtyExe: newExe,
+          qtyPending: newPending,
+        };
+      })
+    );
+
+    // Close modal after short delay
+    setTimeout(() => {
+      setQuickAssignOpen(false);
+      setAssignStatus(null);
+    }, 2000);
+  } catch (error: any) {
+    console.error("❌ Error assigning order:", error);
+
+    if (error.response) {
+      const msg =
+        error.response.data?.message ||
+        error.response.data?.Resp_desc ||
+        "Validation failed.";
+
+      const detailed =
+        error.response.data?.errors &&
+        Object.entries(error.response.data.errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
+          .join("\n");
+
+      setAssignStatus({
+        type: "error",
+        message: `❌ ${msg}\n${detailed || ""}`,
+      });
+    } else if (error.request) {
+      setAssignStatus({
+        type: "error",
+        message: "❌ No response from server. Please check your connection.",
+      });
+    } else {
+      setAssignStatus({
+        type: "error",
+        message: `❌ ${error.message}`,
+      });
+    }
+  }
+};
+
 
   // Upload file
   const handleUpload = async (e: React.FormEvent) => {
@@ -1088,25 +1173,26 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       </td>
 
                       <td className="px-3 py-2 text-center text-sm text-gray-900">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 ${
-                            getRemark(order.id)
-                              ? "bg-[#174a9f] hover:bg-[#123a7f]"
-                              : "hover:bg-[#d1e2f3]"
-                          }`}
-                          title="Add/Edit Remarks"
-                          onClick={() => handleOpenRemarks(order)}
-                        >
-                          <MessageSquarePlus
-                            className={`h-4 w-4 ${
-                              getRemark(order.id)
-                                ? "text-white"
-                                : "text-blue-600"
-                            }`}
-                          />
-                        </Button>
+                      <Button
+  size="sm"
+  variant="ghost"
+  className={`h-7 w-7 p-0 ${
+    (order.remarks && order.remarks.trim() !== "") // backend value
+      ? "bg-[#174a9f] hover:bg-[#123a7f]"
+      : "hover:bg-[#d1e2f3]"
+  }`}
+  title="Add/Edit Remarks"
+  onClick={() => handleOpenRemarks(order)}
+>
+  <MessageSquarePlus
+    className={`h-4 w-4 ${
+      (order.remarks && order.remarks.trim() !== "")
+        ? "text-white"
+        : "text-blue-600"
+    }`}
+  />
+</Button>
+
                       </td>
 
                       <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
@@ -1141,34 +1227,39 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                           <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                         </Button> */}
                           <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "bg-red-100 border border-red-200 shadow-sm cursor-default"
-                                : "hover:bg-red-50"
-                            }`}
-                            title={
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "Marked as urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              if (
-                                !getAlertStatus(order.id) &&
-                                !order.alertStatus
-                              )
-                                toggleAlertStatus(order.id);
-                            }}
-                          >
-                            <Siren
-                              className={`h-4 w-4 ${
-                                getAlertStatus(order.id) || order.alertStatus
-                                  ? "text-red-600 animate-siren-pulse"
-                                  : "text-gray-400"
-                              }`}
-                            />
-                          </Button>
+                                                                               size="sm"
+                                                                               variant="ghost"
+                                                                               className={`h-7 w-7 p-0 transition-all duration-200 ${
+                                                                                 order.alertStatus
+                                                                                   ? "bg-red-100 border border-red-200 shadow-sm"
+                                                                                   : "hover:bg-red-50"
+                                                                               }`}
+                                                                               title={
+                                                                                 order.alertStatus
+                                                                                   ? "Click to unmark urgent"
+                                                                                   : "Click to mark as urgent"
+                                                                               }
+                                                                               onClick={() => {
+                                                                                 console.clear();
+                                                                                 console.log(
+                                                                                   "BUTTON CLICKED → orderId:",
+                                                                                   order.id
+                                                                                 );
+                                                                                 console.log(
+                                                                                   "BEFORE CLICK → alertStatus:",
+                                                                                   order.alertStatus
+                                                                                 );
+                                                                                 toggleAlertStatus(order.id);
+                                                                               }}
+                                                                             >
+                                                                               <Siren
+                                                                                 className={`h-4 w-4 ${
+                                                                                   order.alertStatus
+                                                                                     ? "text-red-600 animate-siren-pulse"
+                                                                                     : "text-gray-400"
+                                                                                 }`}
+                                                                               />
+                                                                             </Button>
                         </div>
                       </td>
                     </tr>

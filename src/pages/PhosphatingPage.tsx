@@ -462,77 +462,146 @@ export function PhosphatingPage() {
   };
 
   // Remarks dialog
-  const handleOpenRemarks = (order: AssemblyOrderData) => {
-    setRemarksOrder(order);
-    setRemarksText(getRemark(order.id) || order.remarks || "");
-    setRemarksDialogOpen(true);
-  };
+const handleOpenRemarks = (order: AssemblyOrderData) => {
+  setRemarksOrder(order);
+  setRemarksText(order.remarks || ""); // use backend value
+  setRemarksDialogOpen(true);
+};
 
-  const handleSaveRemarks = () => {
-    if (remarksOrder) {
-      updateRemark(remarksOrder.id, remarksText);
+
+
+const handleSaveRemarks = async () => {
+  if (!remarksOrder) return;
+
+  // Build form-data
+  const formData = new FormData();
+  formData.append("orderId", String(remarksOrder.id));
+  formData.append("remarks", remarksText);
+
+  try {
+    // Send to backend
+    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("Add Remarks Response:", res.data);
+
+    const success =
+      res.data?.Resp_code === "true" ||
+      res.data?.Resp_code === true;
+
+    if (success) {
+      // 🔥 Update LOCAL orders list UI also!
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+        )
+      );
+
+      // OPTIONAL: update context too if you need it
+      try {
+        updateRemark(remarksOrder.id, remarksText);
+      } catch {}
+
+      // Close dialog
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
       setRemarksText("");
+    } else {
+      console.warn("Backend rejected remarks:", res.data);
     }
-  };
+  } catch (err) {
+    console.error("Error saving remarks:", err);
+  }
+};
+
+
 
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
+    console.log("----");
+    console.log("TOGGLE CALLED for:", orderId);
+
     try {
-      // If already marked urgent in local UI, don't re-send
-      if (getAlertStatus(orderId)) {
-        console.log("Already marked urgent, skipping:", orderId);
+      const order = orders.find((o) => o.id === orderId);
+      const currentStatus = order?.alertStatus === true;
+
+      const newStatus = !currentStatus;
+      const urgentValue = newStatus ? "1" : "0";
+
+      console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
+
+      // 🔥 Optimistic UI update + SORTING FIX
+      setOrders((prev) => {
+        const updated = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: newStatus } : o
+        );
+
+        // 🔥 Sort here: urgent (true) → non urgent (false)
+        updated.sort((a, b) => {
+          return (b.alertStatus === true) - (a.alertStatus === true);
+        });
+
+        return updated;
+      });
+
+      const payload = {
+        orderId: String(orderId),
+        urgent: urgentValue,
+      };
+
+      console.log("SENDING PAYLOAD:", payload);
+
+      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("BACKEND RESPONSE:", res.data);
+
+      const success =
+        res.data?.Resp_code === "true" ||
+        res.data?.Resp_code === true ||
+        res.data?.status === true;
+
+      if (!success) {
+        console.log("BACKEND FAILED, REVERTING");
+
+        // Revert + re-sort
+        setOrders((prev) => {
+          const reverted = prev.map((o) =>
+            o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+          );
+
+          reverted.sort((a, b) => {
+            return (b.alertStatus === true) - (a.alertStatus === true);
+          });
+
+          return reverted;
+        });
+
         return;
       }
 
-      // Optimistic UI update: mark as urgent immediately
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, alertStatus: true } : o))
-      );
-      // Also update context local state if you use it
-      try {
-        toggleAlertStatusContext(orderId);
-      } catch (e) {
-        /* ignore if context not available */
-      }
+      console.log("TOGGLE SUCCESSFUL 👍");
+    } catch (err) {
+      console.error("ERROR:", err);
 
-      // Send payload exactly as backend expects (camelCase orderId)
-      const payload = { orderId: String(orderId), urgent: "1" };
-      console.log("Payload sent:", payload);
-
-      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Mark urgent response:", res.data);
-
-      // If backend returns success, optionally refresh list to get canonical data
-      if (
-        res.data?.Resp_code === "true" ||
-        res.data?.Resp_code === true ||
-        res.data?.status === true
-      ) {
-        // refresh list to get server state (keeps UI consistent)
-        await fetchOrders();
-      } else {
-        // Backend didn't accept; revert optimistic change and notify
-        setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o))
+      // revert on error + sort
+      setOrders((prev) => {
+        const reverted = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
         );
-        console.warn("Backend did not confirm urgent update:", res.data);
-      }
-    } catch (err: any) {
-      console.error("Error marking urgent:", err);
-      // revert optimistic UI on error
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o))
-      );
+
+        reverted.sort((a, b) => {
+          return (b.alertStatus === true) - (a.alertStatus === true);
+        });
+
+        return reverted;
+      });
     }
   };
-
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
@@ -1243,25 +1312,26 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       </td>
 
                       <td className="px-3 py-2 text-center text-sm text-gray-900">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 ${
-                            getRemark(order.id)
-                              ? "bg-[#174a9f] hover:bg-[#123a7f]"
-                              : "hover:bg-[#d1e2f3]"
-                          }`}
-                          title="Add/Edit Remarks"
-                          onClick={() => handleOpenRemarks(order)}
-                        >
-                          <MessageSquarePlus
-                            className={`h-4 w-4 ${
-                              getRemark(order.id)
-                                ? "text-white"
-                                : "text-blue-600"
-                            }`}
-                          />
-                        </Button>
+<Button
+  size="sm"
+  variant="ghost"
+  className={`h-7 w-7 p-0 ${
+    (order.remarks && order.remarks.trim() !== "") // backend value
+      ? "bg-[#174a9f] hover:bg-[#123a7f]"
+      : "hover:bg-[#d1e2f3]"
+  }`}
+  title="Add/Edit Remarks"
+  onClick={() => handleOpenRemarks(order)}
+>
+  <MessageSquarePlus
+    className={`h-4 w-4 ${
+      (order.remarks && order.remarks.trim() !== "")
+        ? "text-white"
+        : "text-blue-600"
+    }`}
+  />
+</Button>
+
                       </td>
 
                       <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
@@ -1296,34 +1366,39 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                           <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                         </Button> */}
                           <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "bg-red-100 border border-red-200 shadow-sm cursor-default"
-                                : "hover:bg-red-50"
-                            }`}
-                            title={
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "Marked as urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              if (
-                                !getAlertStatus(order.id) &&
-                                !order.alertStatus
-                              )
-                                toggleAlertStatus(order.id);
-                            }}
-                          >
-                            <Siren
-                              className={`h-4 w-4 ${
-                                getAlertStatus(order.id) || order.alertStatus
-                                  ? "text-red-600 animate-siren-pulse"
-                                  : "text-gray-400"
-                              }`}
-                            />
-                          </Button>
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className={`h-7 w-7 p-0 transition-all duration-200 ${
+                                                        order.alertStatus
+                                                          ? "bg-red-100 border border-red-200 shadow-sm"
+                                                          : "hover:bg-red-50"
+                                                      }`}
+                                                      title={
+                                                        order.alertStatus
+                                                          ? "Click to unmark urgent"
+                                                          : "Click to mark as urgent"
+                                                      }
+                                                      onClick={() => {
+                                                        console.clear();
+                                                        console.log(
+                                                          "BUTTON CLICKED → orderId:",
+                                                          order.id
+                                                        );
+                                                        console.log(
+                                                          "BEFORE CLICK → alertStatus:",
+                                                          order.alertStatus
+                                                        );
+                                                        toggleAlertStatus(order.id);
+                                                      }}
+                                                    >
+                                                      <Siren
+                                                        className={`h-4 w-4 ${
+                                                          order.alertStatus
+                                                            ? "text-red-600 animate-siren-pulse"
+                                                            : "text-gray-400"
+                                                        }`}
+                                                      />
+                                                    </Button>
                         </div>
                       </td>
                     </tr>
@@ -1359,7 +1434,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
                     >
-                      <SelectTrigger id="assignStep">
+                      <SelectTrigger id="assignStep" disabled>
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1380,6 +1455,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignQty}
                       onChange={(e) => setQuickAssignQty(e.target.value)}
                       max={selectedOrder?.qtyPending}
+                      disabled
                     />
                   </div>
                 </div>

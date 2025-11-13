@@ -461,11 +461,12 @@ export function PlanningPage() {
   };
 
   // Remarks dialog
-  const handleOpenRemarks = (order: AssemblyOrderData) => {
-    setRemarksOrder(order);
-    setRemarksText(getRemark(order.id) || order.remarks || "");
-    setRemarksDialogOpen(true);
-  };
+const handleOpenRemarks = (order: AssemblyOrderData) => {
+  setRemarksOrder(order);
+  setRemarksText(order.remarks || ""); // use backend value
+  setRemarksDialogOpen(true);
+};
+
 
 const handleSaveRemarks = async () => {
   if (!remarksOrder) return;
@@ -513,6 +514,7 @@ const handleSaveRemarks = async () => {
     console.error("Error saving remarks:", err);
   }
 };
+
 
 
   const toggleAlertStatus = async (orderId: string) => {

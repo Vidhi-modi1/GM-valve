@@ -262,11 +262,6 @@ export function SemiQcPage() {
       filtered = filtered.filter((order) => {
         // skip HOLD or invalid dates
         if (!order.assemblyDate || order.assemblyDate === "HOLD") return false;
-
-        // Accept formats:
-        // dd/mm/yyyy  -> parts length 3
-        // mm/yyyy     -> parts length 2  (treated as first day of month)
-        // yyyy        -> parts length 1  (treated as Jan 1 of year)
         const partsRaw = order.assemblyDate.split(/[\/-]/).map((p) => p.trim());
         const partsNum = partsRaw.map((p) => Number(p));
         if (partsNum.some((n) => isNaN(n))) return false;
@@ -354,40 +349,7 @@ export function SemiQcPage() {
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // Quick Assign logic (local; you can replace with API calls as needed)
-  // const handleQuickAssign = (order: AssemblyOrderData) => {
-  //   setSelectedOrder(order);
-  //   setQuickAssignOpen(true);
-  //   // Match PlanningPage behavior: allow selecting any next step
-  //   setQuickAssignStep('');
-  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-  //   setSplitOrder(false);
-  //   setSplitAssignStep('');
-  //   setSplitAssignQty('');
-  //   setQuickAssignErrors({});
-  // };
-
-  // const validateQuickAssign = () => {
-  //   const errs: { [k: string]: string } = {};
-  //   const maxQty = Number(selectedOrder?.qtyPending ?? 0);
-  //   const mainQty = Number(quickAssignQty || 0);
-  //   const splitQty = Number(splitAssignQty || 0);
-
-  //   if (!quickAssignQty || mainQty <= 0) errs.quickAssignQty = 'Quantity is required and must be > 0';
-  //   if (mainQty > maxQty) errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
-
-  //   if (splitOrder) {
-  //     if (!splitAssignStep) errs.splitAssignStep = 'Choose second step';
-  //     if (!splitAssignQty || splitQty <= 0) errs.splitAssignQty = 'Split qty required';
-  //     if (quickAssignStep && splitAssignStep && quickAssignStep === splitAssignStep) errs.sameEngineer = 'Choose different steps';
-  //     const total = mainQty + splitQty;
-  //     if (total !== maxQty) errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
-  //   }
-
-  //   setQuickAssignErrors(errs);
-  //   return Object.keys(errs).length === 0;
-  // };
-  // const currentStep = "semi-qc";
+  
   const currentStep = "semi-qc"; // or derive from login role
   const nextSteps = getNextSteps(currentStep);
 
@@ -471,37 +433,50 @@ const handleOpenRemarks = (order: AssemblyOrderData) => {
 const handleSaveRemarks = async () => {
   if (!remarksOrder) return;
 
+  // Build form-data
   const formData = new FormData();
   formData.append("orderId", String(remarksOrder.id));
   formData.append("remarks", remarksText);
 
   try {
+    // Send to backend
     const res = await axios.post(`${API_URL}/add-remarks`, formData, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    if (res.data?.Resp_code === "true") {
-      // 🔥 UPDATE LOCAL UI LIST
-      setOrders(prev =>
-        prev.map(o =>
-          o.id === remarksOrder.id
-            ? { ...o, remarks: remarksText } // update backend value
-            : o
+    console.log("Add Remarks Response:", res.data);
+
+    const success =
+      res.data?.Resp_code === "true" ||
+      res.data?.Resp_code === true;
+
+    if (success) {
+      // 🔥 Update LOCAL orders list UI also!
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
         )
       );
 
+      // OPTIONAL: update context too if you need it
+      try {
+        updateRemark(remarksOrder.id, remarksText);
+      } catch {}
+
+      // Close dialog
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
       setRemarksText("");
     } else {
-      console.warn("Remarks failed:", res.data);
+      console.warn("Backend rejected remarks:", res.data);
     }
   } catch (err) {
-    console.error("Error saving remark:", err);
+    console.error("Error saving remarks:", err);
   }
 };
+
 
 
   const toggleAlertStatus = async (orderId: string) => {
@@ -1252,7 +1227,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
                     >
-                      <SelectTrigger id="assignStep">
+                      <SelectTrigger id="assignStep" disabled>
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1273,6 +1248,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignQty}
                       onChange={(e) => setQuickAssignQty(e.target.value)}
                       max={selectedOrder?.qtyPending}
+                      disabled
                     />
                   </div>
                 </div>
