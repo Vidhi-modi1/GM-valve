@@ -9,19 +9,39 @@
  * the GM Valve manufacturing process.
  */
 export const workflowSteps: Record<string, string[]> = {
+  // Planning → Material Issue
   "planning": ["material-issue"],
+
+  // 1) Material Issue → Semi QC
   "material-issue": ["semi-qc"],
-  "semi-qc": ["after-phosphating"],
-  "after-phosphating": ["assembly"],
-  "assembly": ["testing1"],
-  "testing1": ["testing2"],
-  "testing2": ["marking"],
-  "marking": ["svs"],
-  "svs": ["pdi1"],
-  "pdi1": ["pdi2"],
-  "pdi2": ["dispatch"],
-  "dispatch": ["tpi"],
-  "tpi": [], // ✅ Final step (no next stage)
+
+  // 2) Semi QC → Phosphating
+  "semi-qc": ["phosphating"],
+
+  // 3) Phosphating → Assembly
+  "phosphating": ["assembly"],
+
+  // 4) Assembly → Testing 1 or Testing 2 (selection restricted by assembly line in UI)
+  "assembly": ["testing1", "testing2"],
+
+  // 5) Testing 1 → Marking 1; Testing 2 → Marking 2
+  "testing1": ["marking1"],
+  "testing2": ["marking2"],
+
+  // 6) Marking 1 → PDI 1; Marking 2 → PDI 2
+  "marking1": ["pdi1"],
+  "marking2": ["pdi2"],
+
+  // 7) After PDI, final option: TPI or Dispatch (both final)
+  "pdi1": ["tpi", "dispatch"],
+  "pdi2": ["tpi", "dispatch"],
+
+  // 8) SVS only goes to Marking 1
+  "svs": ["marking1"],
+
+  // Final steps: no next stage
+  "dispatch": [],
+  "tpi": [],
 };
 
 /**
@@ -32,11 +52,12 @@ export const stepLabels: Record<string, string> = {
   "planning": "Planning",
   "material-issue": "Material Issue",
   "semi-qc": "Semi QC",
-  "after-phosphating": "After Phosphating QC",
+  "phosphating": "Phosphating",
   "assembly": "Assembly",
   "testing1": "Testing 1",
   "testing2": "Testing 2",
-  "marking": "Marking",
+  "marking1": "Marking 1",
+  "marking2": "Marking 2",
   "svs": "Stock Valve Store (SVS)",
   "pdi1": "PDI 1",
   "pdi2": "PDI 2",

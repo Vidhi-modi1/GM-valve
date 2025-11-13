@@ -303,43 +303,7 @@ if (Resp_code === "true") {
               <img src={gmLogo} alt="GM Logo" className="h-8 w-auto object-contain" />
             </div>
 
-            {/* Right Section */}
-            {/* <div className="flex items-center space-x-3">
-              {role === "planning" && (
-                <Button
-                  onClick={() => setIsDialogOpen(true)}
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add New Order
-                </Button>
-              )}
-
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 relative">
-                <Bell className="h-4 w-4 text-gray-500" />
-                <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></div>
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Avatar className="h-9 w-9 cursor-pointer ring-2 ring-transparent hover:ring-[#a3c4e7] transition-all duration-300 hover:scale-110">
-                    <AvatarImage src="/api/placeholder/36/36" />
-                    <AvatarFallback className="bg-gradient-to-br from-[#2461c7] to-[#174a9f] text-white text-sm font-medium">
-                      GM
-                    </AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 mt-2">
-                  <DropdownMenuItem
-                    onClick={onLogout}
-                    className="text-red-600 cursor-pointer focus:bg-red-50"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div> */}
+           
             <div className="flex items-center space-x-3">
   {role === "planning" && (
     <>
@@ -433,110 +397,7 @@ if (Resp_code === "true") {
         </div>
       </header>
 
-      {/* <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl border-0">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold text-gray-900 text-center">
-              Add New Order
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 text-center">
-              Upload an Excel or CSV file to add new orders to your system.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="p-6 space-y-6">
-            <div
-              className={`
-                relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
-                ${isDragOver ? "border-[#174a9f] bg-[#e8f0f9]" : "border-gray-300 hover:border-gray-400"}
-                ${file ? "bg-green-50 border-green-300" : ""}
-              `}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              {file ? (
-                <div className="space-y-4">
-                  <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-green-600" />
-                  </div>
-                  <p className="font-medium text-gray-900">{file.name}</p>
-                  <p className="text-sm text-gray-500 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveFile}
-                    className="text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Remove File
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-gray-600" />
-                  </div>
-                  <p className="text-lg font-medium text-gray-900 mb-2">
-                    Drag and drop your file here
-                  </p>
-                  <p className="text-gray-500 mb-4">or</p>
-                  <Button
-                    variant="outline"
-                    onClick={handleChooseFile}
-                    className="border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9]"
-                  >
-                    Choose File
-                  </Button>
-                  <p className="text-xs text-gray-400">
-                    Supports Excel files (.xlsx, .xls) and CSV files (.csv)
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {statusMessage && (
-              <div
-                className={`flex items-center gap-2 text-sm p-2 rounded-md ${
-                  statusType === "success"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : statusType === "warning"
-                    ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                    : statusType === "error"
-                    ? "bg-red-50 text-red-700 border border-red-200"
-                    : "text-gray-600"
-                }`}
-              >
-                {statusType === "success" && <CheckCircle className="h-4 w-4" />}
-                {statusType === "warning" && <AlertTriangle className="h-4 w-4" />}
-                {statusType === "error" && <XCircle className="h-4 w-4" />}
-                <span>{statusMessage}</span>
-              </div>
-            )}
-
-            <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="px-6">
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpload}
-                disabled={!file || uploading}
-                className="px-6 bg-[#1457f6] hover:bg-[#1145d4] text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? "Uploading..." : "Submit"}
-              </Button>
-            </div>
-          </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileInputChange}
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-          />
-        </DialogContent>
-      </Dialog> */}
+     
       {/* 🚀 Modern ADD NEW ORDER DIALOG */}
 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
   <DialogContent className="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl border-0">

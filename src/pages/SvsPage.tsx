@@ -277,7 +277,8 @@ export function SvsPage() {
   const handleQuickAssign = (order: AssemblyOrderData) => {
     setSelectedOrder(order);
     setQuickAssignOpen(true);
-    setQuickAssignStep('');
+    // SVS can only move to Marking 1
+    setQuickAssignStep('marking1');
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
     setSplitOrder(false);
     setSplitAssignStep('');
@@ -765,12 +766,8 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       <SelectValue placeholder="Select step" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="material-issue">Material Issue</SelectItem>
-                      <SelectItem value="semi-qc">Semi QC</SelectItem>
-                      <SelectItem value="after-phosphating">After Phosphating QC</SelectItem>
-                      <SelectItem value="assembly">Assembly</SelectItem>
-                      <SelectItem value="testing">Testing</SelectItem>
-                      <SelectItem value="marking">Marking</SelectItem>
+                      {/* SVS → only Marking 1 */}
+                      <SelectItem value="marking1">Marking 1</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -794,61 +791,9 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
             </div>
 
             <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="splitOrder"
-                  checked={splitOrder}
-                  onCheckedChange={(val) => setSplitOrder(Boolean(val))}
-                />
-                <Label htmlFor="splitOrder" className="cursor-pointer">
-                  Split order to multiple workflow steps
-                </Label>
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+                SVS orders can only move to <span className="font-medium">Marking 1</span>. Splitting across different steps is disabled.
               </div>
-
-              {splitOrder && (
-                <div className="space-y-4 pl-6 border-l-2 border-blue-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Second Workflow Step</Label>
-                      <Select value={splitAssignStep} onValueChange={setSplitAssignStep}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select step" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="material-issue">Material Issue</SelectItem>
-                          <SelectItem value="semi-qc">Semi QC</SelectItem>
-                          <SelectItem value="after-phosphating">After Phosphating QC</SelectItem>
-                          <SelectItem value="assembly">Assembly</SelectItem>
-                          <SelectItem value="testing">Testing</SelectItem>
-                          <SelectItem value="marking">Marking</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Split Quantity</Label>
-                      <Input
-                        type="number"
-                        value={splitAssignQty}
-                        onChange={(e) => setSplitAssignQty(e.target.value)}
-                        max={selectedOrder?.qtyPending}
-                      />
-                    </div>
-                  </div>
-
-                  {quickAssignErrors.sameEngineer && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{quickAssignErrors.sameEngineer}</p>
-                    </div>
-                  )}
-
-                  {quickAssignErrors.totalQtyMismatch && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm text-amber-700">{quickAssignErrors.totalQtyMismatch}</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
