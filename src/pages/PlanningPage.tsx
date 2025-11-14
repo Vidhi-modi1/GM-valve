@@ -1191,15 +1191,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                             <Eye className="h-4 w-4 text-blue-600" />
                           </Button>
 
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 hover:bg-green-100"
-                            title="Assign Next"
-                            onClick={() => handleQuickAssign(order)}
-                          >
-                            <ArrowRight className="h-4 w-4 text-green-600" />
-                          </Button>
+                          
 
                           {/* <Button
                           size="sm"

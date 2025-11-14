@@ -336,8 +336,10 @@ if (Resp_code === "true") {
       "remarks",
     ];
 
-    const row = {};
+    const row: Record<string, string> = {};
     headers.forEach((h) => (row[h] = ""));
+    row["Assembly Date"] = "(dd-mm-yyyy)";
+
     const ws = XLSX.utils.json_to_sheet([row]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Order Format");

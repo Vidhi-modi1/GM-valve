@@ -815,7 +815,7 @@ export function SvsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="assignStep">Assign to Workflow Step</Label>
                   <Select value={quickAssignStep} onValueChange={setQuickAssignStep}>
-                    <SelectTrigger id="assignStep">
+                    <SelectTrigger id="assignStep" disabled>
                       <SelectValue placeholder="Select step" />
                     </SelectTrigger>
                     <SelectContent>

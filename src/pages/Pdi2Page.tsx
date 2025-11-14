@@ -1244,7 +1244,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
                     >
-                      <SelectTrigger id="assignStep">
+                      <SelectTrigger id="assignStep" disabled>
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
