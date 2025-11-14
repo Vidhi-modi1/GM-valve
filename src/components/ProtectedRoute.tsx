@@ -56,6 +56,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole, children }) => {
   const userData = localStorage.getItem("user");
+  const superAdmin = localStorage.getItem("superAdmin") === "true";
 
   // 🛑 If no user is stored, redirect to login
   if (!userData) {
@@ -116,7 +117,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole, children }
   const normalizedAllowedRole = normalize(allowedRole);
 
   // 🔒 If current user’s role doesn’t match route access → redirect to login
-  if (normalizedUserRole !== normalizedAllowedRole) {
+  if (!superAdmin && normalizedUserRole !== normalizedAllowedRole) {
     console.warn(
       `Access denied: user role "${normalizedUserRole}" cannot access "${normalizedAllowedRole}" page`
     );

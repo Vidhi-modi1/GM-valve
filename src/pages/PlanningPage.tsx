@@ -62,6 +62,8 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
+  // Preserve the original list position so items return when unmarked urgent
+  originalIndex: number;
 }
 
 export function PlanningPage() {
@@ -152,7 +154,7 @@ export function PlanningPage() {
 
       if (ok && Array.isArray(res.data.data)) {
         const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+          (item: any, index: number) => ({
             id: String(item.id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
@@ -185,11 +187,15 @@ export function PlanningPage() {
               item.alert_status === "true" ||
               item.urgent === 1 ||
               item.urgent === "1",
+
+            // Track original position to restore when urgent is cleared
+            originalIndex: index,
           })
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+        // Sort so urgent items appear at top on initial load
+        setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -234,106 +240,106 @@ export function PlanningPage() {
   );
 
   const filteredOrders = useMemo(() => {
-  let filtered = orders.slice();
+    let filtered = orders.slice();
 
-  if (showUrgentOnly) {
-    filtered = filtered.filter(
-      (o) => getAlertStatus(String(o.id)) || o.alertStatus
-    );
-  }
+    if (showUrgentOnly) {
+      filtered = filtered.filter(
+        (o) => getAlertStatus(String(o.id)) || o.alertStatus
+      );
+    }
 
-  if (assemblyLineFilter !== "all")
-    filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
-  if (gmsoaFilter !== "all")
-    filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
-  if (partyFilter !== "all")
-    filtered = filtered.filter((o) => o.party === partyFilter);
+    if (assemblyLineFilter !== "all")
+      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (gmsoaFilter !== "all")
+      filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
+    if (partyFilter !== "all")
+      filtered = filtered.filter((o) => o.party === partyFilter);
 
-  // ⬇️ UPDATED DATE FILTER SECTION
-  if (dateFrom || dateTo) {
-    filtered = filtered.filter((order) => {
-      // skip HOLD or invalid dates
-      if (!order.assemblyDate || order.assemblyDate === "HOLD") return false;
+    // ⬇️ UPDATED DATE FILTER SECTION
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter((order) => {
+        // skip HOLD or invalid dates
+        if (!order.assemblyDate || order.assemblyDate === "HOLD") return false;
 
-      // Strict dd-mm-yyyy parser
-      const parseDMY = (str: string | null | undefined): Date | null => {
-        if (!str) return null;
+        // Strict dd-mm-yyyy parser
+        const parseDMY = (str: string | null | undefined): Date | null => {
+          if (!str) return null;
 
-        // Only dd-mm-yyyy accepted
-        const match = str.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-        if (!match) return null;
+          // Only dd-mm-yyyy accepted
+          const match = str.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+          if (!match) return null;
 
-        const [, d, m, y] = match;
-        const day = Number(d);
-        const month = Number(m);
-        const year = Number(y);
+          const [, d, m, y] = match;
+          const day = Number(d);
+          const month = Number(m);
+          const year = Number(y);
 
-        // Create date
-        const date = new Date(year, month - 1, day);
+          // Create date
+          const date = new Date(year, month - 1, day);
 
-        // Validate (avoid auto-correcting by JS Date)
-        if (
-          date.getFullYear() !== year ||
-          date.getMonth() !== month - 1 ||
-          date.getDate() !== day
-        ) {
-          return null;
+          // Validate (avoid auto-correcting by JS Date)
+          if (
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+          ) {
+            return null;
+          }
+
+          return date;
+        };
+
+        const orderDate = parseDMY(order.assemblyDate);
+        if (!orderDate) return false;
+
+        // Year filter mode
+        if (dateFilterMode === "year" && dateFrom) {
+          return orderDate.getFullYear() === dateFrom.getFullYear();
         }
 
-        return date;
-      };
+        // Month filter mode
+        if (dateFilterMode === "month" && dateFrom) {
+          return (
+            orderDate.getFullYear() === dateFrom.getFullYear() &&
+            orderDate.getMonth() === dateFrom.getMonth()
+          );
+        }
 
-      const orderDate = parseDMY(order.assemblyDate);
-      if (!orderDate) return false;
+        // Range filter mode
+        if (dateFilterMode === "range") {
+          if (dateFrom && dateTo)
+            return orderDate >= dateFrom && orderDate <= dateTo;
+          if (dateFrom) return orderDate >= dateFrom;
+          if (dateTo) return orderDate <= dateTo;
+        }
 
-      // Year filter mode
-      if (dateFilterMode === "year" && dateFrom) {
-        return orderDate.getFullYear() === dateFrom.getFullYear();
-      }
+        return true;
+      });
+    }
 
-      // Month filter mode
-      if (dateFilterMode === "month" && dateFrom) {
-        return (
-          orderDate.getFullYear() === dateFrom.getFullYear() &&
-          orderDate.getMonth() === dateFrom.getMonth()
-        );
-      }
+    if (localSearchTerm.trim()) {
+      const term = localSearchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (o) =>
+          String(o.uniqueCode).toLowerCase().includes(term) ||
+          String(o.party).toLowerCase().includes(term) ||
+          String(o.gmsoaNo).toLowerCase().includes(term)
+      );
+    }
 
-      // Range filter mode
-      if (dateFilterMode === "range") {
-        if (dateFrom && dateTo)
-          return orderDate >= dateFrom && orderDate <= dateTo;
-        if (dateFrom) return orderDate >= dateFrom;
-        if (dateTo) return orderDate <= dateTo;
-      }
-
-      return true;
-    });
-  }
-
-  if (localSearchTerm.trim()) {
-    const term = localSearchTerm.toLowerCase();
-    filtered = filtered.filter(
-      (o) =>
-        String(o.uniqueCode).toLowerCase().includes(term) ||
-        String(o.party).toLowerCase().includes(term) ||
-        String(o.gmsoaNo).toLowerCase().includes(term)
-    );
-  }
-
-  return filtered;
-}, [
-  orders,
-  localSearchTerm,
-  showUrgentOnly,
-  assemblyLineFilter,
-  gmsoaFilter,
-  partyFilter,
-  dateFilterMode,
-  dateFrom,
-  dateTo,
-  getAlertStatus,
-]);
+    return filtered;
+  }, [
+    orders,
+    localSearchTerm,
+    showUrgentOnly,
+    assemblyLineFilter,
+    gmsoaFilter,
+    partyFilter,
+    dateFilterMode,
+    dateFrom,
+    dateTo,
+    getAlertStatus,
+  ]);
 
   // selection helpers
   const toggleRowSelection = (orderId: string) => {
@@ -461,104 +467,113 @@ export function PlanningPage() {
   };
 
   // Remarks dialog
-const handleOpenRemarks = (order: AssemblyOrderData) => {
-  setRemarksOrder(order);
-  setRemarksText(order.remarks || ""); // use backend value
-  setRemarksDialogOpen(true);
-};
-
-
-const handleSaveRemarks = async () => {
-  if (!remarksOrder) return;
-
-  // Build form-data
-  const formData = new FormData();
-  formData.append("orderId", String(remarksOrder.id));
-  formData.append("remarks", remarksText);
-
-  try {
-    // Send to backend
-    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    console.log("Add Remarks Response:", res.data);
-
-    const success =
-      res.data?.Resp_code === "true" ||
-      res.data?.Resp_code === true;
-
-    if (success) {
-      // 🔥 Update LOCAL orders list UI also!
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
-        )
-      );
-
-      // OPTIONAL: update context too if you need it
-      try {
-        updateRemark(remarksOrder.id, remarksText);
-      } catch {}
-
-      // Close dialog
-      setRemarksDialogOpen(false);
-      setRemarksOrder(null);
-      setRemarksText("");
-    } else {
-      console.warn("Backend rejected remarks:", res.data);
-    }
-  } catch (err) {
-    console.error("Error saving remarks:", err);
-  }
-};
-
-const sortOrders = (list) => {
-  return [...list].sort((a, b) => {
-    // urgent first
-    if (a.alertStatus !== b.alertStatus) {
-      return b.alertStatus - a.alertStatus;
-    }
-
-    // otherwise restore original order
-    return a.originalIndex - b.originalIndex;
-  });
-};
-
-
-const toggleAlertStatus = async (orderId: string) => {
-  const order = orders.find((o) => o.id === orderId);
-  const currentStatus = order?.alertStatus === true;
-  const newStatus = !currentStatus;
-
-  // Optimistic update
-  setOrders((prev) => {
-    const updated = prev.map((o) =>
-      o.id === orderId ? { ...o, alertStatus: newStatus } : o
-    );
-
-    return sortOrders(updated);
-  });
-
-  const payload = {
-    orderId: String(orderId),
-    urgent: newStatus ? "1" : "0",
+  const handleOpenRemarks = (order: AssemblyOrderData) => {
+    setRemarksOrder(order);
+    setRemarksText(order.remarks || ""); // use backend value
+    setRemarksDialogOpen(true);
   };
 
-  try {
-    const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
+  const handleSaveRemarks = async () => {
+    if (!remarksOrder) return;
+
+    // Build form-data
+    const formData = new FormData();
+    formData.append("orderId", String(remarksOrder.id));
+    formData.append("remarks", remarksText);
+
+    try {
+      // Send to backend
+      const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Add Remarks Response:", res.data);
+
+      const success =
+        res.data?.Resp_code === "true" || res.data?.Resp_code === true;
+
+      if (success) {
+        // 🔥 Update LOCAL orders list UI also!
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+          )
+        );
+
+        // OPTIONAL: update context too if you need it
+        try {
+          updateRemark(remarksOrder.id, remarksText);
+        } catch {}
+
+        // Close dialog
+        setRemarksDialogOpen(false);
+        setRemarksOrder(null);
+        setRemarksText("");
+      } else {
+        console.warn("Backend rejected remarks:", res.data);
+      }
+    } catch (err) {
+      console.error("Error saving remarks:", err);
+    }
+  };
+
+const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    const aUrg = a.alertStatus ? 1 : 0;
+    const bUrg = b.alertStatus ? 1 : 0;
+    if (aUrg !== bUrg) return bUrg - aUrg;
+
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
+
+  const toggleAlertStatus = async (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    const currentStatus = order?.alertStatus === true;
+    const newStatus = !currentStatus;
+
+    // Optimistic update
+    setOrders((prev) => {
+      const updated = prev.map((o) =>
+        o.id === orderId ? { ...o, alertStatus: newStatus } : o
+      );
+
+      return sortOrders(updated);
     });
 
-    const success =
-      res.data?.Resp_code === "true" ||
-      res.data?.Resp_code === true ||
-      res.data?.status === true;
+    const payload = {
+      orderId: String(orderId),
+      urgent: newStatus ? "1" : "0",
+    };
 
-    if (!success) {
-      // revert optimistic update
+    try {
+      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const success =
+        res.data?.Resp_code === "true" ||
+        res.data?.Resp_code === true ||
+        res.data?.status === true;
+
+      if (!success) {
+        // revert optimistic update
+        setOrders((prev) => {
+          const reverted = prev.map((o) =>
+            o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+          );
+
+          return sortOrders(reverted);
+        });
+      }
+    } catch (error) {
+      console.error("Urgent API failed:", error);
+
+      // revert on error
       setOrders((prev) => {
         const reverted = prev.map((o) =>
           o.id === orderId ? { ...o, alertStatus: currentStatus } : o
@@ -567,19 +582,7 @@ const toggleAlertStatus = async (orderId: string) => {
         return sortOrders(reverted);
       });
     }
-  } catch (error) {
-    console.error("Urgent API failed:", error);
-
-    // revert on error
-    setOrders((prev) => {
-      const reverted = prev.map((o) =>
-        o.id === orderId ? { ...o, alertStatus: currentStatus } : o
-      );
-
-      return sortOrders(reverted);
-    });
-  }
-};
+  };
 
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{

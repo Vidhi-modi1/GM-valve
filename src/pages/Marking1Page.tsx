@@ -69,6 +69,7 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
+   originalIndex: number;
 }
 
 export function Marking1Page() {
@@ -196,7 +197,7 @@ export function Marking1Page() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+        setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -478,59 +479,99 @@ export function Marking1Page() {
   };
 
   // ✅ Marks urgent one-time only, persists after refresh
-  const toggleAlertStatus = async (orderId: string) => {
-    try {
-      // If already marked urgent in local UI, don't re-send
-      if (getAlertStatus(orderId)) {
-        console.log("Already marked urgent, skipping:", orderId);
-        return;
-      }
-
-      // Optimistic UI update: mark as urgent immediately
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, alertStatus: true } : o))
-      );
-      // Also update context local state if you use it
+    const toggleAlertStatus = async (orderId: string) => {
+      console.log("----");
+      console.log("TOGGLE CALLED for:", orderId);
+  
       try {
-        toggleAlertStatusContext(orderId);
-      } catch (e) {
-        /* ignore if context not available */
+        const order = orders.find((o) => o.id === orderId);
+        const currentStatus = order?.alertStatus === true;
+  
+        const newStatus = !currentStatus;
+        const urgentValue = newStatus ? "1" : "0";
+  
+        console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
+  
+        // 🔥 Optimistic UI update + SORTING FIX
+        setOrders((prev) => {
+          const updated = prev.map((o) =>
+            o.id === orderId ? { ...o, alertStatus: newStatus } : o
+          );
+  
+          // 🔥 Sort here: urgent (true) → non urgent (false)
+          updated.sort((a, b) => {
+            return (b.alertStatus === true) - (a.alertStatus === true);
+          });
+  
+          return updated;
+        });
+  
+        const payload = {
+          orderId: String(orderId),
+          urgent: urgentValue,
+        };
+  
+        console.log("SENDING PAYLOAD:", payload);
+  
+        const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        console.log("BACKEND RESPONSE:", res.data);
+  
+        const success =
+          res.data?.Resp_code === "true" ||
+          res.data?.Resp_code === true ||
+          res.data?.status === true;
+  
+        if (!success) {
+          console.log("BACKEND FAILED, REVERTING");
+  
+          // Revert + re-sort
+          setOrders((prev) => {
+            const reverted = prev.map((o) =>
+              o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+            );
+  
+            reverted.sort((a, b) => {
+              return (b.alertStatus === true) - (a.alertStatus === true);
+            });
+  
+            return reverted;
+          });
+  
+          return;
+        }
+  
+        console.log("TOGGLE SUCCESSFUL 👍");
+      } catch (err) {
+        console.error("ERROR:", err);
+  
+        // revert on error + sort
+        setOrders((prev) => {
+          const reverted = prev.map((o) =>
+            o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
+          );
+  
+          reverted.sort((a, b) => {
+            return (b.alertStatus === true) - (a.alertStatus === true);
+          });
+  
+          return reverted;
+        });
       }
+    };
 
-      // Send payload exactly as backend expects (camelCase orderId)
-      const payload = { orderId: String(orderId), urgent: "1" };
-      console.log("Payload sent:", payload);
+      const sortOrders = (list: AssemblyOrderData[]) => {
+    return [...list].sort((a, b) => {
+      // urgent first
+      const aUrg = a.alertStatus ? 1 : 0;
+      const bUrg = b.alertStatus ? 1 : 0;
+      if (aUrg !== bUrg) return bUrg - aUrg;
 
-      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Mark urgent response:", res.data);
-
-      // If backend returns success, optionally refresh list to get canonical data
-      if (
-        res.data?.Resp_code === "true" ||
-        res.data?.Resp_code === true ||
-        res.data?.status === true
-      ) {
-        // refresh list to get server state (keeps UI consistent)
-        await fetchOrders();
-      } else {
-        // Backend didn't accept; revert optimistic change and notify
-        setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o))
-        );
-        console.warn("Backend did not confirm urgent update:", res.data);
-      }
-    } catch (err: any) {
-      console.error("Error marking urgent:", err);
-      // revert optimistic UI on error
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o))
-      );
-    }
+      // otherwise restore original order
+      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+    });
   };
 
   // 🧭 Add inside component (top with other states)
@@ -566,6 +607,13 @@ export function Marking1Page() {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+      // Align with MaterialIssue: include human-readable next step
+      {
+        const currentStep = "marking1";
+        const defaultNext = getNextSteps(currentStep)[0] || "";
+        const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+        if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+      }
 
       console.log("📤 Assign main payload (FormData):", {
         orderId: selectedOrder.id,
@@ -596,6 +644,13 @@ export function Marking1Page() {
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
           formDataSplit.append("splitOrder", "true");
+          // Include next step for split leg
+          {
+            const currentStep = "marking1";
+            const defaultNext = getNextSteps(currentStep)[0] || "";
+            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+            if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
+          }
 
           const responseSplit = await axios.post(
             `${API_URL}/assign-order`,
@@ -1192,7 +1247,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
                     >
-                      <SelectTrigger id="assignStep">
+                      <SelectTrigger id="assignStep" disabled>
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1213,6 +1268,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignQty}
                       onChange={(e) => setQuickAssignQty(e.target.value)}
                       max={selectedOrder?.qtyPending}
+                      disabled
                     />
                   </div>
                 </div>

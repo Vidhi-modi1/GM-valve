@@ -202,38 +202,80 @@ interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  // const [superAdminMode, setSuperAdminMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError("");
+
+  //   try {
+  //     const response = await loginUser(email, password);
+  //     if (response && response.status && response.data) {
+  //       const { user, token } = response.data;
+  //       localStorage.setItem("user", JSON.stringify(user));
+  //       localStorage.setItem("token", token);
+
+  //       const rawRoleName = (user && (user.role?.name || user.role)) || "";
+  //       const rolePath = normalizeRoleToRoute(String(rawRoleName), email);
+
+  //       // Persist Super Admin testing mode flag
+  //       // if (superAdminMode) {
+  //       //   localStorage.setItem("superAdmin", "true");
+  //       // } else {
+  //       //   localStorage.removeItem("superAdmin");
+  //       // }
+
+  //       onLogin && onLogin();
+  //       navigate(`/${rolePath}`);
+  //     } else {
+  //       setError(response?.message || "Login failed");
+  //     }
+  //   } catch (err: any) {
+  //     setError(err?.message || "Login failed. Check your credentials or server.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      const response = await loginUser(email, password);
-      if (response && response.status && response.data) {
-        const { user, token } = response.data;
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("token", token);
+  try {
+    const response = await loginUser(email, password);
 
-        const rawRoleName = (user && (user.role?.name || user.role)) || "";
-        const rolePath = normalizeRoleToRoute(String(rawRoleName), email);
+    // SUCCESS
+    if (response?.status === true && response?.data) {
+      const { user, token } = response.data;
 
-        onLogin && onLogin();
-        navigate(`/${rolePath}`);
-      } else {
-        setError(response?.message || "Login failed");
-      }
-    } catch (err: any) {
-      setError(err?.message || "Login failed. Check your credentials or server.");
-    } finally {
-      setLoading(false);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("token", token);
+
+      const rawRoleName = (user && (user.role?.name || user.role)) || "";
+      const rolePath = normalizeRoleToRoute(String(rawRoleName), email);
+
+      onLogin && onLogin();
+      navigate(`/${rolePath}`);
+    } 
+    // ERROR
+    else {
+      setError("Invalid username or password");
     }
-  };
+
+  } catch (err) {
+    setError("Invalid username or password");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ✅ Full role mapping logic — includes all stages and safe fallbacks
   function normalizeRoleToRoute(roleRaw: string, email: string): string {
@@ -245,7 +287,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       if (!r) continue;
 
       // Core roles
-      if (r === "admin") return "planning";
+      // if (r === "admin") return "planning";
       if (r === "planning" || r.startsWith("planning")) return "planning";
       if (r === "material-issue" || r.startsWith("materialissue")) return "material-issue";
       if (r === "semi-qc" || r.startsWith("semiqc")) return "semi-qc";
@@ -346,6 +388,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             Remember me
           </span>
         </label>
+
+        {/* <label className="flex items-center gap-2 text-sm cursor-pointer group">
+          <Checkbox
+            checked={superAdminMode}
+            onCheckedChange={(c) => setSuperAdminMode(Boolean(c))}
+            className="rounded border-2 hover:border-[#174a9f] transition-all duration-300"
+          />
+          <span className="text-gray-600 group-hover:text-[#174a9f] transition-colors duration-300">
+            Super Admin (testing)
+          </span>
+        </label> */}
 
         <a href="#" className="text-sm text-[#174a9f] hover:underline">
           Forgot Password?

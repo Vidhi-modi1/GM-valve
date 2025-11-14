@@ -22,6 +22,7 @@ import { Checkbox } from '../components/ui/checkbox';
 import { useOrderContext } from '../components/order-context';
 import { OrderFilters } from '../components/order-filters';
 import { API_URL } from '../config/api.ts';
+import { getNextSteps, getStepLabel } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
 
 interface AssemblyOrderData {
@@ -336,41 +337,99 @@ export function SvsPage() {
   };
 
   const toggleAlertStatus = async (orderId: string) => {
+    console.log("----");
+    console.log("TOGGLE CALLED for:", orderId);
+
     try {
-      if (getAlertStatus(orderId)) {
-        console.log('Already marked urgent, skipping:', orderId);
+      const order = orders.find((o) => o.id === orderId);
+      const currentStatus = order?.alertStatus === true;
+
+      const newStatus = !currentStatus;
+      const urgentValue = newStatus ? "1" : "0";
+
+      console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
+
+      // 🔥 Optimistic UI update + SORTING FIX
+      setOrders((prev) => {
+        const updated = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: newStatus } : o
+        );
+
+        // 🔥 Sort here: urgent (true) → non urgent (false)
+        updated.sort((a, b) => {
+          return (b.alertStatus === true) - (a.alertStatus === true);
+        });
+
+        return updated;
+      });
+
+      const payload = {
+        orderId: String(orderId),
+        urgent: urgentValue,
+      };
+
+      console.log("SENDING PAYLOAD:", payload);
+
+      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("BACKEND RESPONSE:", res.data);
+
+      const success =
+        res.data?.Resp_code === "true" ||
+        res.data?.Resp_code === true ||
+        res.data?.status === true;
+
+      if (!success) {
+        console.log("BACKEND FAILED, REVERTING");
+
+        // Revert + re-sort
+        setOrders((prev) => {
+          const reverted = prev.map((o) =>
+            o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+          );
+
+          reverted.sort((a, b) => {
+            return (b.alertStatus === true) - (a.alertStatus === true);
+          });
+
+          return reverted;
+        });
+
         return;
       }
 
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, alertStatus: true } : o)));
-      try { toggleAlertStatusContext(orderId); } catch (e) { }
+      console.log("TOGGLE SUCCESSFUL 👍");
+    } catch (err) {
+      console.error("ERROR:", err);
 
-      const payload = { orderId: String(orderId), urgent: '1' };
-      console.log('Payload sent:', payload);
+      // revert on error + sort
+      setOrders((prev) => {
+        const reverted = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
+        );
 
-      const res = await axios.post(
-        `${API_URL}/mark-urgent`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+        reverted.sort((a, b) => {
+          return (b.alertStatus === true) - (a.alertStatus === true);
+        });
 
-      console.log('Mark urgent response:', res.data);
-
-      if (res.data?.Resp_code === 'true' || res.data?.Resp_code === true || res.data?.status === true) {
-        await fetchOrders();
-      } else {
-        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o)));
-        console.warn('Backend did not confirm urgent update:', res.data);
-      }
-    } catch (err: any) {
-      console.error('Error marking urgent:', err);
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, alertStatus: false } : o)));
+        return reverted;
+      });
     }
   };
+
+  const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    const aUrg = a.alertStatus ? 1 : 0;
+    const bUrg = b.alertStatus ? 1 : 0;
+    if (aUrg !== bUrg) return bUrg - aUrg;
+
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
 
   const handleAssignOrder = async () => {
     if (!selectedOrder) return;
@@ -388,10 +447,17 @@ export function SvsPage() {
       const mainQty = Number(quickAssignQty || 0);
       const splitQty = Number(splitAssignQty || 0);
 
+      // Determine next step label based on user pick or default for SVS
+      const fallbackStep = (getNextSteps("svs")[0] || "");
+      const nextMainStep = quickAssignStep || fallbackStep;
+      const nextMainLabel = getStepLabel(nextMainStep);
+
       const formData = new FormData();
       formData.append('orderId', String(selectedOrder.id));
       formData.append('totalQty', String(selectedOrder.qty));
       formData.append('executedQty', String(mainQty));
+      formData.append('nextSteps', nextMainLabel);
+      formData.append('splittedCode', String(selectedOrder.splittedCode || ''));
 
       console.log("📤 Assign main payload (FormData):", {
         orderId: selectedOrder.id,
@@ -410,60 +476,47 @@ export function SvsPage() {
         responseMain.data?.Resp_code === "true" ||
         responseMain.data?.status === true;
 
-      if (isSuccess) {
-        if (splitOrder && splitQty > 0) {
-          const formDataSplit = new FormData();
-          formDataSplit.append('orderId', String(selectedOrder.id));
-          formDataSplit.append('totalQty', String(selectedOrder.qty));
-          formDataSplit.append('executedQty', String(splitQty));
-          formDataSplit.append('splitOrder', 'true');
-
-          const responseSplit = await axios.post(`${API_URL}/assign-order`, formDataSplit, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          const isSplitSuccess =
-            responseSplit.data?.Resp_code === true ||
-            responseSplit.data?.Resp_code === "true" ||
-            responseSplit.data?.status === true;
-
-          if (isSplitSuccess) {
-            const mainStage = responseMain.data?.data?.to_stage || 'next stage';
-            const splitStage = responseSplit.data?.data?.to_stage || 'next stage';
-            setAssignStatus({
-              type: 'success',
-              message: `✅ Order assigned successfully! 
-Main: ${mainQty} units to ${mainStage} 
-Split: ${splitQty} units to ${splitStage}`,
-            });
-          } else {
-            setAssignStatus({
-              type: 'error',
-              message: `⚠️ Main assigned, but split failed: ${responseSplit.data?.Resp_desc || "Unknown error"}`,
-            });
-          }
-        } else {
-          const toStage = responseMain.data?.data?.to_stage || 'next stage';
-          const fromStage = responseMain.data?.data?.from_stage || 'current stage';
-          setAssignStatus({
-            type: 'success',
-            message: `✅ Order assigned successfully! 
-${mainQty} units moved from ${fromStage} → ${toStage}`,
-          });
-        }
-
-        await fetchOrders();
-        setTimeout(() => {
-          setQuickAssignOpen(false);
-          setAssignStatus(null);
-        }, 2000);
-
-      } else {
-        setAssignStatus({
-          type: 'error',
-          message: `⚠️ ${responseMain.data?.Resp_desc || "Order assignment failed."}`,
-        });
+      if (!isSuccess) {
+        setAssignStatus({ type: 'error', message: responseMain.data?.Resp_desc || "Order assignment failed." });
+        return;
       }
+
+      let successMsg = `✔ Assigned ${mainQty} → ${nextMainLabel}`;
+
+      // Split assign if requested
+      if (splitOrder && splitQty > 0) {
+        const splitStep = splitAssignStep || nextMainStep;
+        const splitLabel = getStepLabel(splitStep);
+
+        const formDataSplit = new FormData();
+        formDataSplit.append('orderId', String(selectedOrder.id));
+        formDataSplit.append('totalQty', String(selectedOrder.qty));
+        formDataSplit.append('executedQty', String(splitQty));
+        formDataSplit.append('nextSteps', splitLabel);
+        formDataSplit.append('splittedCode', String(selectedOrder.splittedCode || ''));
+
+        const responseSplit = await axios.post(`${API_URL}/assign-order`, formDataSplit, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const isSplitSuccess =
+          responseSplit.data?.Resp_code === true ||
+          responseSplit.data?.Resp_code === "true";
+
+        if (isSplitSuccess) {
+          successMsg += `\n✔ Split ${splitQty} → ${splitLabel}`;
+        } else {
+          setAssignStatus({ type: 'error', message: `Main assigned but split failed: ${responseSplit.data?.Resp_desc || "Unknown error"}` });
+        }
+      }
+
+      setAssignStatus({ type: 'success', message: successMsg });
+
+      await fetchOrders();
+      setTimeout(() => {
+        setQuickAssignOpen(false);
+        setAssignStatus(null);
+      }, 2000);
 
     } catch (error: any) {
       console.error("❌ Error assigning order:", error);
@@ -790,11 +843,11 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
               </div>
             </div>
 
-            <div className="space-y-4 border-t pt-4">
+            {/* <div className="space-y-4 border-t pt-4">
               <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
                 SVS orders can only move to <span className="font-medium">Marking 1</span>. Splitting across different steps is disabled.
               </div>
-            </div>
+            </div> */}
           </div>
 
           {assignStatus && (

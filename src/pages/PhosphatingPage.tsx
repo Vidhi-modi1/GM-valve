@@ -196,7 +196,7 @@ export function PhosphatingPage() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+         setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -602,6 +602,18 @@ const handleSaveRemarks = async () => {
       });
     }
   };
+
+  const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    const aUrg = a.alertStatus ? 1 : 0;
+    const bUrg = b.alertStatus ? 1 : 0;
+    if (aUrg !== bUrg) return bUrg - aUrg;
+
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
@@ -785,20 +797,22 @@ const handleAssignOrder = async () => {
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
+    // Resolve next step consistently for Phosphating
+    const nextStepKey = quickAssignStep || (getNextSteps("phosphating")[0] || "assembly");
+    const nextStepLabel = getStepLabel(nextStepKey);
+
     // 🔥 MAIN ASSIGN PAYLOAD
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("from_stage", "material-issue");  // REQUIRED
-    formData.append("to_stage", "semi-qc");           // REQUIRED
+    formData.append("nextSteps", nextStepLabel);
 
     console.log("📤 Assign main payload (FormData):", {
       orderId: selectedOrder.id,
       totalQty: selectedOrder.qty,
       executedQty: mainQty,
-      from_stage: "material-issue",
-      to_stage: "semi-qc",
+      nextSteps: nextStepLabel,
     });
 
     const responseMain = await axios.post(
@@ -818,6 +832,7 @@ const handleAssignOrder = async () => {
 
     // ---------- MAIN SUCCESS ----------
     if (isSuccess) {
+      let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
       // 🔥 SPLIT ASSIGNMENT (IF ANY)
       if (splitOrder && splitQty > 0) {
@@ -825,9 +840,7 @@ const handleAssignOrder = async () => {
         formDataSplit.append("orderId", String(selectedOrder.id));
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
-        formDataSplit.append("splitOrder", "true");
-        formDataSplit.append("from_stage", "material-issue"); // REQUIRED
-        formDataSplit.append("to_stage", "semi-qc");          // REQUIRED
+        formDataSplit.append("nextSteps", nextStepLabel);
 
         const responseSplit = await axios.post(
           `${API_URL}/assign-order`,
@@ -851,29 +864,15 @@ const handleAssignOrder = async () => {
           });
           return;
         }
-
-        // BOTH SUCCESS
-        const mainStage = responseMain.data?.data?.to_stage || "semi-qc";
-        const splitStage = responseSplit.data?.data?.to_stage || "semi-qc";
-
-        setAssignStatus({
-          type: "success",
-          message: `✅ Order assigned successfully!
-Main: ${mainQty} → ${mainStage}
-Split: ${splitQty} → ${splitStage}`,
-        });
+        successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
 
       } else {
         // NO SPLIT
-        const toStage = responseMain.data?.data?.to_stage || "semi-qc";
-        const fromStage = responseMain.data?.data?.from_stage || "material-issue";
-
-        setAssignStatus({
-          type: "success",
-          message: `✅ Order assigned successfully!
-${mainQty} units moved from ${fromStage} → ${toStage}`,
-        });
+        // successMessage remains as main assignment only
       }
+
+      // Show success
+      setAssignStatus({ type: "success", message: successMessage });
 
       await fetchOrders();
       setTimeout(() => {
@@ -1010,7 +1009,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div>
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-               After Phosphating QC
+                After Phosphating QC
               </h1>
               <p className="text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow

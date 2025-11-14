@@ -69,6 +69,7 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
+   originalIndex: number;
 }
 
 export function AssemblyPage() {
@@ -196,7 +197,7 @@ export function AssemblyPage() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+    setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -214,7 +215,6 @@ export function AssemblyPage() {
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // filter option lists
@@ -354,39 +354,7 @@ export function AssemblyPage() {
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // Quick Assign logic (local; you can replace with API calls as needed)
-  // const handleQuickAssign = (order: AssemblyOrderData) => {
-  //   setSelectedOrder(order);
-  //   setQuickAssignOpen(true);
-  //   // Match PlanningPage behavior: allow selecting any next step
-  //   setQuickAssignStep('');
-  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-  //   setSplitOrder(false);
-  //   setSplitAssignStep('');
-  //   setSplitAssignQty('');
-  //   setQuickAssignErrors({});
-  // };
-
-  // const validateQuickAssign = () => {
-  //   const errs: { [k: string]: string } = {};
-  //   const maxQty = Number(selectedOrder?.qtyPending ?? 0);
-  //   const mainQty = Number(quickAssignQty || 0);
-  //   const splitQty = Number(splitAssignQty || 0);
-
-  //   if (!quickAssignQty || mainQty <= 0) errs.quickAssignQty = 'Quantity is required and must be > 0';
-  //   if (mainQty > maxQty) errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
-
-  //   if (splitOrder) {
-  //     if (!splitAssignStep) errs.splitAssignStep = 'Choose second step';
-  //     if (!splitAssignQty || splitQty <= 0) errs.splitAssignQty = 'Split qty required';
-  //     if (quickAssignStep && splitAssignStep && quickAssignStep === splitAssignStep) errs.sameEngineer = 'Choose different steps';
-  //     const total = mainQty + splitQty;
-  //     if (total !== maxQty) errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
-  //   }
-
-  //   setQuickAssignErrors(errs);
-  //   return Object.keys(errs).length === 0;
-  // };
+  
   // const currentStep = "assembly";
   const currentStep = "assembly"; // or derive from login role
   const nextSteps = getNextSteps(currentStep);
@@ -528,8 +496,6 @@ const handleSaveRemarks = async () => {
   }
 };
 
-
-
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
     console.log("----");
@@ -614,6 +580,18 @@ const handleSaveRemarks = async () => {
     }
   };
 
+    const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    const aUrg = a.alertStatus ? 1 : 0;
+    const bUrg = b.alertStatus ? 1 : 0;
+    if (aUrg !== bUrg) return bUrg - aUrg;
+
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
+
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
@@ -648,6 +626,13 @@ const handleAssignOrder = async () => {
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
+    // Align with MaterialIssue: include human-readable next step
+    {
+      const currentStep = "assembly";
+      const defaultNext = getNextSteps(currentStep)[0] || "";
+      const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+      if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+    }
 
     console.log("📤 Assign main payload:", {
       orderId: selectedOrder.id,
@@ -681,12 +666,19 @@ const handleAssignOrder = async () => {
     // ----------------------------
     //  SPLIT ASSIGNMENT (IF ANY)
     // ----------------------------
-    if (splitOrder && splitQty > 0) {
-      const formDataSplit = new FormData();
-      formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.qty));
-      formDataSplit.append("executedQty", String(splitQty));
-      formDataSplit.append("splitOrder", "true");
+      if (splitOrder && splitQty > 0) {
+        const formDataSplit = new FormData();
+        formDataSplit.append("orderId", String(selectedOrder.id));
+        formDataSplit.append("totalQty", String(selectedOrder.qty));
+        formDataSplit.append("executedQty", String(splitQty));
+        formDataSplit.append("splitOrder", "true");
+        // Include next step for split leg
+        {
+          const currentStep = "assembly";
+          const defaultNext = getNextSteps(currentStep)[0] || "";
+          const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+          if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
+        }
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,

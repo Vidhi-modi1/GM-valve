@@ -196,7 +196,7 @@ export function Testing2Page() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+        setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -601,6 +601,18 @@ const handleSaveRemarks = async () => {
     }
   };
 
+  const sortOrders = (list: AssemblyOrderData[]) => {
+    return [...list].sort((a, b) => {
+      // urgent first
+      const aUrg = a.alertStatus ? 1 : 0;
+      const bUrg = b.alertStatus ? 1 : 0;
+      if (aUrg !== bUrg) return bUrg - aUrg;
+
+      // otherwise restore original order
+      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+    });
+  };
+
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
@@ -634,6 +646,13 @@ const handleSaveRemarks = async () => {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+      // Align with MaterialIssue: include human-readable next step
+      {
+        const currentStep = "testing2";
+        const defaultNext = getNextSteps(currentStep)[0] || "";
+        const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+        if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+      }
 
       console.log("📤 Assign main payload (FormData):", {
         orderId: selectedOrder.id,
@@ -664,6 +683,13 @@ const handleSaveRemarks = async () => {
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
           formDataSplit.append("splitOrder", "true");
+          // Include next step for split leg
+          {
+            const currentStep = "testing2";
+            const defaultNext = getNextSteps(currentStep)[0] || "";
+            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+            if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
+          }
 
           const responseSplit = await axios.post(
             `${API_URL}/assign-order`,
@@ -1265,8 +1291,9 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                     <Select
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
+                      
                     >
-                      <SelectTrigger id="assignStep">
+                      <SelectTrigger id="assignStep" disabled>
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1287,6 +1314,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       value={quickAssignQty}
                       onChange={(e) => setQuickAssignQty(e.target.value)}
                       max={selectedOrder?.qtyPending}
+                      disabled
                     />
                   </div>
                 </div>

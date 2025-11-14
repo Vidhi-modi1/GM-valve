@@ -69,6 +69,7 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
+  originalIndex: number;
 }
 
 export function MaterialIssuePage() {
@@ -196,7 +197,7 @@ export function MaterialIssuePage() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+        setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -211,6 +212,8 @@ export function MaterialIssuePage() {
       setLoading(false);
     }
   };
+
+  const nextStepValue = getStepLabel(quickAssignStep);
 
   useEffect(() => {
     fetchOrders();
@@ -354,40 +357,6 @@ export function MaterialIssuePage() {
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // Quick Assign logic (local; you can replace with API calls as needed)
-  // const handleQuickAssign = (order: AssemblyOrderData) => {
-  //   setSelectedOrder(order);
-  //   setQuickAssignOpen(true);
-  //   // Match PlanningPage behavior: allow selecting any next step
-  //   setQuickAssignStep('');
-  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-  //   setSplitOrder(false);
-  //   setSplitAssignStep('');
-  //   setSplitAssignQty('');
-  //   setQuickAssignErrors({});
-  // };
-
-  // const validateQuickAssign = () => {
-  //   const errs: { [k: string]: string } = {};
-  //   const maxQty = Number(selectedOrder?.qtyPending ?? 0);
-  //   const mainQty = Number(quickAssignQty || 0);
-  //   const splitQty = Number(splitAssignQty || 0);
-
-  //   if (!quickAssignQty || mainQty <= 0) errs.quickAssignQty = 'Quantity is required and must be > 0';
-  //   if (mainQty > maxQty) errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
-
-  //   if (splitOrder) {
-  //     if (!splitAssignStep) errs.splitAssignStep = 'Choose second step';
-  //     if (!splitAssignQty || splitQty <= 0) errs.splitAssignQty = 'Split qty required';
-  //     if (quickAssignStep && splitAssignStep && quickAssignStep === splitAssignStep) errs.sameEngineer = 'Choose different steps';
-  //     const total = mainQty + splitQty;
-  //     if (total !== maxQty) errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
-  //   }
-
-  //   setQuickAssignErrors(errs);
-  //   return Object.keys(errs).length === 0;
-  // };
-  // const currentStep = "material-issue";
   const currentStep = "material-issue"; // or derive from login role
   const nextSteps = getNextSteps(currentStep);
 
@@ -417,6 +386,12 @@ export function MaterialIssuePage() {
     const maxQty = Number(selectedOrder?.qtyPending ?? 0);
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
+
+    // Determine next step value from selection or workflow
+    const nextStepValue =
+      quickAssignStep ||
+      (Array.isArray(nextSteps) ? nextSteps[0] : "") ||
+      "semi-qc";
 
     // ✅ Basic validations
     if (!quickAssignStep)
@@ -462,104 +437,82 @@ export function MaterialIssuePage() {
   };
 
   // Remarks dialog
-const handleOpenRemarks = (order: AssemblyOrderData) => {
-  setRemarksOrder(order);
-  setRemarksText(order.remarks || ""); // use backend value
-  setRemarksDialogOpen(true);
-};
+  const handleOpenRemarks = (order: AssemblyOrderData) => {
+    setRemarksOrder(order);
+    setRemarksText(order.remarks || ""); // use backend value
+    setRemarksDialogOpen(true);
+  };
 
+  const handleSaveRemarks = async () => {
+    if (!remarksOrder) return;
 
+    // Build form-data
+    const formData = new FormData();
+    formData.append("orderId", String(remarksOrder.id));
+    formData.append("remarks", remarksText);
 
+    try {
+      // Send to backend
+      const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-const handleSaveRemarks = async () => {
-  if (!remarksOrder) return;
+      console.log("Add Remarks Response:", res.data);
 
-  // Build form-data
-  const formData = new FormData();
-  formData.append("orderId", String(remarksOrder.id));
-  formData.append("remarks", remarksText);
+      const success =
+        res.data?.Resp_code === "true" || res.data?.Resp_code === true;
 
-  try {
-    // Send to backend
-    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      if (success) {
+        // 🔥 Update LOCAL orders list UI also!
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+          )
+        );
 
-    console.log("Add Remarks Response:", res.data);
+        // OPTIONAL: update context too if you need it
+        try {
+          updateRemark(remarksOrder.id, remarksText);
+        } catch {}
 
-    const success =
-      res.data?.Resp_code === "true" ||
-      res.data?.Resp_code === true;
-
-    if (success) {
-      // 🔥 Update LOCAL orders list UI also!
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
-        )
-      );
-
-      // OPTIONAL: update context too if you need it
-      try {
-        updateRemark(remarksOrder.id, remarksText);
-      } catch {}
-
-      // Close dialog
-      setRemarksDialogOpen(false);
-      setRemarksOrder(null);
-      setRemarksText("");
-    } else {
-      console.warn("Backend rejected remarks:", res.data);
+        // Close dialog
+        setRemarksDialogOpen(false);
+        setRemarksOrder(null);
+        setRemarksText("");
+      } else {
+        console.warn("Backend rejected remarks:", res.data);
+      }
+    } catch (err) {
+      console.error("Error saving remarks:", err);
     }
-  } catch (err) {
-    console.error("Error saving remarks:", err);
-  }
-};
-
-
+  };
 
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
-    console.log("----");
-    console.log("TOGGLE CALLED for:", orderId);
+    const order = orders.find((o) => o.id === orderId);
+    const currentStatus = order?.alertStatus === true;
+    const newStatus = !currentStatus;
+
+    // Optimistic update
+    setOrders((prev) => {
+      const updated = prev.map((o) =>
+        o.id === orderId ? { ...o, alertStatus: newStatus } : o
+      );
+
+      return sortOrders(updated);
+    });
+
+    const payload = {
+      orderId: String(orderId),
+      urgent: newStatus ? "1" : "0",
+    };
 
     try {
-      const order = orders.find((o) => o.id === orderId);
-      const currentStatus = order?.alertStatus === true;
-
-      const newStatus = !currentStatus;
-      const urgentValue = newStatus ? "1" : "0";
-
-      console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
-
-      // 🔥 Optimistic UI update + SORTING FIX
-      setOrders((prev) => {
-        const updated = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: newStatus } : o
-        );
-
-        // 🔥 Sort here: urgent (true) → non urgent (false)
-        updated.sort((a, b) => {
-          return (b.alertStatus === true) - (a.alertStatus === true);
-        });
-
-        return updated;
-      });
-
-      const payload = {
-        orderId: String(orderId),
-        urgent: urgentValue,
-      };
-
-      console.log("SENDING PAYLOAD:", payload);
-
       const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log("BACKEND RESPONSE:", res.data);
 
       const success =
         res.data?.Resp_code === "true" ||
@@ -567,278 +520,164 @@ const handleSaveRemarks = async () => {
         res.data?.status === true;
 
       if (!success) {
-        console.log("BACKEND FAILED, REVERTING");
-
-        // Revert + re-sort
+        // revert optimistic update
         setOrders((prev) => {
           const reverted = prev.map((o) =>
             o.id === orderId ? { ...o, alertStatus: currentStatus } : o
           );
 
-          reverted.sort((a, b) => {
-            return (b.alertStatus === true) - (a.alertStatus === true);
-          });
-
-          return reverted;
+          return sortOrders(reverted);
         });
-
-        return;
       }
+    } catch (error) {
+      console.error("Urgent API failed:", error);
 
-      console.log("TOGGLE SUCCESSFUL 👍");
-    } catch (err) {
-      console.error("ERROR:", err);
-
-      // revert on error + sort
+      // revert on error
       setOrders((prev) => {
         const reverted = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
+          o.id === orderId ? { ...o, alertStatus: currentStatus } : o
         );
 
-        reverted.sort((a, b) => {
-          return (b.alertStatus === true) - (a.alertStatus === true);
-        });
-
-        return reverted;
+        return sortOrders(reverted);
       });
     }
   };
 
+  const sortOrders = (list: AssemblyOrderData[]) => {
+    return [...list].sort((a, b) => {
+      // urgent first
+      const aUrg = a.alertStatus ? 1 : 0;
+      const bUrg = b.alertStatus ? 1 : 0;
+      if (aUrg !== bUrg) return bUrg - aUrg;
+
+      // otherwise restore original order
+      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+    });
+  };
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
 
-  // ✅ Assign order to next workflow stage
-//   const handleAssignOrder = async () => {
-//     if (!selectedOrder) return;
-//     if (!validateQuickAssign()) return;
+  // Removed legacy commented assign-order block to prevent stray references
 
-//     setAssignStatus({
-//       type: "info",
-//       message: "Assigning order, please wait...",
-//     });
+  const handleAssignOrder = async () => {
+    if (!selectedOrder) return;
+    if (!validateQuickAssign()) return;
 
-//     try {
-//       const token = localStorage.getItem("token");
-//       if (!token) {
-//         setAssignStatus({
-//           type: "error",
-//           message: "Token missing. Please log in again.",
-//         });
-//         return;
-//       }
-
-//       const mainQty = Number(quickAssignQty || 0);
-//       const splitQty = Number(splitAssignQty || 0);
-
-//       const formDataSplit = new FormData();
-// formDataSplit.append("orderId", String(selectedOrder.id));
-// formDataSplit.append("totalQty", String(selectedOrder.qty));
-// formDataSplit.append("executedQty", String(splitQty));
-// formDataSplit.append("splitOrder", "true");
-// formDataSplit.append("from_stage", "material-issue");  // REQUIRED
-// formDataSplit.append("to_stage", "semi-qc");           // REQUIRED
-
-
-//       console.log("📤 Assign main payload (FormData):", {
-//         orderId: selectedOrder.id,
-//         totalQty: selectedOrder.qty,
-//         executedQty: mainQty,
-//       });
-
-//       const responseMain = await axios.post(
-//         `${API_URL}/assign-order`,
-//         formData,
-//         {
-//           headers: { Authorization: `Bearer ${token}` },
-//         }
-//       );
-
-//       console.log("✅ Main assign response:", responseMain.data);
-
-//       const isSuccess =
-//         responseMain.data?.Resp_code === true ||
-//         responseMain.data?.Resp_code === "true" ||
-//         responseMain.data?.status === true;
-
-//       if (isSuccess) {
-//         // --- Split assignment ---
-//         if (splitOrder && splitQty > 0) {
-//           const formDataSplit = new FormData();
-//           formDataSplit.append("orderId", String(selectedOrder.id));
-//           formDataSplit.append("totalQty", String(selectedOrder.qty));
-//           formDataSplit.append("executedQty", String(splitQty));
-//           formDataSplit.append("splitOrder", "true");
-
-//           const responseSplit = await axios.post(
-//             `${API_URL}/assign-order`,
-//             formDataSplit,
-//             {
-//               headers: { Authorization: `Bearer ${token}` },
-//             }
-//           );
-
-//           const isSplitSuccess =
-//             responseSplit.data?.Resp_code === true ||
-//             responseSplit.data?.Resp_code === "true" ||
-//             responseSplit.data?.status === true;
-
-//           if (isSplitSuccess) {
-//             const mainStage = responseMain.data?.data?.to_stage || "next stage";
-//             const splitStage =
-//               responseSplit.data?.data?.to_stage || "next stage";
-//             setAssignStatus({
-//               type: "success",
-//               message: `✅ Order assigned successfully! 
-// Main: ${mainQty} units to ${mainStage} 
-// Split: ${splitQty} units to ${splitStage}`,
-//             });
-//           } else {
-//             setAssignStatus({
-//               type: "error",
-//               message: `⚠️ Main assigned, but split failed: ${
-//                 responseSplit.data?.Resp_desc || "Unknown error"
-//               }`,
-//             });
-//           }
-//         } else {
-//           const toStage = responseMain.data?.data?.to_stage || "next stage";
-//           const fromStage =
-//             responseMain.data?.data?.from_stage || "current stage";
-//           setAssignStatus({
-//             type: "success",
-//             message: `✅ Order assigned successfully! 
-// ${mainQty} units moved from ${fromStage} → ${toStage}`,
-//           });
-//         }
-
-//         await fetchOrders();
-//         // You can close after a delay for smooth UX
-//         setTimeout(() => {
-//           setQuickAssignOpen(false);
-//           setAssignStatus(null);
-//         }, 2000);
-//       } else {
-//         setAssignStatus({
-//           type: "error",
-//           message: `⚠️ ${
-//             responseMain.data?.Resp_desc || "Order assignment failed."
-//           }`,
-//         });
-//       }
-//     } catch (error: any) {
-//       console.error("❌ Error assigning order:", error);
-
-//       if (error.response) {
-//         const msg =
-//           error.response.data?.message ||
-//           error.response.data?.Resp_desc ||
-//           "Validation failed.";
-
-//         const detailed =
-//           error.response.data?.errors &&
-//           Object.entries(error.response.data.errors)
-//             .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-//             .join("\n");
-
-//         setAssignStatus({
-//           type: "error",
-//           message: `❌ ${msg}\n${detailed || ""}`,
-//         });
-//       } else if (error.request) {
-//         setAssignStatus({
-//           type: "error",
-//           message: "❌ No response from server. Please check your connection.",
-//         });
-//       } else {
-//         setAssignStatus({
-//           type: "error",
-//           message: `❌ ${error.message}`,
-//         });
-//       }
-//     }
-//   };
-
-const handleAssignOrder = async () => {
-  if (!selectedOrder) return;
-  if (!validateQuickAssign()) return;
-
-  setAssignStatus({
-    type: "info",
-    message: "Assigning order, please wait...",
-  });
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setAssignStatus({
-        type: "error",
-        message: "Token missing. Please log in again.",
-      });
-      return;
-    }
-
-    const mainQty = Number(quickAssignQty || 0);
-    const splitQty = Number(splitAssignQty || 0);
-
-    // ✅ DECLARE HERE (before using)
-    const formData = new FormData();
-    formData.append("orderId", String(selectedOrder.id));
-    formData.append("totalQty", String(selectedOrder.qty));
-    formData.append("executedQty", String(mainQty));
-    formData.append("from_stage", "material-issue"); 
-    formData.append("to_stage", "semi-qc");
-
-    console.log("📤 Assign main payload:", {
-      orderId: selectedOrder.id,
-      totalQty: selectedOrder.qty,
-      executedQty: mainQty,
-      from_stage: "material-issue",
-      to_stage: "semi-qc",
+    setAssignStatus({
+      type: "info",
+      message: "Assigning order, please wait...",
     });
 
-    const responseMain = await axios.post(
-      `${API_URL}/assign-order`,
-      formData,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setAssignStatus({
+          type: "error",
+          message: "Token missing. Please log in again.",
+        });
+        return;
+      }
 
-    const isSuccess =
-      responseMain.data?.Resp_code === true ||
-      responseMain.data?.Resp_code === "true" ||
-      responseMain.data?.status === true;
+      const mainQty = Number(quickAssignQty || 0);
+      const splitQty = Number(splitAssignQty || 0);
 
-    // ----------------------
-    // SPLIT BLOCK (with stage)
-    // ----------------------
-    if (isSuccess && splitOrder && splitQty > 0) {
-      const formDataSplit = new FormData();
-      formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.qty));
-      formDataSplit.append("executedQty", String(splitQty));
-      formDataSplit.append("splitOrder", "true");
-      formDataSplit.append("from_stage", "material-issue");
-      formDataSplit.append("to_stage", "semi-qc");
+      // Resolve next step key and human-readable label consistently
+      const nextStepKey =
+        quickAssignStep ||
+        (Array.isArray(nextSteps) ? nextSteps[0] : "semi-qc");
+      const nextStepLabel = getStepLabel(nextStepKey);
 
-      await axios.post(`${API_URL}/assign-order`, formDataSplit, {
-        headers: { Authorization: `Bearer ${token}` },
+      //
+      // ---------------------------
+      // MAIN ASSIGNMENT
+      // ---------------------------
+      //
+      const formData = new FormData();
+      formData.append("orderId", String(selectedOrder.id));
+      formData.append("totalQty", String(selectedOrder.qty));
+      formData.append("executedQty", String(mainQty));
+      formData.append("nextSteps", nextStepLabel);
+
+      console.log("📤 MAIN PAYLOAD:");
+      for (const p of formData.entries()) console.log(p[0], p[1]);
+
+      const responseMain = await axios.post(
+        `${API_URL}/assign-order`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const mainSuccess =
+        responseMain.data?.Resp_code === "true" ||
+        responseMain.data?.Resp_code === true;
+
+      if (!mainSuccess) {
+        setAssignStatus({
+          type: "error",
+          message: responseMain.data?.Resp_desc || "Main assignment failed.",
+        });
+        return;
+      }
+
+      let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+
+      //
+      // ---------------------------
+      // SPLIT ASSIGNMENT
+      // ---------------------------
+      //
+      if (splitOrder && splitQty > 0) {
+        const formDataSplit = new FormData();
+        formDataSplit.append("orderId", String(selectedOrder.id));
+        formDataSplit.append("totalQty", String(selectedOrder.qty));
+        formDataSplit.append("executedQty", String(splitQty));
+        formDataSplit.append("nextSteps", nextStepLabel);
+
+        console.log("📤 SPLIT PAYLOAD:");
+        for (const p of formDataSplit.entries())
+          console.log("SPLIT:", p[0], p[1]);
+
+        const responseSplit = await axios.post(
+          `${API_URL}/assign-order`,
+          formDataSplit,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const splitSuccess =
+          responseSplit.data?.Resp_code === "true" ||
+          responseSplit.data?.Resp_code === true;
+
+        if (splitSuccess) {
+          successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
+        } else {
+          setAssignStatus({
+            type: "error",
+            message:
+              "Main assigned but split failed: " +
+              (responseSplit.data?.Resp_desc || "Unknown error"),
+          });
+        }
+      }
+
+      setAssignStatus({ type: "success", message: successMessage });
+
+      await fetchOrders();
+
+      setTimeout(() => {
+        setQuickAssignOpen(false);
+        setAssignStatus(null);
+      }, 2000);
+    } catch (error) {
+      console.error("❌ Error assigning order:", error);
+      setAssignStatus({
+        type: "error",
+        message: "Server error while assigning.",
       });
     }
-
-    await fetchOrders();
-
-    setTimeout(() => {
-      setQuickAssignOpen(false);
-      setAssignStatus(null);
-    }, 2000);
-
-  } catch (error) {
-    console.error("❌ Error assigning order:", error);
-  }
-};
-
+  };
 
   // Upload file
   const handleUpload = async (e: React.FormEvent) => {
@@ -1249,26 +1088,25 @@ const handleAssignOrder = async () => {
                             }`}
                           />
                         </Button> */}
-                       <Button
-  size="sm"
-  variant="ghost"
-  className={`h-7 w-7 p-0 ${
-    (order.remarks && order.remarks.trim() !== "") // backend value
-      ? "bg-[#174a9f] hover:bg-[#123a7f]"
-      : "hover:bg-[#d1e2f3]"
-  }`}
-  title="Add/Edit Remarks"
-  onClick={() => handleOpenRemarks(order)}
->
-  <MessageSquarePlus
-    className={`h-4 w-4 ${
-      (order.remarks && order.remarks.trim() !== "")
-        ? "text-white"
-        : "text-blue-600"
-    }`}
-  />
-</Button>
-
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`h-7 w-7 p-0 ${
+                            order.remarks && order.remarks.trim() !== "" // backend value
+                              ? "bg-[#174a9f] hover:bg-[#123a7f]"
+                              : "hover:bg-[#d1e2f3]"
+                          }`}
+                          title="Add/Edit Remarks"
+                          onClick={() => handleOpenRemarks(order)}
+                        >
+                          <MessageSquarePlus
+                            className={`h-4 w-4 ${
+                              order.remarks && order.remarks.trim() !== ""
+                                ? "text-white"
+                                : "text-blue-600"
+                            }`}
+                          />
+                        </Button>
                       </td>
 
                       <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
@@ -1302,40 +1140,40 @@ const handleAssignOrder = async () => {
                         >
                           <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                         </Button> */}
-                            <Button
-                                                     size="sm"
-                                                     variant="ghost"
-                                                     className={`h-7 w-7 p-0 transition-all duration-200 ${
-                                                       order.alertStatus
-                                                         ? "bg-red-100 border border-red-200 shadow-sm"
-                                                         : "hover:bg-red-50"
-                                                     }`}
-                                                     title={
-                                                       order.alertStatus
-                                                         ? "Click to unmark urgent"
-                                                         : "Click to mark as urgent"
-                                                     }
-                                                     onClick={() => {
-                                                       console.clear();
-                                                       console.log(
-                                                         "BUTTON CLICKED → orderId:",
-                                                         order.id
-                                                       );
-                                                       console.log(
-                                                         "BEFORE CLICK → alertStatus:",
-                                                         order.alertStatus
-                                                       );
-                                                       toggleAlertStatus(order.id);
-                                                     }}
-                                                   >
-                                                     <Siren
-                                                       className={`h-4 w-4 ${
-                                                         order.alertStatus
-                                                           ? "text-red-600 animate-siren-pulse"
-                                                           : "text-gray-400"
-                                                       }`}
-                                                     />
-                                                   </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`h-7 w-7 p-0 transition-all duration-200 ${
+                              order.alertStatus
+                                ? "bg-red-100 border border-red-200 shadow-sm"
+                                : "hover:bg-red-50"
+                            }`}
+                            title={
+                              order.alertStatus
+                                ? "Click to unmark urgent"
+                                : "Click to mark as urgent"
+                            }
+                            onClick={() => {
+                              console.clear();
+                              console.log(
+                                "BUTTON CLICKED → orderId:",
+                                order.id
+                              );
+                              console.log(
+                                "BEFORE CLICK → alertStatus:",
+                                order.alertStatus
+                              );
+                              toggleAlertStatus(order.id);
+                            }}
+                          >
+                            <Siren
+                              className={`h-4 w-4 ${
+                                order.alertStatus
+                                  ? "text-red-600 animate-siren-pulse"
+                                  : "text-gray-400"
+                              }`}
+                            />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -1811,43 +1649,43 @@ const handleAssignOrder = async () => {
         </Dialog>
 
         {/* Remarks Dialog */}
-                <Dialog open={remarksDialogOpen} onOpenChange={setRemarksDialogOpen}>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Add/Edit Remarks</DialogTitle>
-                      <DialogDescription>
-                        {remarksOrder ? `Order: ${remarksOrder.uniqueCode}` : ""}
-                      </DialogDescription>
-                    </DialogHeader>
-        
-                    <div className="space-y-4 py-4">
-                      <Label htmlFor="remarks">Remarks</Label>
-                      <Textarea
-                        id="remarks"
-                        placeholder="Enter remarks..."
-                        value={remarksText}
-                        onChange={(e) => setRemarksText(e.target.value)}
-                        rows={6}
-                        className="resize-none"
-                      />
-                    </div>
-        
-                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-                      <Button
-                        variant="outline"
-                        onClick={() => setRemarksDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveRemarks}
-                        className="bg-blue-600 text-white"
-                      >
-                        Save Remarks
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+        <Dialog open={remarksDialogOpen} onOpenChange={setRemarksDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Add/Edit Remarks</DialogTitle>
+              <DialogDescription>
+                {remarksOrder ? `Order: ${remarksOrder.uniqueCode}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <Label htmlFor="remarks">Remarks</Label>
+              <Textarea
+                id="remarks"
+                placeholder="Enter remarks..."
+                value={remarksText}
+                onChange={(e) => setRemarksText(e.target.value)}
+                rows={6}
+                className="resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+              <Button
+                variant="outline"
+                onClick={() => setRemarksDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveRemarks}
+                className="bg-blue-600 text-white"
+              >
+                Save Remarks
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

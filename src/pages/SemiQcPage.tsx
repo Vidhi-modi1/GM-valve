@@ -123,6 +123,9 @@ export function SemiQcPage() {
   );
   const [remarksText, setRemarksText] = useState("");
 
+  const normalize = (s: string) =>
+  s?.trim().toLowerCase().replace(/\s+/g, "-");
+
   // Upload file
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -158,45 +161,47 @@ export function SemiQcPage() {
         res?.data?.Resp_code === "RCS";
 
       if (ok && Array.isArray(res.data.data)) {
-        const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
-            id: String(item.id),
-            assemblyLine: item.assembly_no || "",
-            gmsoaNo: item.soa_no || "",
-            soaSrNo: item.soa_sr_no || "",
-            assemblyDate: item.assembly_date || "",
-            uniqueCode: item.unique_code || item.order_no || "",
-            splittedCode: item.splitted_code || "",
-            party: item.party_name || item.party || "",
-            customerPoNo: item.customer_po_no || "",
-            codeNo: item.code_no || "",
-            product: item.product || "",
-            qty: Number(item.qty || 0),
-            qtyExe: Number(item.qty_executed || 0),
-            qtyPending: Number(item.qty_pending || 0),
-            finishedValve: item.finished_valve || "",
-            gmLogo: item.gm_logo || "",
-            namePlate: item.name_plate || "",
-            productSpcl1: item.product_spc1 || "",
-            productSpcl2: item.product_spc2 || "",
-            productSpcl3: item.product_spc3 || "",
-            inspection: item.inspection || "",
-            painting: item.painting || "",
-            remarks: item.remarks || "",
+      const apiOrders: AssemblyOrderData[] = res.data.data.map((item: any) => ({
+  id: String(item.id),
+  assemblyLine: item.assembly_no || "",
+  gmsoaNo: item.soa_no || "",
+  soaSrNo: item.soa_sr_no || "",
+  assemblyDate: item.assembly_date || "",
+  uniqueCode: item.unique_code || item.order_no || "",
+  splittedCode: item.splitted_code || "",
+  party: item.party_name || item.party || "",
+  customerPoNo: item.customer_po_no || "",
+  codeNo: item.code_no || "",
+  product: item.product || "",
+  qty: Number(item.qty || 0),
+  qtyExe: Number(item.qty_executed || 0),
+  qtyPending: Number(item.qty_pending || 0),
+  finishedValve: item.finished_valve || "",
+  gmLogo: item.gm_logo || "",
+  namePlate: item.name_plate || "",
+  productSpcl1: item.product_spc1 || "",
+  productSpcl2: item.product_spc2 || "",
+  productSpcl3: item.product_spc3 || "",
+  inspection: item.inspection || "",
+  painting: item.painting || "",
+  remarks: item.remarks || "",
 
-            // ✅ Preserve urgent flag properly (backend sends 0 or 1)
-            alertStatus:
-              item.is_urgent === true ||
-              item.is_urgent === "true" ||
-              item.alert_status === true ||
-              item.alert_status === "true" ||
-              item.urgent === 1 ||
-              item.urgent === "1",
-          })
-        );
+  // ⭐ ADD THIS
+  currentStage: "Semi QC",   // 🔥 100% correct for Semi QC page
+
+
+  alertStatus:
+    item.is_urgent === true ||
+    item.is_urgent === "true" ||
+    item.alert_status === true ||
+    item.alert_status === "true" ||
+    item.urgent === 1 ||
+    item.urgent === "1",
+}));
+
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(apiOrders);
+         setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -242,7 +247,10 @@ export function SemiQcPage() {
 
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
-    let filtered = orders.slice();
+let filtered = orders.filter(
+  o => normalize(o.currentStage) === "semi-qc"
+);
+
 
     if (showUrgentOnly) {
       // Check both: local context flag (getAlertStatus) and server-provided order.alertStatus
@@ -562,6 +570,18 @@ const handleSaveRemarks = async () => {
     }
   };
 
+    const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    const aUrg = a.alertStatus ? 1 : 0;
+    const bUrg = b.alertStatus ? 1 : 0;
+    if (aUrg !== bUrg) return bUrg - aUrg;
+
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
+
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
@@ -569,151 +589,113 @@ const handleSaveRemarks = async () => {
   } | null>(null);
 
   // ✅ Assign order to next workflow stage
-  const handleAssignOrder = async () => {
-    if (!selectedOrder) return;
-    if (!validateQuickAssign()) return;
+const handleAssignOrder = async () => {
+  if (!selectedOrder) return;
+  if (!validateQuickAssign()) return;
 
-    setAssignStatus({
-      type: "info",
-      message: "Assigning order, please wait...",
-    });
+  setAssignStatus({
+    type: "info",
+    message: "Assigning order, please wait...",
+  });
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setAssignStatus({
+        type: "error",
+        message: "Token missing. Please log in again.",
+      });
+      return;
+    }
+
+    const mainQty = Number(quickAssignQty || 0);
+    const splitQty = Number(splitAssignQty || 0);
+
+    // ----------------------------
+    // 🔵 MAIN ASSIGNMENT
+    // ----------------------------
+    const formData = new FormData();
+    formData.append("orderId", String(selectedOrder.id));
+    formData.append("totalQty", String(selectedOrder.qty));
+    formData.append("executedQty", String(mainQty));
+    formData.append("nextSteps", getStepLabel(quickAssignStep)); // 🔥 FIXED
+
+    console.log("📤 MAIN Payload:");
+    for (const p of formData.entries()) console.log(p[0], p[1]);
+
+    const responseMain = await axios.post(
+      `${API_URL}/assign-order`,
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const successMain =
+      responseMain.data?.Resp_code === "true" ||
+      responseMain.data?.Resp_code === true;
+
+    if (!successMain) {
+      setAssignStatus({
+        type: "error",
+        message: responseMain.data?.Resp_desc || "Order assignment failed.",
+      });
+      return;
+    }
+
+    // ----------------------------
+    // 🔵 SPLIT ASSIGNMENT (IF ANY)
+    // ----------------------------
+    if (splitOrder && splitQty > 0) {
+      const formDataSplit = new FormData();
+      formDataSplit.append("orderId", String(selectedOrder.id));
+      formDataSplit.append("totalQty", String(selectedOrder.qty));
+      formDataSplit.append("executedQty", String(splitQty));
+      formDataSplit.append("nextSteps", getStepLabel(splitAssignStep)); // 🔥 FIXED
+
+      const responseSplit = await axios.post(
+        `${API_URL}/assign-order`,
+        formDataSplit,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const successSplit =
+        responseSplit.data?.Resp_code === "true" ||
+        responseSplit.data?.Resp_code === true;
+
+      if (!successSplit) {
         setAssignStatus({
           type: "error",
-          message: "Token missing. Please log in again.",
+          message:
+            "Main assigned but split failed: " +
+            (responseSplit.data?.Resp_desc || "Unknown error"),
         });
         return;
       }
-
-      const mainQty = Number(quickAssignQty || 0);
-      const splitQty = Number(splitAssignQty || 0);
-
-      const formData = new FormData();
-      formData.append("orderId", String(selectedOrder.id));
-      formData.append("totalQty", String(selectedOrder.qty));
-      formData.append("executedQty", String(mainQty));
-
-      console.log("📤 Assign main payload (FormData):", {
-        orderId: selectedOrder.id,
-        totalQty: selectedOrder.qty,
-        executedQty: mainQty,
-      });
-
-      const responseMain = await axios.post(
-        `${API_URL}/assign-order`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      console.log("✅ Main assign response:", responseMain.data);
-
-      const isSuccess =
-        responseMain.data?.Resp_code === true ||
-        responseMain.data?.Resp_code === "true" ||
-        responseMain.data?.status === true;
-
-      if (isSuccess) {
-        // --- Split assignment ---
-        if (splitOrder && splitQty > 0) {
-          const formDataSplit = new FormData();
-          formDataSplit.append("orderId", String(selectedOrder.id));
-          formDataSplit.append("totalQty", String(selectedOrder.qty));
-          formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("splitOrder", "true");
-
-          const responseSplit = await axios.post(
-            `${API_URL}/assign-order`,
-            formDataSplit,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-
-          const isSplitSuccess =
-            responseSplit.data?.Resp_code === true ||
-            responseSplit.data?.Resp_code === "true" ||
-            responseSplit.data?.status === true;
-
-          if (isSplitSuccess) {
-            const mainStage = responseMain.data?.data?.to_stage || "next stage";
-            const splitStage =
-              responseSplit.data?.data?.to_stage || "next stage";
-            setAssignStatus({
-              type: "success",
-              message: `✅ Order assigned successfully! 
-Main: ${mainQty} units to ${mainStage} 
-Split: ${splitQty} units to ${splitStage}`,
-            });
-          } else {
-            setAssignStatus({
-              type: "error",
-              message: `⚠️ Main assigned, but split failed: ${
-                responseSplit.data?.Resp_desc || "Unknown error"
-              }`,
-            });
-          }
-        } else {
-          const toStage = responseMain.data?.data?.to_stage || "next stage";
-          const fromStage =
-            responseMain.data?.data?.from_stage || "current stage";
-          setAssignStatus({
-            type: "success",
-            message: `✅ Order assigned successfully! 
-${mainQty} units moved from ${fromStage} → ${toStage}`,
-          });
-        }
-
-        await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
-          setQuickAssignOpen(false);
-          setAssignStatus(null);
-        }, 2000);
-      } else {
-        setAssignStatus({
-          type: "error",
-          message: `⚠️ ${
-            responseMain.data?.Resp_desc || "Order assignment failed."
-          }`,
-        });
-      }
-    } catch (error: any) {
-      console.error("❌ Error assigning order:", error);
-
-      if (error.response) {
-        const msg =
-          error.response.data?.message ||
-          error.response.data?.Resp_desc ||
-          "Validation failed.";
-
-        const detailed =
-          error.response.data?.errors &&
-          Object.entries(error.response.data.errors)
-            .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-            .join("\n");
-
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${msg}\n${detailed || ""}`,
-        });
-      } else if (error.request) {
-        setAssignStatus({
-          type: "error",
-          message: "❌ No response from server. Please check your connection.",
-        });
-      } else {
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${error.message}`,
-        });
-      }
     }
-  };
+
+    // ----------------------------
+    // 🔵 SUCCESS MESSAGE
+    // ----------------------------
+    setAssignStatus({
+      type: "success",
+      message: `✔ Order assigned successfully!`,
+    });
+
+    await fetchOrders();
+
+    setTimeout(() => {
+      setQuickAssignOpen(false);
+      setAssignStatus(null);
+    }, 2000);
+  } catch (error: any) {
+    console.error("❌ Error assigning order:", error);
+    setAssignStatus({
+      type: "error",
+      message: "Server error while assigning order.",
+    });
+  }
+};
+
+
 
   // Upload file
   const handleUpload = async (e: React.FormEvent) => {
@@ -877,38 +859,6 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
             />
           </div>
         </div>
-
-        {/* Upload Section */}
-        {/* <form onSubmit={handleUpload} className="bg-white shadow-md p-4 rounded-xl mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-gray-700">Upload Order File</h2>
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.csv"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border p-2 rounded-md"
-          />
-          <Button
-            type="submit"
-            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white flex items-center gap-2"
-            disabled={uploading}
-          >
-            <Plus className="h-4 w-4" />
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
-
-          <Button onClick={() => fetchOrders()} variant="outline" className="ml-2">
-            Refresh
-          </Button>
-
-          <Button onClick={handlePrint} variant="outline" className="ml-2">
-            Export / Print
-          </Button>
-        </div>
-
-        {message && <div className="mt-3 text-sm text-yellow-800 bg-yellow-100 p-2 rounded">{message}</div>}
-      </form> */}
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">

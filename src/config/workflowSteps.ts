@@ -52,18 +52,19 @@ export const stepLabels: Record<string, string> = {
   "planning": "Planning",
   "material-issue": "Material Issue",
   "semi-qc": "Semi QC",
-  "phosphating": "Phosphating",
+  "phosphating": "Phosphating QC",
   "assembly": "Assembly",
-  "testing1": "Testing 1",
-  "testing2": "Testing 2",
-  "marking1": "Marking 1",
-  "marking2": "Marking 2",
-  "svs": "Stock Valve Store (SVS)",
-  "pdi1": "PDI 1",
-  "pdi2": "PDI 2",
+  "testing1": "Testing1",
+  "testing2": "Testing2",
+  "svs": "SVS",
+  "marking1": "Marking1",
+  "marking2": "Marking2",
+  "pdi1": "PDI1",
+  "pdi2": "PDI2",
   "dispatch": "Dispatch",
   "tpi": "TPI",
 };
+
 
 /**
  * Utility function:
