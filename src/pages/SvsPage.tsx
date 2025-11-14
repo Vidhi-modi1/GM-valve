@@ -50,6 +50,7 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
+    originalIndex: number;
 }
 
 export function SvsPage() {
@@ -337,44 +338,28 @@ export function SvsPage() {
   };
 
   const toggleAlertStatus = async (orderId: string) => {
-    console.log("----");
-    console.log("TOGGLE CALLED for:", orderId);
+    const order = orders.find((o) => o.id === orderId);
+    const currentStatus = order?.alertStatus === true;
+    const newStatus = !currentStatus;
+
+    // Optimistic update
+    setOrders((prev) => {
+      const updated = prev.map((o) =>
+        o.id === orderId ? { ...o, alertStatus: newStatus } : o
+      );
+
+      return sortOrders(updated);
+    });
+
+    const payload = {
+      orderId: String(orderId),
+      urgent: newStatus ? "1" : "0",
+    };
 
     try {
-      const order = orders.find((o) => o.id === orderId);
-      const currentStatus = order?.alertStatus === true;
-
-      const newStatus = !currentStatus;
-      const urgentValue = newStatus ? "1" : "0";
-
-      console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
-
-      // 🔥 Optimistic UI update + SORTING FIX
-      setOrders((prev) => {
-        const updated = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: newStatus } : o
-        );
-
-        // 🔥 Sort here: urgent (true) → non urgent (false)
-        updated.sort((a, b) => {
-          return (b.alertStatus === true) - (a.alertStatus === true);
-        });
-
-        return updated;
-      });
-
-      const payload = {
-        orderId: String(orderId),
-        urgent: urgentValue,
-      };
-
-      console.log("SENDING PAYLOAD:", payload);
-
       const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log("BACKEND RESPONSE:", res.data);
 
       const success =
         res.data?.Resp_code === "true" ||
@@ -382,54 +367,40 @@ export function SvsPage() {
         res.data?.status === true;
 
       if (!success) {
-        console.log("BACKEND FAILED, REVERTING");
-
-        // Revert + re-sort
+        // revert optimistic update
         setOrders((prev) => {
           const reverted = prev.map((o) =>
             o.id === orderId ? { ...o, alertStatus: currentStatus } : o
           );
 
-          reverted.sort((a, b) => {
-            return (b.alertStatus === true) - (a.alertStatus === true);
-          });
-
-          return reverted;
+          return sortOrders(reverted);
         });
-
-        return;
       }
+    } catch (error) {
+      console.error("Urgent API failed:", error);
 
-      console.log("TOGGLE SUCCESSFUL 👍");
-    } catch (err) {
-      console.error("ERROR:", err);
-
-      // revert on error + sort
+      // revert on error
       setOrders((prev) => {
         const reverted = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
+          o.id === orderId ? { ...o, alertStatus: currentStatus } : o
         );
 
-        reverted.sort((a, b) => {
-          return (b.alertStatus === true) - (a.alertStatus === true);
-        });
-
-        return reverted;
+        return sortOrders(reverted);
       });
     }
   };
 
   const sortOrders = (list: AssemblyOrderData[]) => {
-  return [...list].sort((a, b) => {
-    // urgent first
-    const aUrg = a.alertStatus ? 1 : 0;
-    const bUrg = b.alertStatus ? 1 : 0;
-    if (aUrg !== bUrg) return bUrg - aUrg;
+    return [...list].sort((a, b) => {
+      // urgent first
+      const aUrg = a.alertStatus ? 1 : 0;
+      const bUrg = b.alertStatus ? 1 : 0;
+      if (aUrg !== bUrg) return bUrg - aUrg;
 
-    // otherwise restore original order
-    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
-  });
-};
+      // otherwise restore original order
+      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+    });
+  };
 
   const handleAssignOrder = async () => {
     if (!selectedOrder) return;
@@ -763,29 +734,40 @@ export function SvsPage() {
                           <ArrowRight className="h-4 w-4 text-green-600" />
                         </Button>
 
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus
-                            ? 'bg-red-100 border border-red-200 shadow-sm cursor-default'
-                            : 'hover:bg-red-50'
+                         <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`h-7 w-7 p-0 transition-all duration-200 ${
+                              order.alertStatus
+                                ? "bg-red-100 border border-red-200 shadow-sm"
+                                : "hover:bg-red-50"
                             }`}
-                          title={
-                            getAlertStatus(order.id) || order.alertStatus
-                              ? 'Marked as urgent'
-                              : 'Click to mark as urgent'
-                          }
-                          onClick={() => {
-                            if (!getAlertStatus(order.id) && !order.alertStatus) toggleAlertStatus(order.id);
-                          }}
-                        >
-                          <Siren
-                            className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus
-                              ? 'text-red-600 animate-siren-pulse'
-                              : 'text-gray-400'
+                            title={
+                              order.alertStatus
+                                ? "Click to unmark urgent"
+                                : "Click to mark as urgent"
+                            }
+                            onClick={() => {
+                              console.clear();
+                              console.log(
+                                "BUTTON CLICKED → orderId:",
+                                order.id
+                              );
+                              console.log(
+                                "BEFORE CLICK → alertStatus:",
+                                order.alertStatus
+                              );
+                              toggleAlertStatus(order.id);
+                            }}
+                          >
+                            <Siren
+                              className={`h-4 w-4 ${
+                                order.alertStatus
+                                  ? "text-red-600 animate-siren-pulse"
+                                  : "text-gray-400"
                               }`}
-                          />
-                        </Button>
+                            />
+                          </Button>
                       </div>
                     </td>
                   </tr>
