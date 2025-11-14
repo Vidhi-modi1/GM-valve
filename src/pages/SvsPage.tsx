@@ -833,6 +833,7 @@ export function SvsPage() {
                     value={quickAssignQty}
                     onChange={(e) => setQuickAssignQty(e.target.value)}
                     max={selectedOrder?.qtyPending}
+                    disabled
                   />
                 </div>
               </div>
