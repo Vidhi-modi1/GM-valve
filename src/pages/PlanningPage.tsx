@@ -515,90 +515,71 @@ const handleSaveRemarks = async () => {
   }
 };
 
+const sortOrders = (list) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    if (a.alertStatus !== b.alertStatus) {
+      return b.alertStatus - a.alertStatus;
+    }
+
+    // otherwise restore original order
+    return a.originalIndex - b.originalIndex;
+  });
+};
 
 
-  const toggleAlertStatus = async (orderId: string) => {
-    console.log("----");
-    console.log("TOGGLE CALLED for:", orderId);
+const toggleAlertStatus = async (orderId: string) => {
+  const order = orders.find((o) => o.id === orderId);
+  const currentStatus = order?.alertStatus === true;
+  const newStatus = !currentStatus;
 
-    try {
-      const order = orders.find((o) => o.id === orderId);
-      const currentStatus = order?.alertStatus === true;
+  // Optimistic update
+  setOrders((prev) => {
+    const updated = prev.map((o) =>
+      o.id === orderId ? { ...o, alertStatus: newStatus } : o
+    );
 
-      const newStatus = !currentStatus;
-      const urgentValue = newStatus ? "1" : "0";
+    return sortOrders(updated);
+  });
 
-      console.log("CURRENT:", currentStatus, " → NEW:", newStatus);
+  const payload = {
+    orderId: String(orderId),
+    urgent: newStatus ? "1" : "0",
+  };
 
-      // 🔥 Optimistic UI update + SORTING FIX
-      setOrders((prev) => {
-        const updated = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: newStatus } : o
-        );
+  try {
+    const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-        // 🔥 Sort here: urgent (true) → non urgent (false)
-        updated.sort((a, b) => {
-          return (b.alertStatus === true) - (a.alertStatus === true);
-        });
+    const success =
+      res.data?.Resp_code === "true" ||
+      res.data?.Resp_code === true ||
+      res.data?.status === true;
 
-        return updated;
-      });
-
-      const payload = {
-        orderId: String(orderId),
-        urgent: urgentValue,
-      };
-
-      console.log("SENDING PAYLOAD:", payload);
-
-      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      console.log("BACKEND RESPONSE:", res.data);
-
-      const success =
-        res.data?.Resp_code === "true" ||
-        res.data?.Resp_code === true ||
-        res.data?.status === true;
-
-      if (!success) {
-        console.log("BACKEND FAILED, REVERTING");
-
-        // Revert + re-sort
-        setOrders((prev) => {
-          const reverted = prev.map((o) =>
-            o.id === orderId ? { ...o, alertStatus: currentStatus } : o
-          );
-
-          reverted.sort((a, b) => {
-            return (b.alertStatus === true) - (a.alertStatus === true);
-          });
-
-          return reverted;
-        });
-
-        return;
-      }
-
-      console.log("TOGGLE SUCCESSFUL 👍");
-    } catch (err) {
-      console.error("ERROR:", err);
-
-      // revert on error + sort
+    if (!success) {
+      // revert optimistic update
       setOrders((prev) => {
         const reverted = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: order?.alertStatus } : o
+          o.id === orderId ? { ...o, alertStatus: currentStatus } : o
         );
 
-        reverted.sort((a, b) => {
-          return (b.alertStatus === true) - (a.alertStatus === true);
-        });
-
-        return reverted;
+        return sortOrders(reverted);
       });
     }
-  };
+  } catch (error) {
+    console.error("Urgent API failed:", error);
+
+    // revert on error
+    setOrders((prev) => {
+      const reverted = prev.map((o) =>
+        o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+      );
+
+      return sortOrders(reverted);
+    });
+  }
+};
 
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
