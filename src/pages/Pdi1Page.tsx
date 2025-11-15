@@ -606,6 +606,7 @@ export function Pdi1Page() {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+      formData.append("split_id", String(selectedOrder.splittedCode || ""));
       {
         const currentStep = "pdi1";
         const defaultNext = getNextSteps(currentStep)[0] || "";
@@ -641,6 +642,7 @@ export function Pdi1Page() {
         formDataSplit.append("orderId", String(selectedOrder.id));
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
+        formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
         formDataSplit.append("splitOrder", "true");
         {
           const currentStep = "pdi1";

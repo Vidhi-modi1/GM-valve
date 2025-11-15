@@ -626,6 +626,7 @@ const handleAssignOrder = async () => {
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
+    formData.append("split_id", "");
     // Align with MaterialIssue: include human-readable next step
     {
       const currentStep = "assembly";
@@ -671,6 +672,7 @@ const handleAssignOrder = async () => {
         formDataSplit.append("orderId", String(selectedOrder.id));
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
+        formDataSplit.append("split_id", "");
         formDataSplit.append("splitOrder", "true");
         // Include next step for split leg
         {

@@ -639,6 +639,7 @@ setOrders(sortOrders(apiOrders));
           formDataSplit.append("orderId", String(selectedOrder.id));
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
+          formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
           formDataSplit.append("splitOrder", "true");
 
           const responseSplit = await axios.post(

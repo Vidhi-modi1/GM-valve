@@ -428,7 +428,7 @@ export function SvsPage() {
       formData.append('totalQty', String(selectedOrder.qty));
       formData.append('executedQty', String(mainQty));
       formData.append('nextSteps', nextMainLabel);
-      formData.append('splittedCode', String(selectedOrder.splittedCode || ''));
+      formData.append('split_id', String(selectedOrder.splittedCode || ''));
 
       console.log("📤 Assign main payload (FormData):", {
         orderId: selectedOrder.id,
@@ -464,7 +464,7 @@ export function SvsPage() {
         formDataSplit.append('totalQty', String(selectedOrder.qty));
         formDataSplit.append('executedQty', String(splitQty));
         formDataSplit.append('nextSteps', splitLabel);
-        formDataSplit.append('splittedCode', String(selectedOrder.splittedCode || ''));
+        formDataSplit.append('split_id', String(selectedOrder.splittedCode || ''));
 
         const responseSplit = await axios.post(`${API_URL}/assign-order`, formDataSplit, {
           headers: { Authorization: `Bearer ${token}` },

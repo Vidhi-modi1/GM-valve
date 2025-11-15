@@ -646,6 +646,7 @@ const handleSaveRemarks = async () => {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+      formData.append("split_id", String(selectedOrder.splittedCode || ""));
       // Align with MaterialIssue: include human-readable next step
       {
         const currentStep = "testing2";
@@ -682,6 +683,7 @@ const handleSaveRemarks = async () => {
           formDataSplit.append("orderId", String(selectedOrder.id));
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
+          formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
           formDataSplit.append("splitOrder", "true");
           // Include next step for split leg
           {

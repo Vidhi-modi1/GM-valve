@@ -807,6 +807,7 @@ const handleAssignOrder = async () => {
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
     formData.append("nextSteps", nextStepLabel);
+    formData.append("split_id", String(selectedOrder.splittedCode || ""));
 
     console.log("📤 Assign main payload (FormData):", {
       orderId: selectedOrder.id,
@@ -840,7 +841,8 @@ const handleAssignOrder = async () => {
         formDataSplit.append("orderId", String(selectedOrder.id));
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
-        formDataSplit.append("nextSteps", nextStepLabel);
+      formDataSplit.append("nextSteps", nextStepLabel);
+      formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
 
         const responseSplit = await axios.post(
           `${API_URL}/assign-order`,
