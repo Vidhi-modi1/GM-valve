@@ -600,7 +600,7 @@ export function MaterialIssuePage() {
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
       formData.append("nextSteps", nextStepLabel);
-      formData.append("split_id", "");
+      formData.append("split_id", String(selectedOrder.split_id || ""));
 
       console.log("📤 MAIN PAYLOAD:");
       for (const p of formData.entries()) console.log(p[0], p[1]);
@@ -636,7 +636,7 @@ export function MaterialIssuePage() {
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
         formDataSplit.append("nextSteps", nextStepLabel);
-        formDataSplit.append("split_id", "");
+        formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
         console.log("📤 SPLIT PAYLOAD:");
         for (const p of formDataSplit.entries())
@@ -1017,7 +1017,7 @@ export function MaterialIssuePage() {
                         {order.uniqueCode}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.splittedCode}
+                        {order.split_id}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
                         {order.party}

@@ -51,7 +51,7 @@ interface AssemblyOrderData {
   soaSrNo: string;
   assemblyDate: string;
   uniqueCode: string;
-  splittedCode: string;
+  split_id: string;
   party: string;
   customerPoNo: string;
   codeNo: string;
@@ -167,7 +167,7 @@ export function AssemblyPage() {
             soaSrNo: item.soa_sr_no || "",
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
-            splittedCode: item.splitted_code || "",
+            split_id: item.split_id || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -626,7 +626,7 @@ const handleAssignOrder = async () => {
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("split_id", String(selectedOrder.splittedCode || ""));
+    formData.append("split_id", String(selectedOrder.split_id || ""));
     // Align with MaterialIssue: include human-readable next step
     {
       const currentStep = "assembly";
@@ -672,7 +672,7 @@ const handleAssignOrder = async () => {
         formDataSplit.append("orderId", String(selectedOrder.id));
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
-        formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
+        formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
         formDataSplit.append("splitOrder", "true");
         // Include next step for split leg
         {
@@ -1113,7 +1113,7 @@ ${mainQty} units moved to next stage.`,
                         {order.uniqueCode}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.splittedCode}
+                        {order.split_id}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
                         {order.party}
@@ -1575,7 +1575,7 @@ ${mainQty} units moved to next stage.`,
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.splittedCode || "N/A"}
+                        {viewedOrder.split_id || "N/A"}
                       </p>
                     </div>
                   </div>
