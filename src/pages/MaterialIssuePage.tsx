@@ -161,7 +161,7 @@ export function MaterialIssuePage() {
 
       if (ok && Array.isArray(res.data.data)) {
         const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+          (item: any, index: number) => ({
             id: String(item.id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
@@ -186,6 +186,7 @@ export function MaterialIssuePage() {
             inspection: item.inspection || "",
             painting: item.painting || "",
             remarks: item.remarks || "",
+            
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
             alertStatus:
@@ -195,7 +196,10 @@ export function MaterialIssuePage() {
               item.alert_status === "true" ||
               item.urgent === 1 ||
               item.urgent === "1",
+
+               originalIndex: index,
           })
+          
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
@@ -1135,15 +1139,6 @@ export function MaterialIssuePage() {
                             <ArrowRight className="h-4 w-4 text-green-600" />
                           </Button>
 
-                          {/* <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
-                          title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
-                          onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
-                        >
-                          <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
-                        </Button> */}
                           <Button
                                                       size="sm"
                                                       variant="ghost"

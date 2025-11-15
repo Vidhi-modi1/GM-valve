@@ -703,19 +703,20 @@ const handleAssignOrder = async () => {
           }`,
         });
       } else {
-        setAssignStatus({
-          type: "success",
-          message: `✅ Order assigned successfully!
-Main: ${mainQty} units
-Split: ${splitQty} units`,
-        });
+        const currentStep = "assembly";
+        const defaultNext = getNextSteps(currentStep)[0] || "";
+        const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+        const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+        const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
+          `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
+        setAssignStatus({ type: "success", message: msg });
       }
     } else {
-      setAssignStatus({
-        type: "success",
-        message: `✅ Order assigned successfully!
-${mainQty} units moved to next stage.`,
-      });
+      const currentStep = "assembly";
+      const defaultNext = getNextSteps(currentStep)[0] || "";
+      const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+      const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
+      setAssignStatus({ type: "success", message: msg });
     }
 
     // ---------------------------------------------------

@@ -679,10 +679,17 @@ const handleAssignOrder = async () => {
     // ----------------------------
     // 🔵 SUCCESS MESSAGE
     // ----------------------------
-    setAssignStatus({
-      type: "success",
-      message: `✔ Order assigned successfully!`,
-    });
+    {
+      const currentStep = "semiqc";
+      const defaultNext = getNextSteps(currentStep)[0] || "";
+      const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+      let msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
+      if (splitOrder && splitQty > 0) {
+        const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+        msg += `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
+      }
+      setAssignStatus({ type: "success", message: msg });
+    }
 
     await fetchOrders();
 

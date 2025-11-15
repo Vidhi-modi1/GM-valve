@@ -713,15 +713,13 @@ const handleSaveRemarks = async () => {
             responseSplit.data?.status === true;
 
           if (isSplitSuccess) {
-            const mainStage = responseMain.data?.data?.to_stage || "next stage";
-            const splitStage =
-              responseSplit.data?.data?.to_stage || "next stage";
-            setAssignStatus({
-              type: "success",
-              message: `✅ Order assigned successfully! 
-Main: ${mainQty} units to ${mainStage} 
-Split: ${splitQty} units to ${splitStage}`,
-            });
+            const currentStep = "testing1";
+            const defaultNext = getNextSteps(currentStep)[0] || "";
+            const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+            const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
+              `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
+            setAssignStatus({ type: "success", message: msg });
           } else {
             setAssignStatus({
               type: "error",
@@ -731,14 +729,11 @@ Split: ${splitQty} units to ${splitStage}`,
             });
           }
         } else {
-          const toStage = responseMain.data?.data?.to_stage || "next stage";
-          const fromStage =
-            responseMain.data?.data?.from_stage || "current stage";
-          setAssignStatus({
-            type: "success",
-            message: `✅ Order assigned successfully! 
-${mainQty} units moved from ${fromStage} → ${toStage}`,
-          });
+          const currentStep = "testing1";
+          const defaultNext = getNextSteps(currentStep)[0] || "";
+          const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+          const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
+          setAssignStatus({ type: "success", message: msg });
         }
 
         await fetchOrders();
