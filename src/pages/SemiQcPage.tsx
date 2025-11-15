@@ -52,6 +52,7 @@ interface AssemblyOrderData {
   assemblyDate: string;
   uniqueCode: string;
   splittedCode: string;
+  split_id: string;
   party: string;
   customerPoNo: string;
   codeNo: string;
@@ -169,6 +170,7 @@ export function SemiQcPage() {
   assemblyDate: item.assembly_date || "",
   uniqueCode: item.unique_code || item.order_no || "",
   splittedCode: item.splitted_code || "",
+  split_id: item.split_id || item.splitted_code || "",
   party: item.party_name || item.party || "",
   customerPoNo: item.customer_po_no || "",
   codeNo: item.code_no || "",
@@ -619,6 +621,7 @@ const handleAssignOrder = async () => {
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
     formData.append("nextSteps", getStepLabel(quickAssignStep)); // 🔥 FIXED
+    formData.append("split_id", String(selectedOrder.split_id || ""));
 
     console.log("📤 MAIN Payload:");
     for (const p of formData.entries()) console.log(p[0], p[1]);
@@ -650,6 +653,7 @@ const handleAssignOrder = async () => {
       formDataSplit.append("totalQty", String(selectedOrder.qty));
       formDataSplit.append("executedQty", String(splitQty));
       formDataSplit.append("nextSteps", getStepLabel(splitAssignStep)); // 🔥 FIXED
+      formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,

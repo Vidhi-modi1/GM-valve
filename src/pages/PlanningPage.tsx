@@ -45,6 +45,7 @@ interface AssemblyOrderData {
   assemblyDate: string;
   uniqueCode: string;
   splittedCode: string;
+  split_id: string;
   party: string;
   customerPoNo: string;
   codeNo: string;
@@ -162,6 +163,7 @@ export function PlanningPage() {
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
             splittedCode: item.splitted_code || "",
+            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -519,17 +521,7 @@ export function PlanningPage() {
     }
   };
 
-const sortOrders = (list: AssemblyOrderData[]) => {
-  return [...list].sort((a, b) => {
-    // urgent first
-    const aUrg = a.alertStatus ? 1 : 0;
-    const bUrg = b.alertStatus ? 1 : 0;
-    if (aUrg !== bUrg) return bUrg - aUrg;
 
-    // otherwise restore original order
-    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
-  });
-};
 
   const toggleAlertStatus = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
@@ -584,6 +576,18 @@ const sortOrders = (list: AssemblyOrderData[]) => {
     }
   };
 
+  const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    const aUrg = a.alertStatus ? 1 : 0;
+    const bUrg = b.alertStatus ? 1 : 0;
+    if (aUrg !== bUrg) return bUrg - aUrg;
+
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
+
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
@@ -617,7 +621,7 @@ const sortOrders = (list: AssemblyOrderData[]) => {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
-      formData.append("split_id", String(selectedOrder.splittedCode || ""));
+      formData.append("split_id", String(selectedOrder.split_id || ""));
 
       console.log("📤 Assign main payload (FormData):", {
         orderId: selectedOrder.id,
@@ -647,7 +651,7 @@ const sortOrders = (list: AssemblyOrderData[]) => {
           formDataSplit.append("orderId", String(selectedOrder.id));
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
+          formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
           formDataSplit.append("splitOrder", "true");
 
           const responseSplit = await axios.post(

@@ -51,6 +51,7 @@ interface AssemblyOrderData {
   soaSrNo: string;
   assemblyDate: string;
   uniqueCode: string;
+  splittedCode: string;
   split_id: string;
   party: string;
   customerPoNo: string;
@@ -167,7 +168,8 @@ export function AssemblyPage() {
             soaSrNo: item.soa_sr_no || "",
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
-            split_id: item.split_id || "",
+            splittedCode: item.splitted_code || "",
+            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -1113,7 +1115,7 @@ ${mainQty} units moved to next stage.`,
                         {order.uniqueCode}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.split_id}
+                        {order.splittedCode}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
                         {order.party}
@@ -1575,7 +1577,7 @@ ${mainQty} units moved to next stage.`,
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.split_id || "N/A"}
+                        {viewedOrder.splittedCode || "N/A"}
                       </p>
                     </div>
                   </div>

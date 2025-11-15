@@ -51,6 +51,7 @@ interface AssemblyOrderData {
   soaSrNo: string;
   assemblyDate: string;
   uniqueCode: string;
+    split_id: string;
   splittedCode: string;
   party: string;
   customerPoNo: string;
@@ -167,6 +168,7 @@ export function MaterialIssuePage() {
             soaSrNo: item.soa_sr_no || "",
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
+            split_id: item.split_id || "",
             splittedCode: item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
@@ -1017,7 +1019,7 @@ export function MaterialIssuePage() {
                         {order.uniqueCode}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.split_id}
+                        {order.splittedCode}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
                         {order.party}
@@ -1143,39 +1145,39 @@ export function MaterialIssuePage() {
                           <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                         </Button> */}
                           <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${
-                              order.alertStatus
-                                ? "bg-red-100 border border-red-200 shadow-sm"
-                                : "hover:bg-red-50"
-                            }`}
-                            title={
-                              order.alertStatus
-                                ? "Click to unmark urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              console.clear();
-                              console.log(
-                                "BUTTON CLICKED → orderId:",
-                                order.id
-                              );
-                              console.log(
-                                "BEFORE CLICK → alertStatus:",
-                                order.alertStatus
-                              );
-                              toggleAlertStatus(order.id);
-                            }}
-                          >
-                            <Siren
-                              className={`h-4 w-4 ${
-                                order.alertStatus
-                                  ? "text-red-600 animate-siren-pulse"
-                                  : "text-gray-400"
-                              }`}
-                            />
-                          </Button>
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className={`h-7 w-7 p-0 transition-all duration-200 ${
+                                                        order.alertStatus
+                                                          ? "bg-red-100 border border-red-200 shadow-sm"
+                                                          : "hover:bg-red-50"
+                                                      }`}
+                                                      title={
+                                                        order.alertStatus
+                                                          ? "Click to unmark urgent"
+                                                          : "Click to mark as urgent"
+                                                      }
+                                                      onClick={() => {
+                                                        console.clear();
+                                                        console.log(
+                                                          "BUTTON CLICKED → orderId:",
+                                                          order.id
+                                                        );
+                                                        console.log(
+                                                          "BEFORE CLICK → alertStatus:",
+                                                          order.alertStatus
+                                                        );
+                                                        toggleAlertStatus(order.id);
+                                                      }}
+                                                    >
+                                                      <Siren
+                                                        className={`h-4 w-4 ${
+                                                          order.alertStatus
+                                                            ? "text-red-600 animate-siren-pulse"
+                                                            : "text-gray-400"
+                                                        }`}
+                                                      />
+                                                    </Button>
                         </div>
                       </td>
                     </tr>
@@ -1244,64 +1246,6 @@ export function MaterialIssuePage() {
                 </div>
               </div>
 
-              {/* Split Order Section (same as PlanningPage) */}
-              {/* <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="splitOrder"
-                  checked={splitOrder}
-                  onCheckedChange={(val) => setSplitOrder(Boolean(val))}
-                />
-                <Label htmlFor="splitOrder" className="cursor-pointer">
-                  Split order to multiple workflow steps
-                </Label>
-              </div>
-
-              {splitOrder && (
-                <div className="space-y-4 pl-6 border-l-2 border-blue-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Second Workflow Step</Label>
-                      <Select value={splitAssignStep} onValueChange={setSplitAssignStep}>
-  <SelectTrigger>
-    <SelectValue placeholder="Select split step" />
-  </SelectTrigger>
-  <SelectContent>
-    {nextSteps.map((step) => (
-      <SelectItem key={step} value={step}>
-        {getStepLabel(step)}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Split Quantity</Label>
-                      <Input
-                        type="number"
-                        value={splitAssignQty}
-                        onChange={(e) => setSplitAssignQty(e.target.value)}
-                        max={selectedOrder?.qtyPending}
-                      />
-                    </div>
-                  </div>
-
-                  {quickAssignErrors.sameEngineer && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{quickAssignErrors.sameEngineer}</p>
-                    </div>
-                  )}
-
-                  {quickAssignErrors.totalQtyMismatch && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm text-amber-700">{quickAssignErrors.totalQtyMismatch}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div> */}
             </div>
 
             {/* Status Message */}

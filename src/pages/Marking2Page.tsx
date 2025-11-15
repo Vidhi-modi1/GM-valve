@@ -52,6 +52,7 @@ interface AssemblyOrderData {
   assemblyDate: string;
   uniqueCode: string;
   splittedCode: string;
+  split_id: string;
   party: string;
   customerPoNo: string;
   codeNo: string;
@@ -167,6 +168,7 @@ export function Marking2Page() {
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
             splittedCode: item.splitted_code || "",
+            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -606,7 +608,7 @@ export function Marking2Page() {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
-      formData.append("split_id", String(selectedOrder.splittedCode || ""));
+      formData.append("split_id", String(selectedOrder.split_id || ""));
       // Align with MaterialIssue: include human-readable next step
       {
         const currentStep = "marking2";
@@ -643,7 +645,7 @@ export function Marking2Page() {
           formDataSplit.append("orderId", String(selectedOrder.id));
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("split_id", String(selectedOrder.splittedCode || ""));
+          formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
           formDataSplit.append("splitOrder", "true");
           // Include next step for split leg
           {
