@@ -574,9 +574,12 @@ export function TpiPage() {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
   const handleAssignOrder = async () => {
+    if (isAssigning) return;
+    setIsAssigning(true);
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
 
@@ -728,6 +731,8 @@ export function TpiPage() {
           message: `❌ ${error.message}`,
         });
       }
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -1294,9 +1299,10 @@ export function TpiPage() {
               </Button>
               <Button
                 onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>
