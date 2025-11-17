@@ -1271,6 +1271,23 @@ export function TpiPage() {
               </div>
             </div>
 
+            {/* Status Message */}
+            {assignStatus && (
+              <div
+                className={`p-3 mt-3 rounded-md text-sm ${
+                  assignStatus.type === "success"
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : assignStatus.type === "error"
+                    ? "bg-red-50 text-red-700 border border-red-200"
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+                }`}
+              >
+                {assignStatus.message.split("\n").map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </div>
+            )}
+
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
               <Button variant="outline" onClick={handleQuickAssignCancel}>
                 Cancel
