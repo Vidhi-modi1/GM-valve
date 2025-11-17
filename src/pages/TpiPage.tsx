@@ -321,7 +321,10 @@ export function TpiPage() {
         (o) =>
           String(o.uniqueCode).toLowerCase().includes(term) ||
           String(o.party).toLowerCase().includes(term) ||
-          String(o.gmsoaNo).toLowerCase().includes(term)
+          String(o.gmsoaNo).toLowerCase().includes(term) ||
+          String(o.customerPoNo).toLowerCase().includes(term) ||
+          String(o.codeNo).toLowerCase().includes(term) ||
+          String(o.product).toLowerCase().includes(term)
       );
     }
 
@@ -595,11 +598,17 @@ export function TpiPage() {
       const mainQty = Number(quickAssignQty || 0);
       const splitQty = Number(splitAssignQty || 0);
 
-      const formData = new FormData();
-      formData.append("orderId", String(selectedOrder.id));
-      formData.append("totalQty", String(selectedOrder.qty));
-      formData.append("executedQty", String(mainQty));
-      formData.append("split_id", String(selectedOrder.split_id || ""));
+    const formData = new FormData();
+    formData.append("orderId", String(selectedOrder.id));
+    formData.append("totalQty", String(selectedOrder.qty));
+    formData.append("executedQty", String(mainQty));
+    formData.append("split_id", String(selectedOrder.split_id || ""));
+    {
+      const currentStep = "tpi";
+      const defaultNext = getNextSteps(currentStep)[0] || "";
+      const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+      if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+    }
 
       console.log("📤 Assign main payload (FormData):", {
         orderId: selectedOrder.id,
@@ -631,6 +640,12 @@ export function TpiPage() {
           formDataSplit.append("executedQty", String(splitQty));
           formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
           formDataSplit.append("splitOrder", "true");
+          {
+            const currentStep = "tpi";
+            const defaultNext = getNextSteps(currentStep)[0] || "";
+            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+            if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
+          }
 
           const responseSplit = await axios.post(
             `${API_URL}/assign-order`,
@@ -1152,6 +1167,15 @@ export function TpiPage() {
                           </Button>
 
                           
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 hover:bg-green-100"
+                            title="Assign Next"
+                            onClick={() => handleQuickAssign(order)}
+                          >
+                            <ArrowRight className="h-4 w-4 text-green-600" />
+                          </Button>
 
                           {/* <Button
                           size="sm"
@@ -1167,21 +1191,11 @@ export function TpiPage() {
                             variant="ghost"
                             className={`h-7 w-7 p-0 transition-all duration-200 ${
                               getAlertStatus(order.id) || order.alertStatus
-                                ? "bg-red-100 border border-red-200 shadow-sm cursor-default"
+                                ? "bg-red-100 border border-red-200 shadow-sm"
                                 : "hover:bg-red-50"
                             }`}
-                            title={
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "Marked as urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              if (
-                                !getAlertStatus(order.id) &&
-                                !order.alertStatus
-                              )
-                                toggleAlertStatus(order.id);
-                            }}
+                            title={"Urgent status is read-only"}
+                            disabled
                           >
                             <Siren
                               className={`h-4 w-4 ${
@@ -1206,7 +1220,70 @@ export function TpiPage() {
           </div>
         </div>
 
-        
+        {/* Quick Assign Dialog (Dispatch only) */}
+        <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Quick Assign Order</DialogTitle>
+              <DialogDescription>
+                Assign {selectedOrder?.uniqueCode} to the next workflow step
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="assignStep">Assign to Workflow Step</Label>
+                    <Select value={quickAssignStep} onValueChange={setQuickAssignStep}>
+                      <SelectTrigger id="assignStep" disabled>
+                        <SelectValue placeholder="Select next step" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {nextSteps.map((step) => (
+                          <SelectItem key={step} value={step}>
+                            {getStepLabel(step)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="assignQty">Quantity</Label>
+                    <Input
+                      id="assignQty"
+                      type="number"
+                      value={quickAssignQty}
+                      onChange={(e) => setQuickAssignQty(e.target.value)}
+                      max={selectedOrder?.qtyPending}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-500">
+                  Available Quantity:{" "}
+                  <span className="font-medium text-gray-900">
+                    {selectedOrder?.qtyPending}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+              <Button variant="outline" onClick={handleQuickAssignCancel}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignOrder}
+                className="bg-black hover:bg-gray-800 text-white"
+              >
+                Assign
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Bin Card Dialog */}
         <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>

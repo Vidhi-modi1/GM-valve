@@ -1166,35 +1166,25 @@ setOrders(sortOrders(apiOrders));
                         >
                           <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                         </Button> */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "bg-red-100 border border-red-200 shadow-sm cursor-default"
-                                : "hover:bg-red-50"
-                            }`}
-                            title={
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "Marked as urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              if (
-                                !getAlertStatus(order.id) &&
-                                !order.alertStatus
-                              )
-                                toggleAlertStatus(order.id);
-                            }}
-                          >
-                            <Siren
-                              className={`h-4 w-4 ${
-                                getAlertStatus(order.id) || order.alertStatus
-                                  ? "text-red-600 animate-siren-pulse"
-                                  : "text-gray-400"
-                              }`}
-                            />
-                          </Button>
+                           <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className={`h-7 w-7 p-0 transition-all duration-200 ${
+                                                        order.alertStatus
+                                                          ? "bg-red-100 border border-red-200 shadow-sm"
+                                                          : "hover:bg-red-50"
+                                                      }`}
+                                                      title={"Urgent status is read-only"}
+                                                      disabled
+                                                    >
+                                                      <Siren
+                                                        className={`h-4 w-4 ${
+                                                          order.alertStatus
+                                                            ? "text-red-600 animate-siren-pulse"
+                                                            : "text-gray-400"
+                                                        }`}
+                                                      />
+                                                    </Button>
                         </div>
                       </td>
                     </tr>

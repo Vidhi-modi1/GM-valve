@@ -333,9 +333,12 @@ export function PhosphatingPage() {
       const term = localSearchTerm.toLowerCase();
       filtered = filtered.filter(
         (o) =>
-          String(o.uniqueCode).toLowerCase().includes(term) ||
+           String(o.uniqueCode).toLowerCase().includes(term) ||
           String(o.party).toLowerCase().includes(term) ||
-          String(o.gmsoaNo).toLowerCase().includes(term)
+          String(o.gmsoaNo).toLowerCase().includes(term) ||
+          String(o.customerPoNo).toLowerCase().includes(term) ||
+          String(o.codeNo).toLowerCase().includes(term) ||
+          String(o.product).toLowerCase().includes(term)
       );
     }
 
