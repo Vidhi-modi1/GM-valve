@@ -39,9 +39,9 @@ export const workflowSteps: Record<string, string[]> = {
   // 8) SVS only goes to Marking 1
   "svs": ["marking1"],
 
-  // Final steps: no next stage
+  // Final steps: Dispatch is final, TPI moves to Dispatch
   "dispatch": [],
-  "tpi": [],
+  "tpi": ["dispatch"],
 };
 
 /**

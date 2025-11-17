@@ -287,7 +287,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       if (!r) continue;
 
       // Core roles
-      // if (r === "admin") return "planning";
+      if (r === "admin") return "admin";
       if (r === "planning" || r.startsWith("planning")) return "planning";
       if (r === "material-issue" || r.startsWith("materialissue")) return "material-issue";
       if (r === "semi-qc" || r.startsWith("semiqc")) return "semi-qc";

@@ -135,6 +135,19 @@ export function Pdi2Page() {
 
   // token
   const token = localStorage.getItem("token");
+  // role helper
+  const getCurrentUserRole = () => {
+    try {
+      const s = localStorage.getItem("user");
+      if (!s) return "";
+      const u = JSON.parse(s);
+      const raw = typeof u.role === "object" ? u.role?.name : u.role;
+      return String(raw || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+  const isAdmin = getCurrentUserRole().includes("admin");
 
   // Fetch orders from API (POST)
   const fetchOrders = async () => {
@@ -142,9 +155,13 @@ export function Pdi2Page() {
       setLoading(true);
       setError(null);
 
+      const currentStage = "pdi2";
+      const stageLabel = getStepLabel(currentStage);
+      const payload = { menu_name: stageLabel };
+
       const res = await axios.post(
         `${API_URL}/order-list`,
-        {},
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -566,9 +583,9 @@ export function Pdi2Page() {
     const sortOrders = (list: AssemblyOrderData[]) => {
     return [...list].sort((a, b) => {
       // urgent first
-      const aUrg = a.alertStatus ? 1 : 0;
-      const bUrg = b.alertStatus ? 1 : 0;
-      if (aUrg !== bUrg) return bUrg - aUrg;
+      // const aUrg = a.alertStatus ? 1 : 0;
+      // const bUrg = b.alertStatus ? 1 : 0;
+      // if (aUrg !== bUrg) return bUrg - aUrg;
 
       // otherwise restore original order
       return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
@@ -832,14 +849,14 @@ export function Pdi2Page() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
+            <div className="flex flex-col gap-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 {/* Search */}
-                <div className="relative">
+                <div className="relative max-input">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search by Unique Code, GMSOA NO., or Party..."
+                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
                     value={localSearchTerm}
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
                     className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
@@ -1187,18 +1204,8 @@ export function Pdi2Page() {
                                 ? "bg-red-100 border border-red-200 shadow-sm cursor-default"
                                 : "hover:bg-red-50"
                             }`}
-                            title={
-                              getAlertStatus(order.id) || order.alertStatus
-                                ? "Marked as urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              if (
-                                !getAlertStatus(order.id) &&
-                                !order.alertStatus
-                              )
-                                toggleAlertStatus(order.id);
-                            }}
+                            title={"Urgent status is read-only"}
+                            disabled
                           >
                             <Siren
                               className={`h-4 w-4 ${

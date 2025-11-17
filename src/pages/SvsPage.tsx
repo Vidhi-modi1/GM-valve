@@ -98,15 +98,32 @@ export function SvsPage() {
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const token = localStorage.getItem('token');
+  // role helper
+  const getCurrentUserRole = () => {
+    try {
+      const s = localStorage.getItem('user');
+      if (!s) return '';
+      const u = JSON.parse(s);
+      const raw = typeof u.role === 'object' ? u.role?.name : u.role;
+      return String(raw || '').toLowerCase();
+    } catch {
+      return '';
+    }
+  };
+  const isAdmin = getCurrentUserRole().includes('admin');
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      const currentStage = 'svs';
+      const stageLabel = getStepLabel(currentStage);
+      const payload = { menu_name: stageLabel };
+
       const res = await axios.post(
         `${API_URL}/order-list`,
-        {},
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -240,7 +257,10 @@ export function SvsPage() {
         (o) =>
           String(o.uniqueCode).toLowerCase().includes(term) ||
           String(o.party).toLowerCase().includes(term) ||
-          String(o.gmsoaNo).toLowerCase().includes(term)
+          String(o.gmsoaNo).toLowerCase().includes(term) ||
+          String(o.customerPoNo).toLowerCase().includes(term) ||
+          String(o.codeNo).toLowerCase().includes(term) ||
+          String(o.product).toLowerCase().includes(term)
       );
     }
 
@@ -393,9 +413,9 @@ export function SvsPage() {
   const sortOrders = (list: AssemblyOrderData[]) => {
     return [...list].sort((a, b) => {
       // urgent first
-      const aUrg = a.alertStatus ? 1 : 0;
-      const bUrg = b.alertStatus ? 1 : 0;
-      if (aUrg !== bUrg) return bUrg - aUrg;
+      // const aUrg = a.alertStatus ? 1 : 0;
+      // const bUrg = b.alertStatus ? 1 : 0;
+      // if (aUrg !== bUrg) return bUrg - aUrg;
 
       // otherwise restore original order
       return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
@@ -565,13 +585,13 @@ export function SvsPage() {
             <p className="text-gray-600">Track and manage stock valve store orders and manufacturing workflow (Finished Valve = Yes)</p>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
-              <div className="relative">
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+              <div className="relative max-input">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search by Unique Code, GMSOA NO., or Party..."
+                  placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
                   value={localSearchTerm}
                   onChange={(e) => setLocalSearchTerm(e.target.value)}
                   className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
@@ -734,7 +754,7 @@ export function SvsPage() {
                           <ArrowRight className="h-4 w-4 text-green-600" />
                         </Button>
 
-                         <Button
+                          <Button
                             size="sm"
                             variant="ghost"
                             className={`h-7 w-7 p-0 transition-all duration-200 ${
@@ -742,23 +762,8 @@ export function SvsPage() {
                                 ? "bg-red-100 border border-red-200 shadow-sm"
                                 : "hover:bg-red-50"
                             }`}
-                            title={
-                              order.alertStatus
-                                ? "Click to unmark urgent"
-                                : "Click to mark as urgent"
-                            }
-                            onClick={() => {
-                              console.clear();
-                              console.log(
-                                "BUTTON CLICKED → orderId:",
-                                order.id
-                              );
-                              console.log(
-                                "BEFORE CLICK → alertStatus:",
-                                order.alertStatus
-                              );
-                              toggleAlertStatus(order.id);
-                            }}
+                            title={"Urgent status is read-only"}
+                            disabled
                           >
                             <Siren
                               className={`h-4 w-4 ${

@@ -52,7 +52,6 @@ interface AssemblyOrderData {
   assemblyDate: string;
   uniqueCode: string;
   splittedCode: string;
-  split_id: string;
   party: string;
   customerPoNo: string;
   codeNo: string;
@@ -168,7 +167,6 @@ export function Testing1Page() {
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
             splittedCode: item.splitted_code || "",
-            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -652,7 +650,6 @@ const handleSaveRemarks = async () => {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
-      formData.append("split_id", String(selectedOrder.split_id || ""));
       // Align with MaterialIssue: include human-readable next step
       {
         const currentStep = "testing1";
@@ -689,7 +686,6 @@ const handleSaveRemarks = async () => {
           formDataSplit.append("orderId", String(selectedOrder.id));
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
           formDataSplit.append("splitOrder", "true");
           // Include next step for split leg
           {
@@ -713,13 +709,15 @@ const handleSaveRemarks = async () => {
             responseSplit.data?.status === true;
 
           if (isSplitSuccess) {
-            const currentStep = "testing1";
-            const defaultNext = getNextSteps(currentStep)[0] || "";
-            const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-            const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
-              `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
-            setAssignStatus({ type: "success", message: msg });
+            const mainStage = responseMain.data?.data?.to_stage || "next stage";
+            const splitStage =
+              responseSplit.data?.data?.to_stage || "next stage";
+            setAssignStatus({
+              type: "success",
+              message: `✅ Order assigned successfully! 
+Main: ${mainQty} units to ${mainStage} 
+Split: ${splitQty} units to ${splitStage}`,
+            });
           } else {
             setAssignStatus({
               type: "error",
@@ -729,11 +727,14 @@ const handleSaveRemarks = async () => {
             });
           }
         } else {
-          const currentStep = "testing1";
-          const defaultNext = getNextSteps(currentStep)[0] || "";
-          const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-          const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
-          setAssignStatus({ type: "success", message: msg });
+          const toStage = responseMain.data?.data?.to_stage || "next stage";
+          const fromStage =
+            responseMain.data?.data?.from_stage || "current stage";
+          setAssignStatus({
+            type: "success",
+            message: `✅ Order assigned successfully! 
+${mainQty} units moved from ${fromStage} → ${toStage}`,
+          });
         }
 
         await fetchOrders();
@@ -1174,16 +1175,16 @@ const handleSaveRemarks = async () => {
 
                       <td className="px-3 py-2 text-center text-sm text-gray-900">
                   <Button
-                  size="sm"
-                  variant="ghost"
-                  className={`h-7 w-7 p-0 ${
-                    (order.remarks && order.remarks.trim() !== "") // backend value
-                      ? "bg-[#174a9f] hover:bg-[#123a7f]"
-                      : "hover:bg-[#d1e2f3]"
-                  }`}
-                  title="Add/Edit Remarks"
-                  onClick={() => handleOpenRemarks(order)}
-                >
+  size="sm"
+  variant="ghost"
+  className={`h-7 w-7 p-0 ${
+    (order.remarks && order.remarks.trim() !== "") // backend value
+      ? "bg-[#174a9f] hover:bg-[#123a7f]"
+      : "hover:bg-[#d1e2f3]"
+  }`}
+  title="Add/Edit Remarks"
+  onClick={() => handleOpenRemarks(order)}
+>
   <MessageSquarePlus
     className={`h-4 w-4 ${
       (order.remarks && order.remarks.trim() !== "")
@@ -1235,32 +1236,17 @@ const handleSaveRemarks = async () => {
                                                                                   ? "bg-red-100 border border-red-200 shadow-sm"
                                                                                   : "hover:bg-red-50"
                                                                               }`}
-                                                                              title={
-                                                                                order.alertStatus
-                                                                                  ? "Click to unmark urgent"
-                                                                                  : "Click to mark as urgent"
-                                                                              }
-                                                                              onClick={() => {
-                                                                                console.clear();
-                                                                                console.log(
-                                                                                  "BUTTON CLICKED → orderId:",
-                                                                                  order.id
-                                                                                );
-                                                                                console.log(
-                                                                                  "BEFORE CLICK → alertStatus:",
-                                                                                  order.alertStatus
-                                                                                );
-                                                                                toggleAlertStatus(order.id);
-                                                                              }}
-                                                                            >
-                                                                              <Siren
-                                                                                className={`h-4 w-4 ${
-                                                                                  order.alertStatus
-                                                                                    ? "text-red-600 animate-siren-pulse"
-                                                                                    : "text-gray-400"
-                                                                                }`}
-                                                                              />
-                                                                            </Button>
+                                                                              title={"Urgent status is read-only"}
+                                                                              disabled
+                                                                              >
+                                                                                <Siren
+                                                                                  className={`h-4 w-4 ${
+                                                                                    order.alertStatus
+                                                                                      ? "text-red-600 animate-siren-pulse"
+                                                                                      : "text-gray-400"
+                                                                                  }`}
+                                                                                />
+                                                                              </Button>
                         </div>
                       </td>
                     </tr>

@@ -322,7 +322,10 @@ setOrders(sortOrders(apiOrders));
         (o) =>
           String(o.uniqueCode).toLowerCase().includes(term) ||
           String(o.party).toLowerCase().includes(term) ||
-          String(o.gmsoaNo).toLowerCase().includes(term)
+          String(o.gmsoaNo).toLowerCase().includes(term) ||
+          String(o.customerPoNo).toLowerCase().includes(term) ||
+          String(o.codeNo).toLowerCase().includes(term) ||
+          String(o.product).toLowerCase().includes(term)
       );
     }
 
@@ -570,9 +573,9 @@ setOrders(sortOrders(apiOrders));
       const sortOrders = (list: AssemblyOrderData[]) => {
   return [...list].sort((a, b) => {
     // urgent first
-    const aUrg = a.alertStatus ? 1 : 0;
-    const bUrg = b.alertStatus ? 1 : 0;
-    if (aUrg !== bUrg) return bUrg - aUrg;
+    // const aUrg = a.alertStatus ? 1 : 0;
+    // const bUrg = b.alertStatus ? 1 : 0;
+    // if (aUrg !== bUrg) return bUrg - aUrg;
 
     // otherwise restore original order
     return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
@@ -824,14 +827,14 @@ setOrders(sortOrders(apiOrders));
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
+            <div className="flex flex-col gap-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 {/* Search */}
-                <div className="relative">
+                <div className="relative max-input">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search by Unique Code, GMSOA NO., or Party..."
+                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
                     value={localSearchTerm}
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
                     className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"

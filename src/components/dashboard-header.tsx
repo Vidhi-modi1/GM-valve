@@ -71,63 +71,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const token = localStorage.getItem("token");
 
-  // ✅ Handle upload logic
-  // const handleUpload = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-
-  //   if (!file) {
-  //     setStatusType("warning");
-  //     setStatusMessage("⚠️ Please select a file first.");
-  //     return;
-  //   }
-
-  //   const formData = new FormData();
-  //   formData.append("file", file);
-
-  //   try {
-  //     setUploading(true);
-  //     setStatusType(null);
-  //     setStatusMessage("Uploading...");
-
-  //     const res = await axios.post(
-  //       "https://gmvalve.lvpro.live/api/upload-order-file",
-  //       formData,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "multipart/form-data",
-  //         },
-  //       }
-  //     );
-
-  //     console.log("Upload Response:", res.data);
-  //     const msg = res.data?.Resp_desc || res.data?.message || "Upload response received.";
-
-  //     if (res.data?.Resp_code === "true" || res.data?.status === true) {
-  //       setStatusType("success");
-  //       setStatusMessage("✅ File uploaded successfully!");
-  //       setFile(null);
-  //       if (fileInputRef.current) fileInputRef.current.value = "";
-  //       onUploadSuccess?.();
-  //       setTimeout(() => setIsDialogOpen(false), 1000);
-  //     } else if (msg.toLowerCase().includes("header mismatch")) {
-  //       setStatusType("warning");
-  //       setStatusMessage("⚠️ Header mismatch found. Please check your Excel headers.");
-  //     } else if (msg.toLowerCase().includes("invalid format")) {
-  //       setStatusType("error");
-  //       setStatusMessage("❌ Invalid format. Please upload a valid Excel or CSV file.");
-  //     } else {
-  //       setStatusType("error");
-  //       setStatusMessage(`❌ ${msg}`);
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     setStatusType("error");
-  //     setStatusMessage("❌ Error uploading file.");
-  //   } finally {
-  //     setUploading(false);
-  //   }
-  // };
+ 
   const [mismatchFileUrl, setMismatchFileUrl] = useState<string | null>(null);
   const [lastErrorType, setLastErrorType] = useState<"header" | "validation" | null>(null);
 
@@ -322,6 +266,7 @@ if (Resp_code === "true") {
       "Customer PO No.",
       "Code No",
       "Product",
+      "PO QTY",
       "Qty",
       "Qty Exe.",
       "Qty Pending",

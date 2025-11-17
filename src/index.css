@@ -5664,3 +5664,15 @@ button:focus {
   max-width: 1000px !important;
   width: 100%;
 }
+
+.max-input {
+max-width: 550px;
+width: 100%;  
+}
+
+.max-input input {
+  width: 100%;
+}
+.disabled\:opacity-50:disabled {
+opacity: 1;
+}

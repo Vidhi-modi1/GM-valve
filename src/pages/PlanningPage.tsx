@@ -36,6 +36,7 @@ import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
 
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import { getStepLabel } from "../config/workflowSteps";
 
 interface AssemblyOrderData {
   id: string;
@@ -50,6 +51,7 @@ interface AssemblyOrderData {
   customerPoNo: string;
   codeNo: string;
   product: string;
+  poQty: number;
   qty: number;
   qtyExe: number;
   qtyPending: number;
@@ -130,6 +132,19 @@ export function PlanningPage() {
 
   // token
   const token = localStorage.getItem("token");
+  // role helper
+  const getCurrentUserRole = () => {
+    try {
+      const s = localStorage.getItem("user");
+      if (!s) return "";
+      const u = JSON.parse(s);
+      const raw = typeof u.role === "object" ? u.role?.name : u.role;
+      return String(raw || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+  const isAdmin = getCurrentUserRole().includes("admin");
 
   // Fetch orders from API (POST)
   const fetchOrders = async () => {
@@ -137,9 +152,13 @@ export function PlanningPage() {
       setLoading(true);
       setError(null);
 
+      const currentStage = "planning";
+      const stageLabel = getStepLabel(currentStage);
+      const payload = { menu_name: stageLabel };
+
       const res = await axios.post(
         `${API_URL}/order-list`,
-        {},
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -168,6 +187,7 @@ export function PlanningPage() {
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
             product: item.product || "",
+            poQty: Number(item.po_qty ?? item.qty ?? 0),
             qty: Number(item.qty || 0),
             qtyExe: Number(item.qty_executed || 0),
             qtyPending: Number(item.qty_pending || 0),
@@ -325,7 +345,10 @@ export function PlanningPage() {
         (o) =>
           String(o.uniqueCode).toLowerCase().includes(term) ||
           String(o.party).toLowerCase().includes(term) ||
-          String(o.gmsoaNo).toLowerCase().includes(term)
+          String(o.gmsoaNo).toLowerCase().includes(term) ||
+          String(o.customerPoNo).toLowerCase().includes(term) ||
+          String(o.codeNo).toLowerCase().includes(term) ||
+          String(o.product).toLowerCase().includes(term)
       );
     }
 
@@ -579,9 +602,9 @@ export function PlanningPage() {
   const sortOrders = (list: AssemblyOrderData[]) => {
   return [...list].sort((a, b) => {
     // urgent first
-    const aUrg = a.alertStatus ? 1 : 0;
-    const bUrg = b.alertStatus ? 1 : 0;
-    if (aUrg !== bUrg) return bUrg - aUrg;
+    // const aUrg = a.alertStatus ? 1 : 0;
+    // const bUrg = b.alertStatus ? 1 : 0;
+    // if (aUrg !== bUrg) return bUrg - aUrg;
 
     // otherwise restore original order
     return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
@@ -850,17 +873,17 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
+            <div className="flex flex-col gap-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 {/* Search */}
-                <div className="relative">
+                <div className="relative max-input">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search by Unique Code, GMSOA NO., or Party..."
+                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
                     value={localSearchTerm}
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
+                    className="pl-10 w-full bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0 "
                   />
                 </div>
 
@@ -1012,6 +1035,9 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       Product
                     </th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                      PO QTY
+                    </th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                       Qty
                     </th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
@@ -1105,6 +1131,9 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
 
                       <td className="px-3 py-2 text-center text-sm text-gray-900 w-80">
                         <div className="line-clamp-2">{order.product}</div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                        {order.poQty}
                       </td>
 
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
