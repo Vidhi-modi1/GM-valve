@@ -63,6 +63,18 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   role,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (open) {
+      setStatusType(null);
+      setStatusMessage(null);
+      setMismatchFileUrl(null);
+      setLastErrorType(null);
+      setUploading(false);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
   const [file, setFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -346,7 +358,7 @@ if (Resp_code === "true") {
 
      
       {/* 🚀 Modern ADD NEW ORDER DIALOG */}
-<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+<Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
   <DialogContent className="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl border-0">
     <DialogHeader>
       <DialogTitle className="text-2xl font-semibold text-gray-900 text-center">
