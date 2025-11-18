@@ -69,7 +69,7 @@ interface AssemblyOrderData {
   originalIndex: number;
 }
 
-export function PlanningPage() {
+export function PlanningPage({ isAdminView = false }) {
   // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
@@ -720,11 +720,8 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
           setQuickAssignOpen(false);
           setAssignStatus(null);
-        }, 2000);
       } else {
         setAssignStatus({
           type: "error",

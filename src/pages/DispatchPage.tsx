@@ -328,6 +328,12 @@ setOrders(sortOrders(apiOrders));
           String(o.product).toLowerCase().includes(term)
       );
     }
+       const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
 
     return filtered;
   }, [
@@ -587,9 +593,12 @@ setOrders(sortOrders(apiOrders));
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
   const handleAssignOrder = async () => {
+    if (isAssigning) return;
+    setIsAssigning(true);
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
 
@@ -686,11 +695,10 @@ setOrders(sortOrders(apiOrders));
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
+
           setQuickAssignOpen(false);
           setAssignStatus(null);
-        }, 2000);
+
       } else {
         setAssignStatus({
           type: "error",
@@ -729,6 +737,8 @@ setOrders(sortOrders(apiOrders));
           message: `❌ ${error.message}`,
         });
       }
+    } finally {
+      setIsAssigning(false);
     }
   };
 

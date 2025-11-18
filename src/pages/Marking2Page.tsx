@@ -341,6 +341,12 @@ export function Marking2Page() {
           String(o.product).toLowerCase().includes(term)
       );
     }
+       const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
 
     return filtered;
   }, [
@@ -600,9 +606,12 @@ export function Marking2Page() {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
   const handleAssignOrder = async () => {
+    if (isAssigning) return;
+    setIsAssigning(true);
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
 
@@ -713,11 +722,10 @@ export function Marking2Page() {
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
+
           setQuickAssignOpen(false);
           setAssignStatus(null);
-        }, 2000);
+
       } else {
         setAssignStatus({
           type: "error",
@@ -756,6 +764,8 @@ export function Marking2Page() {
           message: `❌ ${error.message}`,
         });
       }
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -847,7 +857,7 @@ export function Marking2Page() {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div>
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-                Material Issue
+                Marking 2
               </h1>
               <p className="text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
@@ -1372,18 +1382,11 @@ export function Marking2Page() {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  handleAssignOrder(
-                    Number(selectedOrder.id),
-                    Number(selectedOrder.qty),
-                    Number(quickAssignQty),
-                    Number(splitAssignQty),
-                    splitOrder
-                  )
-                }
+                onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>

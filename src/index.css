@@ -5676,3 +5676,7 @@ width: 100%;
 .disabled\:opacity-50:disabled {
 opacity: 1;
 }
+
+.inner-header-main .glass-header {
+  display: none;
+}

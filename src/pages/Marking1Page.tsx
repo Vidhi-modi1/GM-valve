@@ -342,6 +342,12 @@ export function Marking1Page() {
           String(o.product).toLowerCase().includes(term)
       );
     }
+       const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
 
     return filtered;
   }, [
@@ -377,39 +383,6 @@ export function Marking1Page() {
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // Quick Assign logic (local; you can replace with API calls as needed)
-  // const handleQuickAssign = (order: AssemblyOrderData) => {
-  //   setSelectedOrder(order);
-  //   setQuickAssignOpen(true);
-  //   // Match PlanningPage behavior: allow selecting any next step
-  //   setQuickAssignStep('');
-  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-  //   setSplitOrder(false);
-  //   setSplitAssignStep('');
-  //   setSplitAssignQty('');
-  //   setQuickAssignErrors({});
-  // };
-
-  // const validateQuickAssign = () => {
-  //   const errs: { [k: string]: string } = {};
-  //   const maxQty = Number(selectedOrder?.qtyPending ?? 0);
-  //   const mainQty = Number(quickAssignQty || 0);
-  //   const splitQty = Number(splitAssignQty || 0);
-
-  //   if (!quickAssignQty || mainQty <= 0) errs.quickAssignQty = 'Quantity is required and must be > 0';
-  //   if (mainQty > maxQty) errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
-
-  //   if (splitOrder) {
-  //     if (!splitAssignStep) errs.splitAssignStep = 'Choose second step';
-  //     if (!splitAssignQty || splitQty <= 0) errs.splitAssignQty = 'Split qty required';
-  //     if (quickAssignStep && splitAssignStep && quickAssignStep === splitAssignStep) errs.sameEngineer = 'Choose different steps';
-  //     const total = mainQty + splitQty;
-  //     if (total !== maxQty) errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
-  //   }
-
-  //   setQuickAssignErrors(errs);
-  //   return Object.keys(errs).length === 0;
-  // };
   // const currentStep = "marking1";
   const currentStep = "marking1"; // or derive from login role
   const nextSteps = getNextSteps(currentStep);
@@ -601,9 +574,12 @@ export function Marking1Page() {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
   const handleAssignOrder = async () => {
+    if (isAssigning) return;
+    setIsAssigning(true);
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
 
@@ -714,11 +690,10 @@ export function Marking1Page() {
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
+      
           setQuickAssignOpen(false);
           setAssignStatus(null);
-        }, 2000);
+
       } else {
         setAssignStatus({
           type: "error",
@@ -757,6 +732,8 @@ export function Marking1Page() {
           message: `❌ ${error.message}`,
         });
       }
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -848,7 +825,7 @@ export function Marking1Page() {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div>
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-                Material Issue
+                Marking 1
               </h1>
               <p className="text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
@@ -922,38 +899,6 @@ export function Marking1Page() {
             />
           </div>
         </div>
-
-        {/* Upload Section */}
-        {/* <form onSubmit={handleUpload} className="bg-white shadow-md p-4 rounded-xl mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-gray-700">Upload Order File</h2>
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.csv"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border p-2 rounded-md"
-          />
-          <Button
-            type="submit"
-            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white flex items-center gap-2"
-            disabled={uploading}
-          >
-            <Plus className="h-4 w-4" />
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
-
-          <Button onClick={() => fetchOrders()} variant="outline" className="ml-2">
-            Refresh
-          </Button>
-
-          <Button onClick={handlePrint} variant="outline" className="ml-2">
-            Export / Print
-          </Button>
-        </div>
-
-        {message && <div className="mt-3 text-sm text-yellow-800 bg-yellow-100 p-2 rounded">{message}</div>}
-      </form> */}
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -1373,18 +1318,11 @@ export function Marking1Page() {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  handleAssignOrder(
-                    Number(selectedOrder.id),
-                    Number(selectedOrder.qty),
-                    Number(quickAssignQty),
-                    Number(splitAssignQty),
-                    splitOrder
-                  )
-                }
+                onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>

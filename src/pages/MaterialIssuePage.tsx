@@ -584,10 +584,13 @@ export function MaterialIssuePage() {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // Removed legacy commented assign-order block to prevent stray references
 
   const handleAssignOrder = async () => {
+    if (isAssigning) return;
+    setIsAssigning(true);
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
 
@@ -693,17 +696,18 @@ export function MaterialIssuePage() {
 
       await fetchOrders();
 
-      setTimeout(() => {
         setQuickAssignOpen(false);
         setAssignStatus(null);
-      }, 2000);
-    } catch (error) {
-      console.error("❌ Error assigning order:", error);
+
+  } catch (error) {
+    console.error("❌ Error assigning order:", error);
       setAssignStatus({
         type: "error",
         message: "Server error while assigning.",
       });
-    }
+  } finally {
+    setIsAssigning(false);
+  }
   };
 
   // Upload file
@@ -1270,18 +1274,11 @@ export function MaterialIssuePage() {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  handleAssignOrder(
-                    Number(selectedOrder.id),
-                    Number(selectedOrder.qty),
-                    Number(quickAssignQty),
-                    Number(splitAssignQty),
-                    splitOrder
-                  )
-                }
+                onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>

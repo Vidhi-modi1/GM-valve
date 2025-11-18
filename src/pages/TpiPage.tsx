@@ -328,6 +328,13 @@ export function TpiPage() {
       );
     }
 
+       const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
+
     return filtered;
   }, [
     orders,
@@ -688,11 +695,8 @@ export function TpiPage() {
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
           setQuickAssignOpen(false);
           setAssignStatus(null);
-        }, 2000);
       } else {
         setAssignStatus({
           type: "error",

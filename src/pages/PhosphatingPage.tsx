@@ -342,6 +342,13 @@ export function PhosphatingPage() {
       );
     }
 
+    const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
+
     return filtered;
   }, [
     orders,
@@ -641,163 +648,14 @@ const handleSaveRemarks = async () => {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
-  // ✅ Assign order to next workflow stage
-//   const handleAssignOrder = async () => {
-//     if (!selectedOrder) return;
-//     if (!validateQuickAssign()) return;
-
-//     setAssignStatus({
-//       type: "info",
-//       message: "Assigning order, please wait...",
-//     });
-
-//     try {
-//       const token = localStorage.getItem("token");
-//       if (!token) {
-//         setAssignStatus({
-//           type: "error",
-//           message: "Token missing. Please log in again.",
-//         });
-//         return;
-//       }
-
-//       const mainQty = Number(quickAssignQty || 0);
-//       const splitQty = Number(splitAssignQty || 0);
-
-//       // const formData = new FormData();
-//       // formData.append("orderId", String(selectedOrder.id));
-//       // formData.append("totalQty", String(selectedOrder.qty));
-//       // formData.append("executedQty", String(mainQty));
-
-//       const formData = new FormData();
-// formData.append("orderId", String(selectedOrder.id));
-// formData.append("totalQty", String(selectedOrder.qty));
-// formData.append("executedQty", String(mainQty));
-// formData.append("from_stage", "material-issue");  // 👈 ADD THIS
-// formData.append("to_stage", "semi-qc");           // 👈 ADD THIS
-
-//       console.log("📤 Assign main payload (FormData):", {
-//         orderId: selectedOrder.id,
-//         totalQty: selectedOrder.qty,
-//         executedQty: mainQty,
-//       });
-
-//       const responseMain = await axios.post(
-//         `${API_URL}/assign-order`,
-//         formData,
-//         {
-//           headers: { Authorization: `Bearer ${token}` },
-//         }
-//       );
-
-//       console.log("✅ Main assign response:", responseMain.data);
-
-//       const isSuccess =
-//         responseMain.data?.Resp_code === true ||
-//         responseMain.data?.Resp_code === "true" ||
-//         responseMain.data?.status === true;
-
-//       if (isSuccess) {
-//         // --- Split assignment ---
-//         if (splitOrder && splitQty > 0) {
-//           const formDataSplit = new FormData();
-//           formDataSplit.append("orderId", String(selectedOrder.id));
-//           formDataSplit.append("totalQty", String(selectedOrder.qty));
-//           formDataSplit.append("executedQty", String(splitQty));
-//           formDataSplit.append("splitOrder", "true");
-
-//           const responseSplit = await axios.post(
-//             `${API_URL}/assign-order`,
-//             formDataSplit,
-//             {
-//               headers: { Authorization: `Bearer ${token}` },
-//             }
-//           );
-
-//           const isSplitSuccess =
-//             responseSplit.data?.Resp_code === true ||
-//             responseSplit.data?.Resp_code === "true" ||
-//             responseSplit.data?.status === true;
-
-//           if (isSplitSuccess) {
-//             const mainStage = responseMain.data?.data?.to_stage || "next stage";
-//             const splitStage =
-//               responseSplit.data?.data?.to_stage || "next stage";
-//             setAssignStatus({
-//               type: "success",
-//               message: `✅ Order assigned successfully! 
-// Main: ${mainQty} units to ${mainStage} 
-// Split: ${splitQty} units to ${splitStage}`,
-//             });
-//           } else {
-//             setAssignStatus({
-//               type: "error",
-//               message: `⚠️ Main assigned, but split failed: ${
-//                 responseSplit.data?.Resp_desc || "Unknown error"
-//               }`,
-//             });
-//           }
-//         } else {
-//           const toStage = responseMain.data?.data?.to_stage || "next stage";
-//           const fromStage =
-//             responseMain.data?.data?.from_stage || "current stage";
-//           setAssignStatus({
-//             type: "success",
-//             message: `✅ Order assigned successfully! 
-// ${mainQty} units moved from ${fromStage} → ${toStage}`,
-//           });
-//         }
-
-//         await fetchOrders();
-//         // You can close after a delay for smooth UX
-//         setTimeout(() => {
-//           setQuickAssignOpen(false);
-//           setAssignStatus(null);
-//         }, 2000);
-//       } else {
-//         setAssignStatus({
-//           type: "error",
-//           message: `⚠️ ${
-//             responseMain.data?.Resp_desc || "Order assignment failed."
-//           }`,
-//         });
-//       }
-//     } catch (error: any) {
-//       console.error("❌ Error assigning order:", error);
-
-//       if (error.response) {
-//         const msg =
-//           error.response.data?.message ||
-//           error.response.data?.Resp_desc ||
-//           "Validation failed.";
-
-//         const detailed =
-//           error.response.data?.errors &&
-//           Object.entries(error.response.data.errors)
-//             .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-//             .join("\n");
-
-//         setAssignStatus({
-//           type: "error",
-//           message: `❌ ${msg}\n${detailed || ""}`,
-//         });
-//       } else if (error.request) {
-//         setAssignStatus({
-//           type: "error",
-//           message: "❌ No response from server. Please check your connection.",
-//         });
-//       } else {
-//         setAssignStatus({
-//           type: "error",
-//           message: `❌ ${error.message}`,
-//         });
-//       }
-//     }
-//   };
+ 
 
 // ✅ Assign order to next workflow stage
 const handleAssignOrder = async () => {
+  if (isAssigning) return;
+  setIsAssigning(true);
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
 
@@ -899,10 +757,8 @@ const handleAssignOrder = async () => {
       setAssignStatus({ type: "success", message: successMessage });
 
       await fetchOrders();
-      setTimeout(() => {
         setQuickAssignOpen(false);
         setAssignStatus(null);
-      }, 2000);
 
     } else {
       setAssignStatus({
@@ -941,6 +797,8 @@ const handleAssignOrder = async () => {
         message: `❌ ${error.message}`,
       });
     }
+  } finally {
+    setIsAssigning(false);
   }
 };
 
@@ -1559,18 +1417,11 @@ const handleAssignOrder = async () => {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  handleAssignOrder(
-                    Number(selectedOrder.id),
-                    Number(selectedOrder.qty),
-                    Number(quickAssignQty),
-                    Number(splitAssignQty),
-                    splitOrder
-                  )
-                }
+                onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>

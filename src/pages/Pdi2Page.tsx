@@ -342,6 +342,13 @@ export function Pdi2Page() {
       );
     }
 
+       const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
+
     return filtered;
   }, [
     orders,
@@ -600,9 +607,12 @@ export function Pdi2Page() {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
   const handleAssignOrder = async () => {
+    if (isAssigning) return;
+    setIsAssigning(true);
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
 
@@ -711,11 +721,9 @@ export function Pdi2Page() {
         }
 
         await fetchOrders();
-        // You can close after a delay for smooth UX
-        setTimeout(() => {
           setQuickAssignOpen(false);
           setAssignStatus(null);
-        }, 2000);
+
       } else {
         setAssignStatus({
           type: "error",
@@ -754,6 +762,8 @@ export function Pdi2Page() {
           message: `❌ ${error.message}`,
         });
       }
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -1370,18 +1380,11 @@ export function Pdi2Page() {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  handleAssignOrder(
-                    Number(selectedOrder.id),
-                    Number(selectedOrder.qty),
-                    Number(quickAssignQty),
-                    Number(splitAssignQty),
-                    splitOrder
-                  )
-                }
+                onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>

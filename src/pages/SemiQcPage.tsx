@@ -265,13 +265,10 @@ export function SemiQcPage() {
 
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
-let filtered = orders.filter(
-  o => normalize(o.currentStage) === "semi-qc"
-);
-
+    let filtered = orders.slice();
+    filtered = filtered.filter((o) => normalize(o.currentStage) === "semi-qc");
 
     if (showUrgentOnly) {
-      // Check both: local context flag (getAlertStatus) and server-provided order.alertStatus
       filtered = filtered.filter(
         (o) => getAlertStatus(String(o.id)) || o.alertStatus
       );
@@ -343,6 +340,13 @@ let filtered = orders.filter(
           String(o.product).toLowerCase().includes(term)
       );
     }
+
+    const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
 
     return filtered;
   }, [
@@ -608,9 +612,12 @@ const handleSaveRemarks = async () => {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
 const handleAssignOrder = async () => {
+  if (isAssigning) return;
+  setIsAssigning(true);
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
 
@@ -632,17 +639,21 @@ const handleAssignOrder = async () => {
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // ----------------------------
-    // 🔵 MAIN ASSIGNMENT
-    // ----------------------------
+    // Determine next step key + readable label
+    const nextStepKey =
+      quickAssignStep ||
+      (Array.isArray(nextSteps) ? nextSteps[0] : "semi-qc");
+
+    const nextStepLabel = getStepLabel(nextStepKey);
+
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("nextSteps", getStepLabel(quickAssignStep)); // 🔥 FIXED
+    formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
-    console.log("📤 MAIN Payload:");
+    console.log("📤 MAIN PAYLOAD:");
     for (const p of formData.entries()) console.log(p[0], p[1]);
 
     const responseMain = await axios.post(
@@ -651,28 +662,31 @@ const handleAssignOrder = async () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    const successMain =
+    const mainSuccess =
       responseMain.data?.Resp_code === "true" ||
       responseMain.data?.Resp_code === true;
 
-    if (!successMain) {
+    if (!mainSuccess) {
       setAssignStatus({
         type: "error",
-        message: responseMain.data?.Resp_desc || "Order assignment failed.",
+        message: responseMain.data?.Resp_desc || "Main assignment failed.",
       });
       return;
     }
 
-    // ----------------------------
-    // 🔵 SPLIT ASSIGNMENT (IF ANY)
-    // ----------------------------
+    let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
       formDataSplit.append("totalQty", String(selectedOrder.qty));
       formDataSplit.append("executedQty", String(splitQty));
-      formDataSplit.append("nextSteps", getStepLabel(splitAssignStep)); // 🔥 FIXED
+      formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
+
+      console.log("📤 SPLIT PAYLOAD:");
+      for (const p of formDataSplit.entries())
+        console.log("SPLIT:", p[0], p[1]);
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
@@ -680,50 +694,40 @@ const handleAssignOrder = async () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const successSplit =
+      const splitSuccess =
         responseSplit.data?.Resp_code === "true" ||
         responseSplit.data?.Resp_code === true;
 
-      if (!successSplit) {
+      if (splitSuccess) {
+        successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
+      } else {
         setAssignStatus({
           type: "error",
           message:
             "Main assigned but split failed: " +
             (responseSplit.data?.Resp_desc || "Unknown error"),
         });
-        return;
       }
     }
-
-    // ----------------------------
-    // 🔵 SUCCESS MESSAGE
-    // ----------------------------
-    {
-      const currentStep = "semiqc";
-      const defaultNext = getNextSteps(currentStep)[0] || "";
-      const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-      let msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
-      if (splitOrder && splitQty > 0) {
-        const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-        msg += `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
-      }
-      setAssignStatus({ type: "success", message: msg });
-    }
+    setAssignStatus({ type: "success", message: successMessage });
 
     await fetchOrders();
 
-    setTimeout(() => {
       setQuickAssignOpen(false);
       setAssignStatus(null);
-    }, 2000);
-  } catch (error: any) {
+
+
+  } catch (error) {
     console.error("❌ Error assigning order:", error);
     setAssignStatus({
       type: "error",
-      message: "Server error while assigning order.",
+      message: "Server error while assigning.",
     });
+  } finally {
+    setIsAssigning(false);
   }
 };
+
 
 
 
@@ -771,8 +775,9 @@ const handleAssignOrder = async () => {
     } finally {
       setUploading(false);
       setTimeout(() => setMessage(null), 5000);
-    }
-  };
+      setIsAssigning(false);
+    } 
+  }
 
   // PDF export (simple version) - uses window.print or jsPDF if present
   const handlePrint = () => {
@@ -1309,18 +1314,11 @@ const handleAssignOrder = async () => {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  handleAssignOrder(
-                    Number(selectedOrder.id),
-                    Number(selectedOrder.qty),
-                    Number(quickAssignQty),
-                    Number(splitAssignQty),
-                    splitOrder
-                  )
-                }
+                onClick={handleAssignOrder}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
-                Assign
+                {isAssigning ? "Assigning..." : "Assign"}
               </Button>
             </div>
           </DialogContent>

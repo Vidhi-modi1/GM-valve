@@ -264,6 +264,13 @@ export function SvsPage() {
       );
     }
 
+       const seen = new Set<string>();
+    filtered = filtered.filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
+
     return filtered;
   }, [
     orders,
@@ -504,10 +511,10 @@ export function SvsPage() {
       setAssignStatus({ type: 'success', message: successMsg });
 
       await fetchOrders();
-      setTimeout(() => {
+
         setQuickAssignOpen(false);
         setAssignStatus(null);
-      }, 2000);
+
 
     } catch (error: any) {
       console.error("❌ Error assigning order:", error);

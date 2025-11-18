@@ -18,9 +18,8 @@ import DispatchPage from "./DispatchPage";
 
 // A lightweight tabbed container for Super Admin to see all workflow pages
 const SuperAdminTabsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("material-issue");
+  const [activeTab, setActiveTab] = useState<string>("planning");
 
-  // No login required here; normal routes remain protected via ProtectedRoute.
 
   const tabs = useMemo(
     () => [
@@ -63,9 +62,10 @@ const SuperAdminTabsPage: React.FC = () => {
       </div>
 
       {/* Active Tab Content */}
-      <div className="flex-1">
-        {current.component}
-      </div>
+     <div className="flex-1 inner-header-main">
+   <current.component.type key={activeTab} isAdminView={true} />
+</div>
+
     </div>
   );
 };
