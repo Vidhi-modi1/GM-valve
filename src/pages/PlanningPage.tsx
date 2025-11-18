@@ -23,13 +23,7 @@ import {
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
+
 import { Checkbox } from "../components/ui/checkbox";
 import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
@@ -69,7 +63,7 @@ interface AssemblyOrderData {
   originalIndex: number;
 }
 
-export function PlanningPage({ isAdminView = false }) {
+export function PlanningPage() {
   // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
@@ -83,7 +77,6 @@ export function PlanningPage({ isAdminView = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
@@ -436,52 +429,61 @@ export function PlanningPage({ isAdminView = false }) {
   const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
-    const printContainer = document.getElementById("printable-bin-card");
-    if (!printContainer) return;
-
-    let html = "";
-
-    selectedOrdersData.forEach((order) => {
-      html += `
-      <div style="
-        border:1px solid #ccc;
-        padding:20px;
-        border-radius:10px;
-        margin-bottom:30px;
-        page-break-inside: avoid;
-      ">
-        <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">
-          Assembly Line: ${order.assemblyLine}
-        </h2>
-
+    const cards = selectedOrdersData
+      .map(
+        (order) => `
+      <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
+        <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
           <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
           <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
         </div>
-
-        <div style="margin-bottom:15px;">
-          <strong>Item Description:</strong><br>
-          ${order.product}
-        </div>
-
+        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
         <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
           <div><strong>QTY:</strong> ${order.qty}</div>
           <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
         </div>
-
         <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
           <strong>Inspected by:</strong>
           <div style="height:30px; border-bottom:1px solid #555;"></div>
         </div>
-      </div>`;
-    });
+      </div>`
+      )
+      .join("");
 
-    printContainer.innerHTML = html;
-    printContainer.style.display = "block";
+    const html = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title></title>
+        <style>
+          @page { margin: 12mm; }
+          html, body { padding: 0; margin: 0; }
+          body { font-family: Arial, sans-serif; }
+        </style>
+      </head>
+      <body>${cards}</body>
+    </html>`;
 
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(html);
+    doc.close();
     setTimeout(() => {
-      window.print();
-      printContainer.style.display = "none";
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 500);
     }, 200);
   };
 
@@ -789,7 +791,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         res.data?.Resp_code === "RCS" ||
         res.data?.Resp_code === "true"
       ) {
-        setMessage("✅ File uploaded successfully");
+        setMessage("File uploaded successfully");
 
         // reset file input UI
         setFile(null);
@@ -1620,7 +1622,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.splittedCode || "N/A"}
+                        {viewedOrder.splittedCode || "-"}
                       </p>
                     </div>
                   </div>
@@ -1754,7 +1756,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                     <div className="col-span-2">
                       <Label className="text-gray-500 text-sm">Remarks</Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.remarks || "No remarks"}
+                        {viewedOrder.remarks || "-"}
                       </p>
                     </div>
                   </div>

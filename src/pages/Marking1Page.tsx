@@ -449,7 +449,64 @@ export function Marking1Page() {
   // Bin Card / Print
   const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
-  const handlePrintBinCard = () => window.print();
+    const handlePrintBinCard = () => {
+    const cards = selectedOrdersData
+      .map(
+        (order) => `
+      <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
+        <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+          <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
+          <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
+        </div>
+        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+          <div><strong>QTY:</strong> ${order.qty}</div>
+          <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
+        </div>
+        <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
+          <strong>Inspected by:</strong>
+          <div style="height:30px; border-bottom:1px solid #555;"></div>
+        </div>
+      </div>`
+      )
+      .join("");
+
+    const html = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title></title>
+        <style>
+          @page { margin: 12mm; }
+          html, body { padding: 0; margin: 0; }
+          body { font-family: Arial, sans-serif; }
+        </style>
+      </head>
+      <body>${cards}</body>
+    </html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 500);
+    }, 200);
+  };
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {

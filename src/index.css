@@ -5598,7 +5598,7 @@ button:focus {
   box-shadow: none !important;
 }
 
-@media print {
+/* @media print {
   body * {
     visibility: hidden !important;
   }
@@ -5616,10 +5616,7 @@ button:focus {
     padding: 20mm;
   }
 
-  .page-break-inside-avoid {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
+
 }
 
 @media print {
@@ -5656,10 +5653,7 @@ button:focus {
     padding: 0 !important;
   }
 
-  #printable-bin-card {
-    padding: 10mm !important; /* Your desired inner space */
-  }
-}
+} */
 .print-bin-card {
   max-width: 1000px !important;
   width: 100%;

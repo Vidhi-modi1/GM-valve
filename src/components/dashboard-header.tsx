@@ -110,7 +110,7 @@ const handleUpload = async (e: React.FormEvent) => {
 
 if (Resp_code === "true") {
   setStatusType("success");
-  setStatusMessage("✅ File imported successfully!");
+  setStatusMessage("File imported successfully!");
   setMismatchFileUrl(null);
   setLastErrorType(null);
   setFile(null);
@@ -299,7 +299,7 @@ if (Resp_code === "true") {
 
       {/* ➕ Add New Order Button */}
       <Button
-        onClick={() => setIsDialogOpen(true)}
+        onClick={() => handleDialogOpenChange(true)}
         className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
       >
         <Plus className="h-4 w-4" />
