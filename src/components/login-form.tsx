@@ -258,13 +258,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       if (r === "material-issue" || r.startsWith("materialissue")) return "material-issue";
       if (r === "semi-qc" || r.startsWith("semiqc")) return "semi-qc";
       if (r === "phosphating" || r === "phosphating-qc" || r.startsWith("phosp")) return "phosphating";
-      // Map generic 'assembly' to default 'assembly-a' route
-      if (r === "assembly" || r.startsWith("assembly")) return "assembly-a";
-      // Sub-roles for Assembly lines
+      // Sub-roles for Assembly lines (check explicit lines BEFORE generic 'assembly')
       if (r === "assembly-a" || r.startsWith("assembly-a")) return "assembly-a";
       if (r === "assembly-b" || r.startsWith("assembly-b")) return "assembly-b";
       if (r === "assembly-c" || r.startsWith("assembly-c")) return "assembly-c";
       if (r === "assembly-d" || r.startsWith("assembly-d")) return "assembly-d";
+      // Generic assembly fallback
+      if (r === "assembly") return "assembly-a";
       if (r === "svs" || r.startsWith("svs")) return "svs";
       if (r === "tpi" || r.startsWith("tpi")) return "tpi";
       if (r === "dispatch" || r.startsWith("dispatch")) return "dispatch";

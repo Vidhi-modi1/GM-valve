@@ -61,7 +61,7 @@ export const stepLabels: Record<string, string> = {
   "material-issue": "Material Issue",
   "semi-qc": "Semi QC",
   "phosphating": "Phosphating QC",
-  "assembly": "Assembly",
+  // "assembly": "Assembly",
   "assembly-a": "Assembly A",
   "assembly-b": "Assembly B",
   "assembly-c": "Assembly C",
