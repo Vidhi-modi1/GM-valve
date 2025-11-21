@@ -546,8 +546,6 @@ export function PlanningPage() {
     }
   };
 
-
-
   const toggleAlertStatus = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const currentStatus = order?.alertStatus === true;
@@ -791,7 +789,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         res.data?.Resp_code === "RCS" ||
         res.data?.Resp_code === "true"
       ) {
-        setMessage("File uploaded successfully");
+        setMessage("✅ File uploaded successfully");
 
         // reset file input UI
         setFile(null);
@@ -847,18 +845,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
     <>
       <div id="printable-bin-card" style={{ display: "none" }}></div>
 
-      <DashboardHeader
-        role="planning"
-        currentPage="Planning"
-        onLogout={() => {
-          localStorage.removeItem("token");
-          window.location.href = "/login";
-        }}
-        onNavigate={(page) => {
-          window.location.href = `/${page.toLowerCase()}`;
-        }}
-        onUploadSuccess={() => fetchOrders()} // refresh after upload
-      />
+      
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
         {/* Header */}
         <div className="mb-8">
@@ -891,7 +878,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                     onClick={handleShowBinCard}
                     variant="outline"
                     disabled={selectedRows.size === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 ctm-btn-disable"
                   >
                     <Printer className="h-4 w-4" />
                     Print Bin Card

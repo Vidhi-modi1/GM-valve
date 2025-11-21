@@ -32,6 +32,10 @@ export function deriveRoleFromEmail(email: string): string {
   if (e.startsWith("semiqc")) return "semi-qc";
   if (e.startsWith("phospatingqc")) return "phosphating-qc";
   if (e.startsWith("assembly")) return "assembly";
+  // if (e.startsWith("assembly-a")) return "assembly"
+  //  if (e.startsWith("assembly-b")) return "assembly"
+  //   if (e.startsWith("assembly-c")) return "assembly"
+  //    if (e.startsWith("assembly-d")) return "assembly"
   if (e.startsWith("testing")) return "testing";
   if (e.startsWith("marking")) return "marking";
   if (e.startsWith("svs")) return "svs";

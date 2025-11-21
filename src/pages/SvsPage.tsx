@@ -667,7 +667,7 @@ export function SvsPage() {
                   onClick={handleShowBinCard}
                   variant="outline"
                   disabled={selectedRows.size === 0}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 ctm-btn-disable"
                 >
                   <Printer className="h-4 w-4" />
                   Print Bin Card

@@ -209,40 +209,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setError("");
-
-  //   try {
-  //     const response = await loginUser(email, password);
-  //     if (response && response.status && response.data) {
-  //       const { user, token } = response.data;
-  //       localStorage.setItem("user", JSON.stringify(user));
-  //       localStorage.setItem("token", token);
-
-  //       const rawRoleName = (user && (user.role?.name || user.role)) || "";
-  //       const rolePath = normalizeRoleToRoute(String(rawRoleName), email);
-
-  //       // Persist Super Admin testing mode flag
-  //       // if (superAdminMode) {
-  //       //   localStorage.setItem("superAdmin", "true");
-  //       // } else {
-  //       //   localStorage.removeItem("superAdmin");
-  //       // }
-
-  //       onLogin && onLogin();
-  //       navigate(`/${rolePath}`);
-  //     } else {
-  //       setError(response?.message || "Login failed");
-  //     }
-  //   } catch (err: any) {
-  //     setError(err?.message || "Login failed. Check your credentials or server.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
@@ -292,7 +258,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       if (r === "material-issue" || r.startsWith("materialissue")) return "material-issue";
       if (r === "semi-qc" || r.startsWith("semiqc")) return "semi-qc";
       if (r === "phosphating" || r === "phosphating-qc" || r.startsWith("phosp")) return "phosphating";
-      if (r === "assembly" || r.startsWith("assembly")) return "assembly";
+      // Map generic 'assembly' to default 'assembly-a' route
+      if (r === "assembly" || r.startsWith("assembly")) return "assembly-a";
+      // Sub-roles for Assembly lines
+      if (r === "assembly-a" || r.startsWith("assembly-a")) return "assembly-a";
+      if (r === "assembly-b" || r.startsWith("assembly-b")) return "assembly-b";
+      if (r === "assembly-c" || r.startsWith("assembly-c")) return "assembly-c";
+      if (r === "assembly-d" || r.startsWith("assembly-d")) return "assembly-d";
       if (r === "svs" || r.startsWith("svs")) return "svs";
       if (r === "tpi" || r.startsWith("tpi")) return "tpi";
       if (r === "dispatch" || r.startsWith("dispatch")) return "dispatch";

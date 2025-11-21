@@ -54,8 +54,14 @@ const DashboardPage: React.FC = () => {
         return "SemiQC";
       case "phosphating-qc":
         return "PhosphatingQC";
-      case "assembly":
-        return "Assembly";
+       case "assembly-a":
+    return "Assembly-A";
+  case "assembly-b":
+    return "Assembly-B";
+  case "assembly-c":
+    return "Assembly-C";
+  case "assembly-d":
+    return "Assembly-D";
       case "testing":
         return "Testing";
       case "marking":

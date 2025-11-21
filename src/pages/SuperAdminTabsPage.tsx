@@ -5,7 +5,11 @@ import PlanningPage from "./PlanningPage";
 import MaterialIssuePage from "./MaterialIssuePage";
 import SemiQcPage from "./SemiQcPage";
 import PhosphatingPage from "./PhosphatingPage";
-import AssemblyPage from "./AssemblyPage";
+// import AssemblyPage from "./-AssemblyPage";
+import AssemblyAPage from "./AssemblyAPage";
+import AssemblyBPage from "./AssemblyBPage";
+import AssemblyCPage from "./AssemblyCPage";
+import AssemblyDPage from "./AssemblyDPage";
 import Testing1Page from "./Testing1Page";
 import Testing2Page from "./Testing2Page";
 import Marking1Page from "./Marking1Page";
@@ -15,19 +19,27 @@ import Pdi1Page from "./Pdi1Page";
 import Pdi2Page from "./Pdi2Page";
 import TpiPage from "./TpiPage";
 import DispatchPage from "./DispatchPage";
+import { DashboardPage } from "./DashboardPage";
 
 // A lightweight tabbed container for Super Admin to see all workflow pages
 const SuperAdminTabsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("planning");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
 
   const tabs = useMemo(
     () => [
+      { key: "dashboard", label: "Dashboard", component: (
+        <DashboardPage onLogout={() => { try { localStorage.clear(); } catch {} window.location.href = "/login"; }} />
+      ) },
       { key: "planning", label: "Planning", component: <PlanningPage /> },
       { key: "material-issue", label: "Material Issue", component: <MaterialIssuePage /> },
       { key: "semi-qc", label: "Semi QC", component: <SemiQcPage /> },
       { key: "phosphating", label: "Phosphating", component: <PhosphatingPage /> },
-      { key: "assembly", label: "Assembly", component: <AssemblyPage /> },
+       { key: "assembly-a", label: "Assembly A", component: <AssemblyAPage /> },
+       { key: "assembly-b", label: "Assembly B", component: <AssemblyBPage /> },
+       { key: "assembly-c", label: "Assembly C", component: <AssemblyCPage /> },
+       { key: "assembly-d", label: "Assembly D", component: <AssemblyDPage /> },
+      // { key: "assembly", label: "Assembly", component: <AssemblyPage /> },
       { key: "testing1", label: "Testing 1", component: <Testing1Page /> },
       { key: "testing2", label: "Testing 2", component: <Testing2Page /> },
       { key: "marking1", label: "Marking 1", component: <Marking1Page /> },
@@ -45,10 +57,18 @@ const SuperAdminTabsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <DashboardHeader title="Super Admin" role="Super Admin" />
+      <DashboardHeader
+        role="planning"
+        currentPage={activeTab === "dashboard" ? "Dashboard" : activeTab === "planning" ? "Planning" : activeTab}
+        onLogout={() => { try { localStorage.clear(); } catch {} window.location.href = "/login"; }}
+        onNavigate={(page) => {
+          const key = page.toLowerCase().replace(/\s+/g, "-");
+          setActiveTab(key);
+        }}
+      />
 
       {/* Tabs */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b px-4 py-2 flex flex-wrap gap-2">
+      <div className="z-30 bg-white/80 backdrop-blur border-b px-4 py-2 flex flex-wrap gap-2 main-admin-tabbing">
         {tabs.map((t) => (
           <Button
             key={t.key}
@@ -62,9 +82,9 @@ const SuperAdminTabsPage: React.FC = () => {
       </div>
 
       {/* Active Tab Content */}
-     <div className="flex-1 inner-header-main">
-   <current.component.type key={activeTab} isAdminView={true} />
-</div>
+      <div className="flex-1 inner-header-main">
+        {current.component}
+      </div>
 
     </div>
   );

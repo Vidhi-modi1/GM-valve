@@ -3,13 +3,17 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { LoginPage } from "./components/login-page";
 import { OrderProvider } from "./components/order-context";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RequireAuth from "./components/RequireAuth";
 
 // Import all pages
 import PlanningPage from "./pages/PlanningPage";
 import MaterialIssuePage from "./pages/MaterialIssuePage";
 import SemiQcPage from "./pages/SemiQcPage";
 import PhosphatingPage from "./pages/PhosphatingPage";
-import AssemblyPage from "./pages/AssemblyPage";
+import AssemblyAPage from "./pages/AssemblyAPage";
+import AssemblyBPage from "./pages/AssemblyBPage";
+import AssemblyCPage from "./pages/AssemblyCPage";
+import AssemblyDPage from "./pages/AssemblyDPage";
 import Testing1Page from "./pages/Testing1Page";
 import Testing2Page from "./pages/Testing2Page";
 import Marking1Page from "./pages/Marking1Page";
@@ -20,6 +24,7 @@ import Pdi2Page from "./pages/Pdi2Page";
 import TpiPage from "./pages/TpiPage";
 import DispatchPage from "./pages/DispatchPage";
 import SuperAdminTabsPage from "./pages/SuperAdminTabsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 
 export default function App() {
   return (
@@ -41,13 +46,14 @@ export default function App() {
             {/* Login Route */}
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Admin Tabs — accessible to Admin role */}
+            {/* Admin route removed (planning has full access) */}
+
             <Route
-              path="/admin"
+              path="/dashboard"
               element={
-                <ProtectedRoute allowedRole="admin">
-                  <SuperAdminTabsPage />
-                </ProtectedRoute>
+                <RequireAuth>
+                  <DashboardPage />
+                </RequireAuth>
               }
             />
 
@@ -60,7 +66,7 @@ export default function App() {
               path="/planning"
               element={
                 <ProtectedRoute allowedRole="planning">
-                  <PlanningPage />
+                  <SuperAdminTabsPage />
                 </ProtectedRoute>
               }
             />
@@ -80,6 +86,14 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+             <Route
+              path="/assembly-b"
+              element={
+                <ProtectedRoute allowedRole="assembly-b">
+                  <AssemblyBPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/phosphating"
               element={
@@ -88,14 +102,34 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Assembly sub-roles */}
             <Route
-              path="/assembly"
+              path="/assembly-a"
               element={
-                <ProtectedRoute allowedRole="assembly">
-                  <AssemblyPage />
+                <ProtectedRoute allowedRole="assembly-a">
+                  <AssemblyAPage />
                 </ProtectedRoute>
               }
             />
+           
+            <Route
+              path="/assembly-c"
+              element={
+                <ProtectedRoute allowedRole="assembly-c">
+                  <AssemblyCPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assembly-d"
+              element={
+                <ProtectedRoute allowedRole="assembly-d">
+                  <AssemblyDPage />
+                </ProtectedRoute>
+              }
+            />
+
+            
 
             {/* Testing Stages */}
             <Route

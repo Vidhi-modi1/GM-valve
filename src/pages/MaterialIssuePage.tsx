@@ -881,7 +881,7 @@ export function MaterialIssuePage() {
                     onClick={handleShowBinCard}
                     variant="outline"
                     disabled={selectedRows.size === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 ctm-btn-disable"
                   >
                     <Printer className="h-4 w-4" />
                     Print Bin Card
@@ -1292,9 +1292,27 @@ export function MaterialIssuePage() {
                       id="assignQty"
                       type="number"
                       value={quickAssignQty}
-                      onChange={(e) => setQuickAssignQty(e.target.value)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setQuickAssignQty(v);
+                        const max = Number(selectedOrder?.qtyPending ?? 0);
+                        const n = Number(v || 0);
+                        setQuickAssignErrors((prev) => {
+                          const next = { ...prev } as any;
+                          if (n > max) next.quickAssignQty = `Cannot exceed available (${max})`;
+                          else {
+                            if (next.quickAssignQty) delete next.quickAssignQty;
+                          }
+                          return next;
+                        });
+                      }}
                       max={selectedOrder?.qtyPending}
                     />
+                    {quickAssignErrors.quickAssignQty && (
+                      <div className="text-red-600 text-sm mt-1">
+                        {quickAssignErrors.quickAssignQty}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1332,7 +1350,10 @@ export function MaterialIssuePage() {
               </Button>
               <Button
                 onClick={handleAssignOrder}
-                disabled={isAssigning}
+                disabled={
+                  isAssigning ||
+                  !!quickAssignErrors.quickAssignQty
+                }
                 className="bg-black hover:bg-gray-800 text-white"
               >
                 {isAssigning ? "Assigning..." : "Assign"}

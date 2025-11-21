@@ -70,9 +70,10 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
+   originalIndex: number;
 }
 
-export function Testing2Page() {
+export function AssemblyBPage() {
   // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
@@ -141,7 +142,7 @@ export function Testing2Page() {
     try {
       setLoading(true);
       setError(null);
-      const currentStage = "testing2";
+      const currentStage = "assembly";
       const stageLabel = getStepLabel(currentStage);
 
       const getCurrentUserRole = () => {
@@ -215,7 +216,7 @@ export function Testing2Page() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(sortOrders(apiOrders));
+    setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -233,7 +234,6 @@ export function Testing2Page() {
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // filter option lists
@@ -333,7 +333,7 @@ export function Testing2Page() {
       const term = localSearchTerm.toLowerCase();
       filtered = filtered.filter(
         (o) =>
-         String(o.uniqueCode).toLowerCase().includes(term) ||
+          String(o.uniqueCode).toLowerCase().includes(term) ||
           String(o.party).toLowerCase().includes(term) ||
           String(o.gmsoaNo).toLowerCase().includes(term) ||
           String(o.customerPoNo).toLowerCase().includes(term) ||
@@ -383,57 +383,63 @@ export function Testing2Page() {
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // Quick Assign logic (local; you can replace with API calls as needed)
-  // const handleQuickAssign = (order: AssemblyOrderData) => {
-  //   setSelectedOrder(order);
-  //   setQuickAssignOpen(true);
-  //   // Match PlanningPage behavior: allow selecting any next step
-  //   setQuickAssignStep('');
-  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-  //   setSplitOrder(false);
-  //   setSplitAssignStep('');
-  //   setSplitAssignQty('');
-  //   setQuickAssignErrors({});
-  // };
-
-  // const validateQuickAssign = () => {
-  //   const errs: { [k: string]: string } = {};
-  //   const maxQty = Number(selectedOrder?.qtyPending ?? 0);
-  //   const mainQty = Number(quickAssignQty || 0);
-  //   const splitQty = Number(splitAssignQty || 0);
-
-  //   if (!quickAssignQty || mainQty <= 0) errs.quickAssignQty = 'Quantity is required and must be > 0';
-  //   if (mainQty > maxQty) errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
-
-  //   if (splitOrder) {
-  //     if (!splitAssignStep) errs.splitAssignStep = 'Choose second step';
-  //     if (!splitAssignQty || splitQty <= 0) errs.splitAssignQty = 'Split qty required';
-  //     if (quickAssignStep && splitAssignStep && quickAssignStep === splitAssignStep) errs.sameEngineer = 'Choose different steps';
-  //     const total = mainQty + splitQty;
-  //     if (total !== maxQty) errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
-  //   }
-
-  //   setQuickAssignErrors(errs);
-  //   return Object.keys(errs).length === 0;
-  // };
-  // const currentStep = "testing2";
-  const currentStep = "testing2"; // or derive from login role
+  
+  // const currentStep = "assembly";
+  const currentStep = "assembly-b"; // or derive from login role
   const nextSteps = getNextSteps(currentStep);
+
+  // Branch Assembly next steps based on selected order's assembly line
+  const isLineD = (selectedOrder?.assemblyLine || '').toUpperCase().includes('D');
+  const effectiveNextSteps = nextSteps.filter((step) => {
+    if (step === 'testing1' || step === 'testing2') {
+      return isLineD ? step === 'testing2' : step === 'testing1';
+    }
+    return true;
+  });
 
   console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
   console.log("Is final step?", isFinalStep(currentStep)); // → false
 
-  const handleQuickAssign = (order: AssemblyOrderData) => {
-    const currentStep = "testing2"; // 👈 set dynamically based on page
-    const nextSteps = getNextSteps(currentStep);
+  // const handleQuickAssign = (order: AssemblyOrderData) => {
+  //   const currentStep = "assembly"; // 👈 set dynamically based on page
+  //   const nextSteps = getNextSteps(currentStep);
 
+  //   setSelectedOrder(order);
+  //   setQuickAssignOpen(true);
+
+  //   // Pre-select first next step if available
+  //   // Preselect first valid next step after applying branch filter
+  //   const isD = (order.assemblyLine || '').toUpperCase().includes('D');
+  //   const branched = nextSteps.filter((s) => (s === 'testing1' || s === 'testing2') ? (isD ? s === 'testing2' : s === 'testing1') : true);
+  //   setQuickAssignStep(branched[0] || nextSteps[0] || "");
+  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+  //   // Reset split state
+  //   setSplitOrder(false);
+  //   setSplitAssignStep("");
+  //   setSplitAssignQty("");
+  //   setQuickAssignErrors({});
+  // };
+
+  
+    const handleQuickAssign = (order: AssemblyOrderData) => {
+    const currentStep = "assembly-b"; 
+    const nextSteps = getNextSteps(currentStep);
+  
     setSelectedOrder(order);
     setQuickAssignOpen(true);
-
-    // Pre-select first next step if available
-    setQuickAssignStep(nextSteps[0] || "");
+  
+    const isLineD = (order.assemblyLine || '').toUpperCase().includes('D');
+    const branched = nextSteps.filter((step) => {
+      if (step === 'testing1' || step === 'testing2') {
+        return isLineD ? step === 'testing2' : step === 'testing1';
+      }
+      return true;
+    });
+  
+    setQuickAssignStep(branched[0] || nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-
+  
     // Reset split state
     setSplitOrder(false);
     setSplitAssignStep("");
@@ -602,7 +608,6 @@ const handleSaveRemarks = async () => {
   }
 };
 
-
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
     console.log("----");
@@ -687,27 +692,203 @@ const handleSaveRemarks = async () => {
     }
   };
 
-  const sortOrders = (list: AssemblyOrderData[]) => {
-    return [...list].sort((a, b) => {
-      // urgent first
-      // const aUrg = a.alertStatus ? 1 : 0;
-      // const bUrg = b.alertStatus ? 1 : 0;
-      // if (aUrg !== bUrg) return bUrg - aUrg;
+    const sortOrders = (list: AssemblyOrderData[]) => {
+  return [...list].sort((a, b) => {
+    // urgent first
+    // const aUrg = a.alertStatus ? 1 : 0;
+    // const bUrg = b.alertStatus ? 1 : 0;
+    // if (aUrg !== bUrg) return bUrg - aUrg;
 
-      // otherwise restore original order
-      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
-    });
-  };
+    // otherwise restore original order
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
 
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
-  const [isAssigning, setIsAssigning] = useState(false);
+    const [isAssigning, setIsAssigning] = useState(false);
 
-  // ✅ Assign order to next workflow stage
-  const handleAssignOrder = async () => {
+// ✅ Assign order to next workflow stage
+// const handleAssignOrder = async () => {
+//   if (!selectedOrder) return;
+//   if (!validateQuickAssign()) return;
+
+//   setAssignStatus({
+//     type: "info",
+//     message: "Assigning order, please wait...",
+//   });
+
+//   try {
+//     const token = localStorage.getItem("token");
+//     if (!token) {
+//       setAssignStatus({
+//         type: "error",
+//         message: "Token missing. Please log in again.",
+//       });
+//       return;
+//     }
+
+//     const mainQty = Number(quickAssignQty || 0);
+//     const splitQty = Number(splitAssignQty || 0);
+
+//     // Main FormData
+//     const formData = new FormData();
+//     formData.append("orderId", String(selectedOrder.id));
+//     formData.append("totalQty", String(selectedOrder.qty));
+//     formData.append("executedQty", String(mainQty));
+//     formData.append("split_id", String(selectedOrder.split_id || ""));
+//     // Align with MaterialIssue: include human-readable next step
+//     {
+//       const currentStep = "assembly";
+//       const defaultNext = getNextSteps(currentStep)[0] || "";
+//       const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+//       if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+//     }
+
+//     console.log("📤 Assign main payload:", {
+//       orderId: selectedOrder.id,
+//       totalQty: selectedOrder.qty,
+//       executedQty: mainQty,
+//     });
+
+//     // --- MAIN ASSIGNMENT ---
+//     const responseMain = await axios.post(
+//       `${API_URL}/assign-order`,
+//       formData,
+//       { headers: { Authorization: `Bearer ${token}` } }
+//     );
+
+//     console.log("✅ Main assign response:", responseMain.data);
+
+//     const isSuccess =
+//       responseMain.data?.Resp_code === true ||
+//       responseMain.data?.Resp_code === "true" ||
+//       responseMain.data?.status === true;
+
+//     if (!isSuccess) {
+//       setAssignStatus({
+//         type: "error",
+//         message:
+//           responseMain.data?.Resp_desc || "Order assignment failed.",
+//       });
+//       return;
+//     }
+
+//     // ----------------------------
+//     //  SPLIT ASSIGNMENT (IF ANY)
+//     // ----------------------------
+//       if (splitOrder && splitQty > 0) {
+//         const formDataSplit = new FormData();
+//         formDataSplit.append("orderId", String(selectedOrder.id));
+//         formDataSplit.append("totalQty", String(selectedOrder.qty));
+//         formDataSplit.append("executedQty", String(splitQty));
+//         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
+//         formDataSplit.append("splitOrder", "true");
+//         // Include next step for split leg
+//         {
+//           const currentStep = "assembly";
+//           const defaultNext = getNextSteps(currentStep)[0] || "";
+//           const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+//           if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
+//         }
+
+//       const responseSplit = await axios.post(
+//         `${API_URL}/assign-order`,
+//         formDataSplit,
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+
+//       const isSplitSuccess =
+//         responseSplit.data?.Resp_code === true ||
+//         responseSplit.data?.Resp_code === "true" ||
+//         responseSplit.data?.status === true;
+
+//       if (!isSplitSuccess) {
+//         setAssignStatus({
+//           type: "error",
+//           message: `⚠️ Main assigned, but split failed: ${
+//             responseSplit.data?.Resp_desc || "Unknown error"
+//           }`,
+//         });
+//       } else {
+//         const currentStep = "assembly";
+//         const defaultNext = getNextSteps(currentStep)[0] || "";
+//         const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+//         const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+//         const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
+//           `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
+//         setAssignStatus({ type: "success", message: msg });
+//       }
+//     } else {
+//       const currentStep = "assembly";
+//       const defaultNext = getNextSteps(currentStep)[0] || "";
+//       const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+//       const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
+//       setAssignStatus({ type: "success", message: msg });
+//     }
+
+//     // ---------------------------------------------------
+//     //  🔥 UPDATE QTY LOCALLY (backend does not update it)
+//     // ---------------------------------------------------
+//     setOrders(prev =>
+//       prev.map(o => {
+//         if (o.id !== selectedOrder.id) return o;
+
+//         const oldExe = o.qtyExe || 0;
+//         const addMain = mainQty;
+//         const addSplit = splitOrder ? splitQty : 0;
+
+//         const newExe = oldExe + addMain + addSplit;
+//         const newPending = o.qty - newExe;
+
+//         return {
+//           ...o,
+//           qtyExe: newExe,
+//           qtyPending: newPending,
+//         };
+//       })
+//     );
+
+//       setQuickAssignOpen(false);
+//       setAssignStatus(null);
+
+//   } catch (error: any) {
+//     console.error("❌ Error assigning order:", error);
+
+//     if (error.response) {
+//       const msg =
+//         error.response.data?.message ||
+//         error.response.data?.Resp_desc ||
+//         "Validation failed.";
+
+//       const detailed =
+//         error.response.data?.errors &&
+//         Object.entries(error.response.data.errors)
+//           .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
+//           .join("\n");
+
+//       setAssignStatus({
+//         type: "error",
+//         message: `❌ ${msg}\n${detailed || ""}`,
+//       });
+//     } else if (error.request) {
+//       setAssignStatus({
+//         type: "error",
+//         message: "❌ No response from server. Please check your connection.",
+//       });
+//     } else {
+//       setAssignStatus({
+//         type: "error",
+//         message: `❌ ${error.message}`,
+//       });
+//     }
+//   }
+// };
+
+ const handleAssignOrder = async () => {
     if (isAssigning) return;
     setIsAssigning(true);
     if (!selectedOrder) return;
@@ -731,140 +912,104 @@ const handleSaveRemarks = async () => {
       const mainQty = Number(quickAssignQty || 0);
       const splitQty = Number(splitAssignQty || 0);
 
+      // Resolve next step key and human-readable label consistently
+      const nextStepKey =
+        quickAssignStep ||
+        (Array.isArray(nextSteps) ? nextSteps[0] : "semi-qc");
+      const nextStepLabel = getStepLabel(nextStepKey);
+
+      //
+      // ---------------------------
+      // MAIN ASSIGNMENT
+      // ---------------------------
+      //
       const formData = new FormData();
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+      formData.append("nextSteps", nextStepLabel);
       formData.append("split_id", String(selectedOrder.split_id || ""));
-      // Align with MaterialIssue: include human-readable next step
-      {
-        const currentStep = "testing2";
-        const defaultNext = getNextSteps(currentStep)[0] || "";
-        const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-        if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
-      }
 
-      console.log("📤 Assign main payload (FormData):", {
-        orderId: selectedOrder.id,
-        totalQty: selectedOrder.qty,
-        executedQty: mainQty,
-      });
+      console.log("📤 MAIN PAYLOAD:");
+      for (const p of formData.entries()) console.log(p[0], p[1]);
 
       const responseMain = await axios.post(
         `${API_URL}/assign-order`,
         formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("✅ Main assign response:", responseMain.data);
-
-      const isSuccess =
-        responseMain.data?.Resp_code === true ||
+      const mainSuccess =
         responseMain.data?.Resp_code === "true" ||
-        responseMain.data?.status === true;
+        responseMain.data?.Resp_code === true;
 
-      if (isSuccess) {
-        // --- Split assignment ---
-        if (splitOrder && splitQty > 0) {
-          const formDataSplit = new FormData();
-          formDataSplit.append("orderId", String(selectedOrder.id));
-          formDataSplit.append("totalQty", String(selectedOrder.qty));
-          formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
-          formDataSplit.append("splitOrder", "true");
-          // Include next step for split leg
-          {
-            const currentStep = "testing2";
-            const defaultNext = getNextSteps(currentStep)[0] || "";
-            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-            if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
-          }
+      if (!mainSuccess) {
+        setAssignStatus({
+          type: "error",
+          message: responseMain.data?.Resp_desc || "Main assignment failed.",
+        });
+        return;
+      }
 
-          const responseSplit = await axios.post(
-            `${API_URL}/assign-order`,
-            formDataSplit,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
+      let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
-          const isSplitSuccess =
-            responseSplit.data?.Resp_code === true ||
-            responseSplit.data?.Resp_code === "true" ||
-            responseSplit.data?.status === true;
+      //
+      // ---------------------------
+      // SPLIT ASSIGNMENT
+      // ---------------------------
+      //
+      if (splitOrder && splitQty > 0) {
+        const formDataSplit = new FormData();
+        formDataSplit.append("orderId", String(selectedOrder.id));
+        formDataSplit.append("totalQty", String(selectedOrder.qty));
+        formDataSplit.append("executedQty", String(splitQty));
+        formDataSplit.append("nextSteps", nextStepLabel);
+        formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
-          if (isSplitSuccess) {
-            const currentStep = "testing2";
-            const defaultNext = getNextSteps(currentStep)[0] || "";
-            const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-            const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
-              `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
-            setAssignStatus({ type: "success", message: msg });
-          } else {
-            setAssignStatus({
-              type: "error",
-              message: `⚠️ Main assigned, but split failed: ${
-                responseSplit.data?.Resp_desc || "Unknown error"
-              }`,
-            });
-          }
+        console.log("📤 SPLIT PAYLOAD:");
+        for (const p of formDataSplit.entries())
+          console.log("SPLIT:", p[0], p[1]);
+
+        const responseSplit = await axios.post(
+          `${API_URL}/assign-order`,
+          formDataSplit,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const splitSuccess =
+          responseSplit.data?.Resp_code === "true" ||
+          responseSplit.data?.Resp_code === true;
+
+        if (splitSuccess) {
+          successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
         } else {
-          const currentStep = "testing2";
-          const defaultNext = getNextSteps(currentStep)[0] || "";
-          const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-          const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
-          setAssignStatus({ type: "success", message: msg });
+          setAssignStatus({
+            type: "error",
+            message:
+              "Main assigned but split failed: " +
+              (responseSplit.data?.Resp_desc || "Unknown error"),
+          });
         }
-
-        await fetchOrders();
-          setQuickAssignOpen(false);
-          setAssignStatus(null);
-
-      } else {
-        setAssignStatus({
-          type: "error",
-          message: `⚠️ ${
-            responseMain.data?.Resp_desc || "Order assignment failed."
-          }`,
-        });
       }
-    } catch (error: any) {
-      console.error("❌ Error assigning order:", error);
 
-      if (error.response) {
-        const msg =
-          error.response.data?.message ||
-          error.response.data?.Resp_desc ||
-          "Validation failed.";
+      setAssignStatus({ type: "success", message: successMessage });
 
-        const detailed =
-          error.response.data?.errors &&
-          Object.entries(error.response.data.errors)
-            .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-            .join("\n");
+      await fetchOrders();
 
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${msg}\n${detailed || ""}`,
-        });
-      } else if (error.request) {
-        setAssignStatus({
-          type: "error",
-          message: "❌ No response from server. Please check your connection.",
-        });
-      } else {
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${error.message}`,
-        });
-      }
-    } finally {
-      setIsAssigning(false);
-    }
+        setQuickAssignOpen(false);
+        setAssignStatus(null);
+
+  } catch (error) {
+    console.error("❌ Error assigning order:", error);
+      setAssignStatus({
+        type: "error",
+        message: "Server error while assigning.",
+      });
+  } finally {
+    setIsAssigning(false);
+  }
   };
+
 
   // Upload file
   const handleUpload = async (e: React.FormEvent) => {
@@ -937,14 +1082,15 @@ const handleSaveRemarks = async () => {
   return (
     <>
       <DashboardHeader
-        role="svs"
-        currentPage="SVS"
+        role="assembly-b"
+        currentPage="Assembly-B"
         onLogout={() => {
           localStorage.removeItem("token");
           window.location.href = "/login";
         }}
         onNavigate={(page) => {
-          window.location.href = `/${page.toLowerCase()}`;
+          const slug = page.toLowerCase().replace(/\s+/g, "-");
+          window.location.href = `/${slug}`;
         }}
         onUploadSuccess={() => fetchOrders()}
       />
@@ -954,7 +1100,7 @@ const handleSaveRemarks = async () => {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div>
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-                Testing 2
+                Assembly B
               </h1>
               <p className="text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
@@ -980,7 +1126,7 @@ const handleSaveRemarks = async () => {
                     onClick={handleShowBinCard}
                     variant="outline"
                     disabled={selectedRows.size === 0}
-                    className="flex items-center gap-2 ctm-btn-disable"
+                    className="flex items-center gap-2"
                   >
                     <Printer className="h-4 w-4" />
                     Print Bin Card
@@ -1256,7 +1402,7 @@ const handleSaveRemarks = async () => {
                       </td>
 
                       <td className="px-3 py-2 text-center text-sm text-gray-900">
-                        <Button
+                      <Button
   size="sm"
   variant="ghost"
   className={`h-7 w-7 p-0 ${
@@ -1362,13 +1508,13 @@ const handleSaveRemarks = async () => {
                     <Select
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
-                      
+                      disabled
                     >
-                      <SelectTrigger id="assignStep" disabled>
+                      <SelectTrigger id="assignStep">
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
-                        {nextSteps.map((step) => (
+                        {effectiveNextSteps.map((step) => (
                           <SelectItem key={step} value={step}>
                             {getStepLabel(step)}
                           </SelectItem>
@@ -1383,10 +1529,27 @@ const handleSaveRemarks = async () => {
                       id="assignQty"
                       type="number"
                       value={quickAssignQty}
-                      onChange={(e) => setQuickAssignQty(e.target.value)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setQuickAssignQty(v);
+                        const max = Number(selectedOrder?.qtyPending ?? 0);
+                        const n = Number(v || 0);
+                        setQuickAssignErrors((prev) => {
+                          const next = { ...prev } as any;
+                          if (n > max) next.quickAssignQty = `Cannot exceed available (${max})`;
+                          else {
+                            if (next.quickAssignQty) delete next.quickAssignQty;
+                          }
+                          return next;
+                        });
+                      }}
                       max={selectedOrder?.qtyPending}
-                      disabled
                     />
+                    {quickAssignErrors.quickAssignQty && (
+                      <div className="text-red-600 text-sm mt-1">
+                        {quickAssignErrors.quickAssignQty}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1481,12 +1644,15 @@ const handleSaveRemarks = async () => {
                 Cancel
               </Button>
               <Button
-                onClick={handleAssignOrder}
-                disabled={isAssigning}
-                className="bg-black hover:bg-gray-800 text-white"
-              >
-                {isAssigning ? "Assigning..." : "Assign"}
-              </Button>
+                              onClick={handleAssignOrder}
+                              disabled={
+                                isAssigning ||
+                                !!quickAssignErrors.quickAssignQty
+                              }
+                              className="bg-black hover:bg-gray-800 text-white"
+                            >
+                              {isAssigning ? "Assigning..." : "Assign"}
+                            </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -1840,4 +2006,4 @@ const handleSaveRemarks = async () => {
   );
 }
 
-export default Testing2Page;
+export default AssemblyBPage;

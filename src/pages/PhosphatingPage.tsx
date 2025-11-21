@@ -708,6 +708,15 @@ const handleSaveRemarks = async () => {
   const [isAssigning, setIsAssigning] = useState(false);
 
  
+  // Map order's assembly line to a specific Assembly step key
+  const deriveAssemblyKey = (line: string) => {
+    const s = (line || "").toLowerCase();
+    if (s.includes("assembly a") || s.trim() === "a") return "assembly-a";
+    if (s.includes("assembly b") || s.trim() === "b") return "assembly-b";
+    if (s.includes("assembly c") || s.trim() === "c") return "assembly-c";
+    if (s.includes("assembly d") || s.trim() === "d") return "assembly-d";
+    return "assembly-a"; // fallback
+  };
 
 // ✅ Assign order to next workflow stage
 const handleAssignOrder = async () => {
@@ -734,8 +743,8 @@ const handleAssignOrder = async () => {
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // Resolve next step consistently for Phosphating
-    const nextStepKey = quickAssignStep || (getNextSteps("phosphating")[0] || "assembly");
+    // Resolve next step strictly from the order's assembly line
+    const nextStepKey = deriveAssemblyKey(String(selectedOrder.assemblyLine || ""));
     const nextStepLabel = getStepLabel(nextStepKey);
 
     // 🔥 MAIN ASSIGN PAYLOAD
@@ -974,7 +983,7 @@ const handleAssignOrder = async () => {
                     onClick={handleShowBinCard}
                     variant="outline"
                     disabled={selectedRows.size === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 ctm-btn-disable"
                   >
                     <Printer className="h-4 w-4" />
                     Print Bin Card
@@ -1353,19 +1362,14 @@ const handleAssignOrder = async () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="assignStep">Assign to Workflow Step</Label>
-                    <Select
-                      value={quickAssignStep}
-                      onValueChange={setQuickAssignStep}
-                    >
+                    <Select value={deriveAssemblyKey(String(selectedOrder?.assemblyLine || ""))} onValueChange={() => {}}>
                       <SelectTrigger id="assignStep" disabled>
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
-                        {nextSteps.map((step) => (
-                          <SelectItem key={step} value={step}>
-                            {getStepLabel(step)}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value={deriveAssemblyKey(String(selectedOrder?.assemblyLine || ""))}>
+                          {getStepLabel(deriveAssemblyKey(String(selectedOrder?.assemblyLine || "")))}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

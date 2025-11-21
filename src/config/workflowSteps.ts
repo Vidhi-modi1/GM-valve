@@ -18,11 +18,19 @@ export const workflowSteps: Record<string, string[]> = {
   // 2) Semi QC → Phosphating
   "semi-qc": ["phosphating"],
 
-  // 3) Phosphating → Assembly
-  "phosphating": ["assembly"],
+  // 3) Phosphating → Assembly lines A/B/C/D
+  "phosphating": ["assembly-a", "assembly-b", "assembly-c", "assembly-d"],
 
-  // 4) Assembly → Testing 1 or Testing 2 (selection restricted by assembly line in UI)
-  "assembly": ["testing1", "testing2"],
+  // 4) Assembly (generic) → Testing 1 or Testing 2 (legacy support)
+  // "assembly": ["testing1", "testing2"],
+
+  // 4a) Assembly-A/B/C → Testing 1
+  "assembly-a": ["testing1"],
+  "assembly-b": ["testing1"],
+  "assembly-c": ["testing1"],
+
+  // 4b) Assembly-D → Testing 2
+  "assembly-d": ["testing2"],
 
   // 5) Testing 1 → Marking 1; Testing 2 → Marking 2
   "testing1": ["marking1"],
@@ -54,6 +62,10 @@ export const stepLabels: Record<string, string> = {
   "semi-qc": "Semi QC",
   "phosphating": "Phosphating QC",
   "assembly": "Assembly",
+  "assembly-a": "Assembly A",
+  "assembly-b": "Assembly B",
+  "assembly-c": "Assembly C",
+  "assembly-d": "Assembly D",
   "testing1": "Testing1",
   "testing2": "Testing2",
   "svs": "SVS",
@@ -61,8 +73,8 @@ export const stepLabels: Record<string, string> = {
   "marking2": "Marking2",
   "pdi1": "PDI1",
   "pdi2": "PDI2",
-  "dispatch": "Dispatch",
   "tpi": "TPI",
+  "dispatch": "Dispatch",
 };
 
 

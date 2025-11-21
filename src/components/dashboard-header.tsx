@@ -128,7 +128,10 @@ if (Resp_code === "true") {
   setFile(null);
   fileInputRef.current && (fileInputRef.current.value = "");
   onUploadSuccess?.();
-  setTimeout(() => setIsDialogOpen(false), 1200);
+  // setTimeout(() => {
+    setIsDialogOpen(false);
+    try { window.location.reload(); } catch {}
+  // }, 300);
 
 } else if (Resp_desc?.toLowerCase().includes("header mismatch")) {
 
@@ -219,7 +222,10 @@ if (Resp_code === "true") {
     { id: "MaterialIssue", label: "Material Issue" },
     { id: "SemiQC", label: "Semi QC" },
     { id: "PhosphatingQC", label: "After Phosphating QC" },
-    { id: "Assembly", label: "Assembly" },
+     { id: "Assembly-A", label: "Assembly A" },
+  { id: "Assembly-B", label: "Assembly B" },
+  { id: "Assembly-C", label: "Assembly C" },
+  { id: "Assembly-D", label: "Assembly D" },
     { id: "Testing", label: "Testing" },
     { id: "SVS", label: "SVS" },
     { id: "Marking", label: "Marking" },
@@ -233,7 +239,10 @@ if (Resp_code === "true") {
     "material-issue": ["MaterialIssue"],
     "semi-qc": ["SemiQC"],
     "phosphating-qc": ["PhosphatingQC"],
-    assembly: ["Assembly"],
+    "assembly-a": ["Assembly-A"],
+  "assembly-b": ["Assembly-B"],
+  "assembly-c": ["Assembly-C"],
+  "assembly-d": ["Assembly-D"],
     testing: ["Testing"],
     marking: ["Marking"],
     svs: ["SVS"],
