@@ -6117,17 +6117,7 @@ html {
 
 
 /* custom css */
-.left-164 {
-  left: 164px;
-}
 
-.left-274 {
-  left: 274px;
-}
-
-.left-364 {
-  left: 364px;
-}
 
 table th {
   font-weight: 700;
@@ -6244,4 +6234,22 @@ opacity: 0.5 !important;
 
 .main-content {
   padding-bottom: 30px;
+}
+
+
+@media (min-width: 1200px) {
+  .left-10 {
+    left: 40px;
+  }
+  .left-164 {
+  left: 164px;
+}
+
+.left-274 {
+  left: 274px;
+}
+
+.left-364 {
+  left: 364px;
+}
 }
