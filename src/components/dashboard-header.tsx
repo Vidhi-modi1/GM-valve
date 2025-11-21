@@ -63,6 +63,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   role,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const handleDialogOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (open) {
@@ -273,59 +274,141 @@ if (Resp_code === "true") {
   {role === "planning" && (
     <>
       {/* 📄 Demo Excel Button */}
- <Button
-  variant="outline"
-  onClick={() => {
-    const headers = [
-      "Assembly Line",
-      "GMSOA NO.",
-      "SOA Sr. No.",
-      "Assembly Date",
-      "Unique Code",
-      "Splitted Code",
-      "Party",
-      "Customer PO No.",
-      "Code No",
-      "Product",
-      "PO QTY",
-      "Qty",
-      "Qty Exe.",
-      "Qty Pending",
-      "finished valve",
-      "GM LOGO",
-      "NAME PLATE",
-      "PRODUCT SPCL1",
-      "PRODUCT SPCL2",
-      "PRODUCT SPCL3",
-      "INSPECTION",
-      "PAINTING",
-      "remarks",
-    ];
+      {/* Mobile: Actions dropdown (visible below 991px via CSS classes) */}
+      <div className="relative mobile-only">
+        <button
+          className="w-full flex items-center justify-center gap-2 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm px-3 py-2 rounded-md"
+          aria-label="Menu"
+          onClick={() => setMobileMenuOpen((v) => !v)}
+        >
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        {mobileMenuOpen && (
+          <div className="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg border z-50">
+            <button
+              className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+              onClick={() => {
+                const headers = [
+                  "Assembly Line",
+                  "GMSOA NO.",
+                  "SOA Sr. No.",
+                  "Assembly Date",
+                  "Unique Code",
+                  "Splitted Code",
+                  "Party",
+                  "Customer PO No.",
+                  "Code No",
+                  "Product",
+                  "PO QTY",
+                  "Qty",
+                  "Qty Exe.",
+                  "Qty Pending",
+                  "finished valve",
+                  "GM LOGO",
+                  "NAME PLATE",
+                  "PRODUCT SPCL1",
+                  "PRODUCT SPCL2",
+                  "PRODUCT SPCL3",
+                  "INSPECTION",
+                  "PAINTING",
+                  "remarks",
+                ];
 
-    const row: Record<string, string> = {};
-    headers.forEach((h) => (row[h] = ""));
-    row["Assembly Date"] = "(dd-mm-yyyy)";
+                const row: Record<string, string> = {};
+                headers.forEach((h) => (row[h] = ""));
+                row["Assembly Date"] = "(dd-mm-yyyy)";
 
-    const ws = XLSX.utils.json_to_sheet([row]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Order Format");
-    XLSX.writeFile(wb, "GMV_Order_Format.xlsx");
-  }}
-  className="flex items-center gap-2 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
->
-  <FileSpreadsheet className="h-4 w-4" />
-  Demo Excel
-</Button>
+                const ws = XLSX.utils.json_to_sheet([row]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Order Format");
+                XLSX.writeFile(wb, "GMV_Order_Format.xlsx");
+                setMobileMenuOpen(false);
+              }}
+            >
+              <FileSpreadsheet className="h-4 w-4 text-[#174a9f]" />
+              Demo Excel
+            </button>
+            <button
+              className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+              onClick={() => {
+                setIsDialogOpen(true);
+                setMobileMenuOpen(false);
+              }}
+            >
+              <Plus className="h-4 w-4 text-[#174a9f]" />
+              Add New Order
+            </button>
+          </div>
+        )}
+      </div>
 
+      {/* Desktop: keep two buttons visible (992px and above via CSS classes) */}
+      <div className="desktop-only gap-2 justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            const headers = [
+              "Assembly Line",
+              "GMSOA NO.",
+              "SOA Sr. No.",
+              "Assembly Date",
+              "Unique Code",
+              "Splitted Code",
+              "Party",
+              "Customer PO No.",
+              "Code No",
+              "Product",
+              "PO QTY",
+              "Qty",
+              "Qty Exe.",
+              "Qty Pending",
+              "finished valve",
+              "GM LOGO",
+              "NAME PLATE",
+              "PRODUCT SPCL1",
+              "PRODUCT SPCL2",
+              "PRODUCT SPCL3",
+              "INSPECTION",
+              "PAINTING",
+              "remarks",
+            ];
 
-      {/* ➕ Add New Order Button */}
-      <Button
-        onClick={() => setIsDialogOpen(true)}
-        className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
-      >
-        <Plus className="h-4 w-4" />
-        Add New Order
-      </Button>
+            const row: Record<string, string> = {};
+            headers.forEach((h) => (row[h] = ""));
+            row["Assembly Date"] = "(dd-mm-yyyy)";
+
+            const ws = XLSX.utils.json_to_sheet([row]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Order Format");
+            XLSX.writeFile(wb, "GMV_Order_Format.xlsx");
+          }}
+          className="flex items-center gap-2 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Demo Excel
+        </Button>
+
+        {/* ➕ Add New Order Button */}
+        <Button
+          onClick={() => setIsDialogOpen(true)}
+          className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
+        >
+          <Plus className="h-4 w-4" />
+          Add New Order
+        </Button>
+      </div>
     </>
   )}
 

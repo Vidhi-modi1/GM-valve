@@ -31,7 +31,7 @@ import { API_URL } from "../config/api";
 
 type SummaryRecord = Record<string, number>;
 
-const SUMMARY_ENDPOINT = `${API_URL}/dashboard-summary`;
+// const SUMMARY_ENDPOINT = `${API_URL}/dashboard-summary`;
 const POLL_INTERVAL_MS = 15000;
 
 export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
@@ -88,27 +88,27 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   };
 
   /* ---------- FETCH SUMMARY ---------- */
-  async function fetchSummary() {
-    const token = localStorage.getItem("token");
+  // async function fetchSummary() {
+  //   const token = localStorage.getItem("token");
 
-    try {
-      const res = await axios.get(SUMMARY_ENDPOINT, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
+  //   try {
+  //     const res = await axios.get(SUMMARY_ENDPOINT, {
+  //       headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  //     });
 
-      setSummary(normalizeResponse(res.data));
-    } catch (err) {
-      console.error("Dashboard summary error:", err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }
+  //     setSummary(normalizeResponse(res.data));
+  //   } catch (err) {
+  //     console.error("Dashboard summary error:", err);
+  //   } finally {
+  //     setIsRefreshing(false);
+  //   }
+  // }
 
-  useEffect(() => {
-    fetchSummary();
-    pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
-    return () => pollRef.current && clearInterval(pollRef.current);
-  }, []);
+  // useEffect(() => {
+  //   fetchSummary();
+  //   pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
+  //   return () => pollRef.current && clearInterval(pollRef.current);
+  // }, []);
 
   /* ---------- PRETTY NAMES ---------- */
   const prettyName = (k: string) => {

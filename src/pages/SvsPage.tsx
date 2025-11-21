@@ -675,7 +675,7 @@ export function SvsPage() {
 
                 <Button
                   onClick={() => setShowUrgentOnly(!showUrgentOnly)}
-                  className={`flex items-center gap-2 ${showUrgentOnly ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}
+                  className={`btn-urgent flex items-center gap-2 ${showUrgentOnly ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}
                 >
                   <Siren className="h-4 w-4" />
                   {showUrgentOnly ? 'Show All Projects' : 'Urgent Projects Only'}

@@ -93,11 +93,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole, children }
   const normalizedUserRole = mapRoleToRoute(normalize(rawRole));
   const normalizedAllowedRole = normalize(allowedRole);
 
-  // 🔍 NOW logs will work
-  console.log("🔎 RAW USER ROLE:", rawRole);
-  console.log("🔎 NORMALIZED USER ROLE:", normalizedUserRole);
-  console.log("🔎 ALLOWED ROLE:", allowedRole);
-  console.log("🔎 NORMALIZED ALLOWED ROLE:", normalizedAllowedRole);
+
 
   // Allow admin full access
   if (normalizedUserRole === "admin") {

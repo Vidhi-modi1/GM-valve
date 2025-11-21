@@ -6212,9 +6212,9 @@ width: 100%;
 .max-input input {
   width: 100%;
 }
-.disabled\:opacity-50:disabled {
+/* .disabled\:opacity-50:disabled {
 opacity: 1;
-}
+} */
 
 .inner-header-main .glass-header {
   display: none;
@@ -6252,4 +6252,31 @@ opacity: 0.5 !important;
 .left-364 {
   left: 364px;
 }
+}
+
+@media (max-width: 991px){
+  .main-admin-tabbing {
+    flex-wrap: nowrap;
+    overflow-y: auto;
+  }
+}
+/* GMV custom responsive visibility utilities (991px breakpoint) */
+.mobile-only {
+  display: block;
+}
+.desktop-only {
+  display: none;
+}
+@media (min-width: 992px) {
+  .mobile-only {
+    display: none;
+  }
+  .desktop-only {
+    display: flex;
+  }
+}
+
+.btn-urgent:hover {
+color: #fff;
+background-color: #000;
 }

@@ -988,7 +988,7 @@ const handleSaveRemarks = async () => {
 
                   <Button
                     onClick={() => setShowUrgentOnly(!showUrgentOnly)}
-                    className={`flex items-center gap-2 ${
+                    className={`btn-urgent flex items-center gap-2 ${
                       showUrgentOnly
                         ? "bg-red-600 text-white"
                         : "bg-red-50 text-red-700"
