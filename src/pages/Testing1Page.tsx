@@ -140,10 +140,13 @@ export function Testing1Page() {
     try {
       setLoading(true);
       setError(null);
+      const currentStage = "testing1";
+      const stageLabel = getStepLabel(currentStage);
+      const payload = { menu_name: stageLabel };
 
       const res = await axios.post(
         `${API_URL}/order-list`,
-        {},
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,

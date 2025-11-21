@@ -142,7 +142,7 @@ export function AssemblyDPage() {
     try {
       setLoading(true);
       setError(null);
-      const currentStage = "assembly";
+      const currentStage = "assembly-d";
       const stageLabel = getStepLabel(currentStage);
 
       const getCurrentUserRole = () => {

@@ -142,7 +142,7 @@ export function AssemblyBPage() {
     try {
       setLoading(true);
       setError(null);
-      const currentStage = "assembly";
+      const currentStage = "assembly-b";
       const stageLabel = getStepLabel(currentStage);
 
       const getCurrentUserRole = () => {

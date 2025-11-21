@@ -142,7 +142,7 @@ export function AssemblyCPage() {
     try {
       setLoading(true);
       setError(null);
-      const currentStage = "assembly";
+      const currentStage = "assembly-c";
       const stageLabel = getStepLabel(currentStage);
 
       const getCurrentUserRole = () => {
