@@ -25,6 +25,8 @@ import TpiPage from "./pages/TpiPage";
 import DispatchPage from "./pages/DispatchPage";
 import SuperAdminTabsPage from "./pages/SuperAdminTabsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import CustomerSupport from "./pages/CustomerSupport";
+import { DashboardHeader } from "./components/dashboard-header";
 
 export default function App() {
   return (
@@ -210,6 +212,31 @@ export default function App() {
                 <ProtectedRoute allowedRole="dispatch">
                   <DispatchPage />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* Customer Support: allow any logged-in role to view */}
+            <Route
+              path="/customer-support"
+              element={
+                <RequireAuth>
+                  <div className="flex flex-col min-h-screen">
+                    <DashboardHeader
+                      role="customer-support"
+                      currentPage="Customer Support"
+                      onLogout={() => {
+                        try { localStorage.clear(); } catch {}
+                        window.location.href = "/login";
+                      }}
+                      onNavigate={(page) => {
+                        window.location.href = `/${page.toLowerCase()}`;
+                      }}
+                    />
+                    <div className="flex-1 inner-header-main">
+                      <CustomerSupport />
+                    </div>
+                  </div>
+                </RequireAuth>
               }
             />
 

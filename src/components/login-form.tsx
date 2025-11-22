@@ -278,6 +278,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
       if (r === "pdi" || r === "pdi1" || r.startsWith("pdi1")) return "pdi1";
       if (r === "pdi2" || r.startsWith("pdi2")) return "pdi2";
+
+      // Customer Support
+      if (r === "customer-support" || r.startsWith("customersupport")) return "customer-support";
     }
 
     // Default fallback

@@ -20,6 +20,7 @@ import Pdi2Page from "./Pdi2Page";
 import TpiPage from "./TpiPage";
 import DispatchPage from "./DispatchPage";
 import { DashboardPage } from "./DashboardPage";
+import CustomerSupport from "./CustomerSupport";
 
 // A lightweight tabbed container for Super Admin to see all workflow pages
 const SuperAdminTabsPage: React.FC = () => {
@@ -49,6 +50,7 @@ const SuperAdminTabsPage: React.FC = () => {
       { key: "pdi2", label: "PDI 2", component: <Pdi2Page /> },
       { key: "tpi", label: "TPI", component: <TpiPage /> },
       { key: "dispatch", label: "Dispatch", component: <DispatchPage /> },
+      { key: "customer-support", label: "Customer Support", component: <CustomerSupport /> },
     ],
     []
   );

@@ -472,7 +472,7 @@ export function AssemblyDPage() {
           <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
           <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
         </div>
-        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
+        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="padding-top: 3px;">${order.product}</span></div>
         <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
           <div><strong>QTY:</strong> ${order.qty}</div>
           <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
