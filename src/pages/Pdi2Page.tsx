@@ -236,7 +236,7 @@ export function Pdi2Page() {
         setLoading(true);
         setError(null);
   
-        const currentStage = "pdi1";
+        const currentStage = "pdi2";
         const stageLabel = getStepLabel(currentStage);
         const payload = { menu_name: stageLabel };
   

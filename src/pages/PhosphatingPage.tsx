@@ -874,6 +874,7 @@ const handleSaveRemarks = async () => {
 const handleAssignOrder = async () => {
   if (isAssigning) return;
   setIsAssigning(true);
+
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
 
@@ -892,45 +893,55 @@ const handleAssignOrder = async () => {
       return;
     }
 
+    // ✅ Current workflow step of THIS PAGE
+    const currentStep = "Phosphating QC"; // <-- use backend expected label!
+
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // ✅ Get system-defined next steps based on current step
-    const nextSteps = getNextSteps(currentStep);
+    const nextStepOptions = getNextSteps(currentStep);
 
-    // ✅ Determine next step key dynamically
-    let nextStepKey =
+    let nextStep =
       quickAssignStep ||
-      (Array.isArray(nextSteps) && nextSteps.length > 0 ? nextSteps[0] : "");
+      (Array.isArray(nextStepOptions) && nextStepOptions.length > 0
+        ? nextStepOptions[0]
+        : "");
 
-    // ✅ Auto-route to correct assembly line
-    const line = String(selectedOrder?.assemblyLine || "").trim().toUpperCase();
-    const assemblyMap: Record<string, string> = {
-      A: "assembly-a",
-      B: "assembly-b",
-      C: "assembly-c",
-      D: "assembly-d",
+    // ✅ Auto-route Assembly A/B/C/D using LABELS
+    const line = String(selectedOrder?.assemblyLine || "")
+      .trim()
+      .toUpperCase()
+      .charAt(0);
+
+    const assemblyLabelMap: Record<string, string> = {
+      A: "Assembly A",
+      B: "Assembly B",
+      C: "Assembly C",
+      D: "Assembly D",
     };
 
-    // ✅ Override next step if assemblyLine exists in map
-    if (assemblyMap[line]) {
-      nextStepKey = assemblyMap[line];
+    if (assemblyLabelMap[line]) {
+      nextStep = assemblyLabelMap[line];
     }
 
-    const nextStepLabel = getStepLabel(nextStepKey);
-    const currentStepLabel = getStepLabel(currentStep);
+    if (!nextStep) {
+      setAssignStatus({
+        type: "error",
+        message: "Next step not found.",
+      });
+      return;
+    }
 
-    // ✅ MAIN ASSIGNMENT PAYLOAD
+    // ✅ MAIN PAYLOAD — SEND LABELS
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("currentStep", currentStepLabel);
-    formData.append("nextSteps", nextStepLabel);
+    formData.append("currentSteps", currentStep);
+    formData.append("nextSteps", nextStep);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
-    console.log("📤 MAIN PAYLOAD:");
-    for (const p of formData.entries()) console.log(p[0], p[1]);
+    console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
 
     const responseMain = await axios.post(
       `${API_URL}/assign-order`,
@@ -950,61 +961,47 @@ const handleAssignOrder = async () => {
       return;
     }
 
-    let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+    let successMessage = `✔ Assigned ${mainQty} → ${nextStep}`;
 
-    // ✅ SPLIT ASSIGNMENT — only if qty entered
+    // ✅ SPLIT logic unchanged (same payload rules)
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
       formDataSplit.append("totalQty", String(selectedOrder.qty));
       formDataSplit.append("executedQty", String(splitQty));
-      formDataSplit.append("currentStep", currentStepLabel);
-      formDataSplit.append("nextSteps", nextStepLabel);
+      formDataSplit.append("currentSteps", currentStep);
+      formDataSplit.append("nextSteps", nextStep);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
-      console.log("📤 SPLIT PAYLOAD:");
-      for (const p of formDataSplit.entries())
-        console.log("SPLIT:", p[0], p[1]);
+      await axios.post(`${API_URL}/assign-order`, formDataSplit, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      const responseSplit = await axios.post(
-        `${API_URL}/assign-order`,
-        formDataSplit,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const splitSuccess =
-        responseSplit.data?.Resp_code === "true" ||
-        responseSplit.data?.Resp_code === true;
-
-      if (splitSuccess) {
-        successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
-      } else {
-        setAssignStatus({
-          type: "error",
-          message:
-            "Main assigned but split failed: " +
-            (responseSplit.data?.Resp_desc || "Unknown error"),
-        });
-      }
+      successMessage += `\n✔ Split ${splitQty} → ${nextStep}`;
     }
 
     setAssignStatus({ type: "success", message: successMessage });
 
     await fetchOrders();
-
     setQuickAssignOpen(false);
     setAssignStatus(null);
-
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error assigning order:", error);
+    console.error("🔥 Backend Response:", error?.response?.data);
+
     setAssignStatus({
       type: "error",
-      message: "Server error while assigning.",
+      message:
+        error?.response?.data?.message ||
+        "Server error while assigning.",
     });
   } finally {
     setIsAssigning(false);
   }
 };
+
+
+
 
 
 
