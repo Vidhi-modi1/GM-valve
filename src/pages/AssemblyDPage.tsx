@@ -1205,6 +1205,10 @@ const handleAssignOrder = async () => {
             style={{ scrollbarGutter: "stable" }}
           >
             <div className="inline-block min-w-full align-middle">
+              {loading && orders.length === 0 ? (
+                <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
+              ) : (
+                <>
               <table className="min-w-full border-collapse">
                 <thead>
                   <tr>
@@ -1494,6 +1498,8 @@ const handleAssignOrder = async () => {
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>

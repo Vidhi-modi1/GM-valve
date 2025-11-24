@@ -1230,296 +1230,303 @@ const handleAssignOrder = async () => {
             style={{ scrollbarGutter: "stable" }}
           >
             <div className="inline-block min-w-full align-middle">
-              <table className="min-w-full border-collapse">
-                <thead>
-                  <tr>
-                    {/* Select all sticky checkbox */}
-                    <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
-                      <button
-                        type="button"
-                        role="checkbox"
-                        aria-checked={String(allRowsSelected)}
-                        onClick={toggleSelectAll}
-                        className="peer rounded border p-0.5"
-                        aria-label="Select all rows"
+              {loading && orders.length === 0 ? (
+                <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
+              ) : (
+                <>
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr>
+                      {/* Select all sticky checkbox */}
+                      <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={String(allRowsSelected)}
+                          onClick={toggleSelectAll}
+                          className="peer rounded border p-0.5"
+                          aria-label="Select all rows"
+                        >
+                          {/* small box visual */}
+                          <div
+                            className={`w-4 h-4 ${
+                              allRowsSelected ? "bg-blue-600" : "bg-white border"
+                            }`}
+                          />
+                        </button>
+                      </th>
+  
+                      <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-32">
+                        Assembly Line
+                      </th>
+                      <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
+                        GMSOA NO.
+                      </th>
+                      <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">
+                        SOA Sr. No.
+                      </th>
+                      <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        Assembly Date
+                      </th>
+  
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-36">
+                        Unique Code
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Splitted Code
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Party
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Customer PO No.
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Code No
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-80">
+                        Product
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Qty
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Qty Exe.
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Qty Pending
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        finished valve
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        GM LOGO
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        NAME PLATE
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        PRODUCT SPCL1
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        PRODUCT SPCL2
+                      </th>
+                      <th
+                        className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                        style={{ width: "400px" }}
                       >
-                        {/* small box visual */}
-                        <div
-                          className={`w-4 h-4 ${
-                            allRowsSelected ? "bg-blue-600" : "bg-white border"
-                          }`}
-                        />
-                      </button>
-                    </th>
-
-                    <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-32">
-                      Assembly Line
-                    </th>
-                    <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
-                      GMSOA NO.
-                    </th>
-                    <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">
-                      SOA Sr. No.
-                    </th>
-                    <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Assembly Date
-                    </th>
-
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-36">
-                      Unique Code
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Splitted Code
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Party
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Customer PO No.
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Code No
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-80">
-                      Product
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Qty
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Qty Exe.
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      Qty Pending
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      finished valve
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      GM LOGO
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      NAME PLATE
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      PRODUCT SPCL1
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      PRODUCT SPCL2
-                    </th>
-                    <th
-                      className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                      style={{ width: "400px" }}
-                    >
-                      PRODUCT SPCL3
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      INSPECTION
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      PAINTING
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      remarks
-                    </th>
-
-                    <th className="sticky right-0 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
-                    <tr
-                      key={order.splittedCode || order.split_id || order.uniqueCode || order.id}
-                      className="group hover:bg-gray-50"
-                    >
-                      <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
-                        <Checkbox
-                          checked={selectedRows.has(
-                            order.splittedCode ||
-                              order.split_id ||
-                              order.uniqueCode ||
-                              order.id
-                          )}
-                          onCheckedChange={() =>
-                            toggleRowSelection(
+                        PRODUCT SPCL3
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        INSPECTION
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        PAINTING
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        remarks
+                      </th>
+  
+                      <th className="sticky right-0 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+  
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredOrders.map((order) => (
+                      <tr
+                        key={order.splittedCode || order.split_id || order.uniqueCode || order.id}
+                        className="group hover:bg-gray-50"
+                      >
+                        <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
+                          <Checkbox
+                            checked={selectedRows.has(
                               order.splittedCode ||
                                 order.split_id ||
                                 order.uniqueCode ||
                                 order.id
-                            )
-                          }
-                          aria-label={`Select row ${
-                            order.splittedCode ||
-                            order.split_id ||
-                            order.uniqueCode ||
-                            order.id
-                          }`}
-                        />
-                      </td>
-
-                      <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 min-w-32">
-                        <Badge
-                          variant="outline"
-                          className="bg-gray-50 text-gray-700 border-gray-200"
-                        >
-                          {order.assemblyLine}
-                        </Badge>
-                      </td>
-
-                      <td className="sticky left-164 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-28">
-                        {order.gmsoaNo}
-                      </td>
-                      <td className="sticky left-274 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-24">
-                        {order.soaSrNo}
-                      </td>
-                      <td className="sticky left-364 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                        {order.assemblyDate}
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 font-mono min-w-36">
-                        {order.uniqueCode}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.splittedCode}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
-                        {order.party}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.customerPoNo}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.codeNo}
-                      </td>
-
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 w-80">
-                        <div className="line-clamp-2">{order.product}</div>
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.totalQty}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.qtyExe}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.qtyPending}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.finishedValve}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.gmLogo}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.namePlate}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.productSpcl1}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.productSpcl2}
-                      </td>
-                      <td
-                        className="px-3 py-2 text-center text-sm text-gray-900"
-                        style={{ width: "400px" }}
-                      >
-                        <div className="line-clamp-2">{order.productSpcl3}</div>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.inspection}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.painting}
-                      </td>
-
-                      <td className="px-3 py-2 text-center text-sm text-gray-900">
-                      <Button
-  size="sm"
-  variant="ghost"
-  className={`h-7 w-7 p-0 ${
-    (order.remarks && order.remarks.trim() !== "") // backend value
-      ? "bg-[#174a9f] hover:bg-[#123a7f]"
-      : "hover:bg-[#d1e2f3]"
-  }`}
-  title="Add/Edit Remarks"
-  onClick={() => handleOpenRemarks(order)}
->
-  <MessageSquarePlus
-    className={`h-4 w-4 ${
-      (order.remarks && order.remarks.trim() !== "")
-        ? "text-white"
-        : "text-blue-600"
-    }`}
-  />
-</Button>
-
-                      </td>
-
-                      <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 hover:bg-blue-100"
-                            title="View Details"
-                            onClick={() => handleViewDetails(order)}
-                          >
-                            <Eye className="h-4 w-4 text-blue-600" />
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 hover:bg-green-100"
-                            title="Assign Next"
-                            onClick={() => handleQuickAssign(order)}
-                          >
-                            <ArrowRight className="h-4 w-4 text-green-600" />
-                          </Button>
-
-                          {/* <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
-                          title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
-                          onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
-                        >
-                          <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
-                        </Button> */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${
-                              order.alertStatus
-                                ? "bg-red-100 border border-red-200 shadow-sm"
-                                : "hover:bg-red-50"
+                            )}
+                            onCheckedChange={() =>
+                              toggleRowSelection(
+                                order.splittedCode ||
+                                  order.split_id ||
+                                  order.uniqueCode ||
+                                  order.id
+                              )
+                            }
+                            aria-label={`Select row ${
+                              order.splittedCode ||
+                              order.split_id ||
+                              order.uniqueCode ||
+                              order.id
                             }`}
-                            title={"Urgent status is read-only"}
-                            disabled
+                          />
+                        </td>
+  
+                        <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 min-w-32">
+                          <Badge
+                            variant="outline"
+                            className="bg-gray-50 text-gray-700 border-gray-200"
                           >
-                            <Siren
-                              className={`h-4 w-4 ${
+                            {order.assemblyLine}
+                          </Badge>
+                        </td>
+  
+                        <td className="sticky left-164 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-28">
+                          {order.gmsoaNo}
+                        </td>
+                        <td className="sticky left-274 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-24">
+                          {order.soaSrNo}
+                        </td>
+                        <td className="sticky left-364 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                          {order.assemblyDate}
+                        </td>
+  
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 font-mono min-w-36">
+                          {order.uniqueCode}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.splittedCode}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
+                          {order.party}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.customerPoNo}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.codeNo}
+                        </td>
+  
+                        <td className="px-3 py-2 text-center text-sm text-gray-900 w-80">
+                          <div className="line-clamp-2">{order.product}</div>
+                        </td>
+  
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.totalQty}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.qtyExe}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.qtyPending}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.finishedValve}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.gmLogo}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.namePlate}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.productSpcl1}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.productSpcl2}
+                        </td>
+                        <td
+                          className="px-3 py-2 text-center text-sm text-gray-900"
+                          style={{ width: "400px" }}
+                        >
+                          <div className="line-clamp-2">{order.productSpcl3}</div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.inspection}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {order.painting}
+                        </td>
+  
+                        <td className="px-3 py-2 text-center text-sm text-gray-900">
+                        <Button
+    size="sm"
+    variant="ghost"
+    className={`h-7 w-7 p-0 ${
+      (order.remarks && order.remarks.trim() !== "") // backend value
+        ? "bg-[#174a9f] hover:bg-[#123a7f]"
+        : "hover:bg-[#d1e2f3]"
+    }`}
+    title="Add/Edit Remarks"
+    onClick={() => handleOpenRemarks(order)}
+  >
+    <MessageSquarePlus
+      className={`h-4 w-4 ${
+        (order.remarks && order.remarks.trim() !== "")
+          ? "text-white"
+          : "text-blue-600"
+      }`}
+    />
+  </Button>
+  
+                        </td>
+  
+                        <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 hover:bg-blue-100"
+                              title="View Details"
+                              onClick={() => handleViewDetails(order)}
+                            >
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            </Button>
+  
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 hover:bg-green-100"
+                              title="Assign Next"
+                              onClick={() => handleQuickAssign(order)}
+                            >
+                              <ArrowRight className="h-4 w-4 text-green-600" />
+                            </Button>
+  
+                            {/* <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
+                            title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
+                            onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
+                          >
+                            <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
+                          </Button> */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={`h-7 w-7 p-0 transition-all duration-200 ${
                                 order.alertStatus
-                                  ? "text-red-600 animate-siren-pulse"
-                                  : "text-gray-400"
+                                  ? "bg-red-100 border border-red-200 shadow-sm"
+                                  : "hover:bg-red-50"
                               }`}
-                            />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredOrders.length === 0 && (
-                <div className="p-6 text-center text-gray-500">
-                  No orders found.
-                </div>
+                              title={"Urgent status is read-only"}
+                              disabled
+                            >
+                              <Siren
+                                className={`h-4 w-4 ${
+                                  order.alertStatus
+                                    ? "text-red-600 animate-siren-pulse"
+                                    : "text-gray-400"
+                                }`}
+                              />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredOrders.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">
+                    No orders found.
+                  </div>
+                )}
+                </>
               )}
+              
             </div>
           </div>
         </div>

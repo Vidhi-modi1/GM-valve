@@ -976,6 +976,10 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
             style={{ scrollbarGutter: "stable" }}
           >
             <div className="inline-block min-w-full align-middle">
+              {loading && orders.length === 0 ? (
+                <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
+              ) : (
+                <div>
               <table className="min-w-full border-collapse">
                 <thead>
                   <tr>
@@ -1250,11 +1254,14 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
                   ))}
                 </tbody>
               </table>
-              {filteredOrders.length === 0 && (
+               {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
                 </div>
               )}
+              </div>
+              )}
+             
             </div>
           </div>
         </div>

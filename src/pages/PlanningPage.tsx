@@ -969,6 +969,10 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
             style={{ scrollbarGutter: "stable" }}
           >
             <div className="inline-block min-w-full align-middle">
+              {loading && orders.length === 0 ? (
+                <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
+              ) : (
+                <>
               <table className="min-w-full border-collapse">
                 <thead>
                   <tr>
@@ -1270,6 +1274,9 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                   No orders found.
                 </div>
               )}
+                </>
+              )}
+              
             </div>
           </div>
         </div>

@@ -344,10 +344,20 @@ export function Testing2Page() {
       );
     }
 
-      const seen = new Set<string>();
+    //   const seen = new Set<string>();
+    // filtered = filtered.filter((o) => {
+    //   if (seen.has(o.id)) return false;
+    //   seen.add(o.id);
+    //   return true;
+    // });
+
+    const seen = new Set<string>();
+    const makeRowKey = (o: AssemblyOrderData) =>
+      o.splittedCode || o.split_id || o.uniqueCode || o.id;
     filtered = filtered.filter((o) => {
-      if (seen.has(o.id)) return false;
-      seen.add(o.id);
+      const key = makeRowKey(o);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
 
@@ -1043,6 +1053,10 @@ const handleAssignOrder = async () => {
             style={{ scrollbarGutter: "stable" }}
           >
             <div className="inline-block min-w-full align-middle">
+              {loading && orders.length === 0 ? (
+                <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
+              ) : (
+                <>
               <table className="min-w-full border-collapse">
                 <thead>
                   <tr>
@@ -1308,11 +1322,14 @@ const handleAssignOrder = async () => {
                   ))}
                 </tbody>
               </table>
-              {filteredOrders.length === 0 && (
+               {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
                 </div>
               )}
+                </>
+              )}
+             
             </div>
           </div>
         </div>

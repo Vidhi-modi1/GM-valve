@@ -165,6 +165,10 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
       results.forEach(([k, count]) => {
         out[k] = count;
       });
+      out.totalOrders = results.reduce((sum, [, count]) => sum + count, 0);
+      out.inProgress = out.inProgress ?? 0;
+      out.completed = out.completed ?? 0;
+      out.efficiency = out.efficiency ?? 0;
       setSummary(out);
     } catch (err) {
       console.error("Dashboard summary error:", err);
