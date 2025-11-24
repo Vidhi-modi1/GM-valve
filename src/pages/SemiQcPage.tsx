@@ -344,9 +344,12 @@ export function SemiQcPage() {
     }
 
     const seen = new Set<string>();
+    const makeRowKey = (o: AssemblyOrderData) =>
+      o.splittedCode || o.split_id || o.uniqueCode || o.id;
     filtered = filtered.filter((o) => {
-      if (seen.has(o.id)) return false;
-      seen.add(o.id);
+      const key = makeRowKey(o);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
 
@@ -365,11 +368,11 @@ export function SemiQcPage() {
   ]);
 
   // selection helpers
-  const toggleRowSelection = (orderId: string) => {
+  const toggleRowSelection = (rowKey: string) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
-      if (copy.has(orderId)) copy.delete(orderId);
-      else copy.add(orderId);
+      if (copy.has(rowKey)) copy.delete(rowKey);
+      else copy.add(rowKey);
       return copy;
     });
   };
@@ -377,7 +380,10 @@ export function SemiQcPage() {
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
-      return new Set(filteredOrders.map((o) => o.id));
+      const keys = filteredOrders.map(
+        (o) => o.splittedCode || o.split_id || o.uniqueCode || o.id
+      );
+      return new Set(keys);
     });
   };
 
@@ -448,7 +454,9 @@ export function SemiQcPage() {
   };
 
   // Bin Card / Print
-  const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
+  const selectedOrdersData = orders.filter((o) =>
+    selectedRows.has(o.splittedCode || o.split_id || o.uniqueCode || o.id)
+  );
   const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
     const cards = selectedOrdersData
@@ -1065,12 +1073,32 @@ const handleAssignOrder = async () => {
 
                 <tbody className="divide-y divide-gray-200">
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="group hover:bg-gray-50">
+                    <tr
+                      key={order.splittedCode || order.split_id || order.uniqueCode || order.id}
+                      className="group hover:bg-gray-50"
+                    >
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.id)}
-                          aria-label={`Select row ${order.id}`}
+                          checked={selectedRows.has(
+                            order.splittedCode ||
+                              order.split_id ||
+                              order.uniqueCode ||
+                              order.id
+                          )}
+                          onCheckedChange={() =>
+                            toggleRowSelection(
+                              order.splittedCode ||
+                                order.split_id ||
+                                order.uniqueCode ||
+                                order.id
+                            )
+                          }
+                          aria-label={`Select row ${
+                            order.splittedCode ||
+                            order.split_id ||
+                            order.uniqueCode ||
+                            order.id
+                          }`}
                         />
                       </td>
 

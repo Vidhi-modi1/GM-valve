@@ -57,6 +57,7 @@ interface AssemblyOrderData {
   customerPoNo: string;
   codeNo: string;
   product: string;
+  totalQty: number;
   qty: number;
   qtyExe: number;
   qtyPending: number;
@@ -178,7 +179,7 @@ export function DispatchPage() {
             codeNo: item.code_no || "",
             product: item.product || "",
             qty: Number(item.totalQty || item.total_qty || item.qty || 0),
-            
+            totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), 
             // qty: Number(item.qty || 0),
             qtyExe: Number(item.qty_executed || 0),
             qtyPending: Number(item.qty_pending || 0),

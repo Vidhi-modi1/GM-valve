@@ -28,10 +28,11 @@ import TpiPage from "./TpiPage";
 
 import DispatchPage from "./DispatchPage";
 import { API_URL } from "../config/api";
+import { getStepLabel } from "../config/workflowSteps";
 
 type SummaryRecord = Record<string, number>;
 
-// const SUMMARY_ENDPOINT = `${API_URL}/dashboard-summary`;
+const ORDER_LIST_ENDPOINT = `${API_URL}/order-list`;
 const POLL_INTERVAL_MS = 15000;
 
 export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
@@ -72,6 +73,35 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
     const out: SummaryRecord = {};
     if (!data) return out;
 
+    const counts = data.counts ?? data;
+    if (counts && typeof counts === "object") {
+      if (counts.totalOrders != null) out.totalOrders = Number(counts.totalOrders) || 0;
+
+      const pairs: [string, string][] = [
+        ["pendingMaterialIssue", "materialIssue"],
+        ["pendingSemiQC", "semiQc"],
+        ["pendingPhosphatingQC", "phosphatingQc"],
+        ["pendingSVS", "svs"],
+        ["pendingTesting1", "testing1"],
+        ["pendingTesting2", "testing2"],
+        ["pendingMarking1", "marking1"],
+        ["pendingMarking2", "marking2"],
+        ["pendingPDI1", "pdi1"],
+        ["pendingPDI2", "pdi2"],
+        ["pendingTPI", "tpi"],
+        ["pendingAssemblyA", "assemblyA"],
+        ["pendingAssemblyB", "assemblyB"],
+        ["pendingAssemblyC", "assemblyC"],
+        ["pendingAssemblyD", "assemblyD"],
+        ["inProgress", "inProgress"],
+        ["completed", "completed"],
+        ["efficiency", "efficiency"],
+      ];
+      for (const [src, dest] of pairs) {
+        if (counts[src] != null) out[dest] = Number(counts[src]) || 0;
+      }
+    }
+
     if (data.stages) {
       data.stages.forEach((s: any) => {
         out[normalizeKey(s.stage)] = Number(s.pending ?? 0);
@@ -88,27 +118,30 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   };
 
   /* ---------- FETCH SUMMARY ---------- */
-  // async function fetchSummary() {
-  //   const token = localStorage.getItem("token");
+  async function fetchSummary() {
+    const token = localStorage.getItem("token");
 
-  //   try {
-  //     const res = await axios.get(SUMMARY_ENDPOINT, {
-  //       headers: token ? { Authorization: `Bearer ${token}` } : undefined
-  //     });
+    try {
+      const res = await axios.post(
+        ORDER_LIST_ENDPOINT,
+        { menu_name: getStepLabel("planning") },
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+      );
+      setSummary(normalizeResponse(res.data));
+    } catch (err) {
+      console.error("Dashboard summary error:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
-  //     setSummary(normalizeResponse(res.data));
-  //   } catch (err) {
-  //     console.error("Dashboard summary error:", err);
-  //   } finally {
-  //     setIsRefreshing(false);
-  //   }
-  // }
-
-  // useEffect(() => {
-  //   fetchSummary();
-  //   pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
-  //   return () => pollRef.current && clearInterval(pollRef.current);
-  // }, []);
+  useEffect(() => {
+    fetchSummary();
+    pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
 
   /* ---------- PRETTY NAMES ---------- */
   const prettyName = (k: string) => {
@@ -173,10 +206,11 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   if (currentPage !== "Dashboard") return <>{pages[currentPage]}</>;
 
   /* ---------- TOTALS ---------- */
-  const totalOrders = useMemo(
-    () => Object.values(summary).reduce((sum, v) => sum + Number(v || 0), 0),
-    [summary]
-  );
+  const totalOrders = useMemo(() => {
+    if (summary.totalOrders != null) return Number(summary.totalOrders);
+    const keys = [...stageOrder, ...assemblyOrder];
+    return keys.reduce((sum, k) => sum + Number(summary[k] || 0), 0);
+  }, [summary]);
 
   /* ============================================================= */
 
