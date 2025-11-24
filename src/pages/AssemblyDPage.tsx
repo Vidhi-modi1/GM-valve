@@ -191,7 +191,10 @@ export function AssemblyDPage() {
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
             product: item.product || "",
+            // qty: Number(item.totalQty || item.total_qty || item.qty || 0),
+
             qty: Number(item.qty || 0),
+            totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), 
             qtyExe: Number(item.qty_executed || 0),
             qtyPending: Number(item.qty_pending || 0),
             finishedValve: item.finished_valve || "",
@@ -1344,7 +1347,7 @@ const handleAssignOrder = async () => {
                       </td>
 
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.qty}
+                        {order.totalQty}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.qtyExe}
@@ -1688,7 +1691,7 @@ const handleAssignOrder = async () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-500 text-sm">QTY</Label>
-                      <p className="text-gray-900 mt-1">{order.qty}</p>
+                      <p className="text-gray-900 mt-1">{order.totalQty}</p>
                     </div>
                     <div>
                       <Label className="text-gray-500 text-sm">GM Logo</Label>
@@ -1832,7 +1835,7 @@ const handleAssignOrder = async () => {
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label className="text-gray-500 text-sm">Qty</Label>
-                      <p className="text-gray-900 mt-1">{viewedOrder.qty}</p>
+                      <p className="text-gray-900 mt-1">{viewedOrder.totalQty}</p>
                     </div>
                     <div>
                       <Label className="text-gray-500 text-sm">Qty Exe.</Label>

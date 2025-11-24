@@ -57,6 +57,7 @@ interface AssemblyOrderData {
   customerPoNo: string;
   codeNo: string;
   product: string;
+  totalQty: number;
   qty: number;
   qtyExe: number;
   qtyPending: number;
@@ -190,6 +191,7 @@ export function PhosphatingPage() {
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
             product: item.product || "",
+            totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), 
             qty: Number(item.qty || 0),
             qtyExe: Number(item.qty_executed || 0),
             qtyPending: Number(item.qty_pending || 0),
@@ -494,7 +496,7 @@ export function PhosphatingPage() {
         </div>
         <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
         <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-          <div><strong>QTY:</strong> ${order.qty}</div>
+          <div><strong>QTY:</strong> ${order.totalQty}</div>
           <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
         </div>
         <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
@@ -1358,7 +1360,7 @@ const handleAssignOrder = async () => {
                       </td>
 
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                        {order.qty}
+                        {order.totalQty}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.qtyExe}
@@ -1676,7 +1678,7 @@ const handleAssignOrder = async () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-500 text-sm">QTY</Label>
-                      <p className="text-gray-900 mt-1">{order.qty}</p>
+                      <p className="text-gray-900 mt-1">{order.totalQty}</p>
                     </div>
                     <div>
                       <Label className="text-gray-500 text-sm">GM Logo</Label>
@@ -1820,7 +1822,7 @@ const handleAssignOrder = async () => {
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label className="text-gray-500 text-sm">Qty</Label>
-                      <p className="text-gray-900 mt-1">{viewedOrder.qty}</p>
+                      <p className="text-gray-900 mt-1">{viewedOrder.totalQty}</p>
                     </div>
                     <div>
                       <Label className="text-gray-500 text-sm">Qty Exe.</Label>
