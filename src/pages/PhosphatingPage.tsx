@@ -344,10 +344,19 @@ export function PhosphatingPage() {
       );
     }
 
-    const seen = new Set<string>();
+    // const seen = new Set<string>();
+    // filtered = filtered.filter((o) => {
+    //   if (seen.has(o.id)) return false;
+    //   seen.add(o.id);
+    //   return true;
+    // });
+        const seen = new Set<string>();
+    const makeRowKey = (o: AssemblyOrderData) =>
+      o.splittedCode || o.split_id || o.uniqueCode || o.id;
     filtered = filtered.filter((o) => {
-      if (seen.has(o.id)) return false;
-      seen.add(o.id);
+      const key = makeRowKey(o);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
 

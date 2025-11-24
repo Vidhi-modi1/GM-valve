@@ -370,11 +370,11 @@ export function AssemblyCPage() {
   ]);
 
   // selection helpers
-  const toggleRowSelection = (orderId: string) => {
+  const toggleRowSelection = (rowKey: string) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
-      if (copy.has(orderId)) copy.delete(orderId);
-      else copy.add(orderId);
+      if (copy.has(rowKey)) copy.delete(rowKey);
+      else copy.add(rowKey);
       return copy;
     });
   };
@@ -382,7 +382,10 @@ export function AssemblyCPage() {
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
-      return new Set(filteredOrders.map((o) => o.id));
+      const keys = filteredOrders.map(
+        (o) => o.splittedCode || o.split_id || o.uniqueCode || o.id
+      );
+      return new Set(keys);
     });
   };
 
@@ -466,7 +469,9 @@ export function AssemblyCPage() {
   };
 
   // Bin Card / Print
-  const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
+  const selectedOrdersData = orders.filter((o) =>
+    selectedRows.has(o.splittedCode || o.split_id || o.uniqueCode || o.id)
+  );
   const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
     const cards = selectedOrdersData
@@ -902,7 +907,7 @@ const handleAssignOrder = async () => {
 
     // ✅ Convert workflow keys → backend labels
     const nextStepLabel = getStepLabel(nextStepKey);
-    const currentStepLabel = getStepLabel(currentStep);
+    const currentStepLabel = getStepLabel(currentSteps);
 
     //
     // ---------------------------
@@ -913,7 +918,7 @@ const handleAssignOrder = async () => {
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("currentStep", currentStepLabel); // ✅ FIXED
+    formData.append("currentSteps", currentStepLabel); // ✅ FIXED
     formData.append("nextSteps", nextStepLabel); // ✅ SINGLE correct entry
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
@@ -949,7 +954,7 @@ const handleAssignOrder = async () => {
       formDataSplit.append("orderId", String(selectedOrder.id));
       formDataSplit.append("totalQty", String(selectedOrder.qty));
       formDataSplit.append("executedQty", String(splitQty));
-      formDataSplit.append("currentStep", currentStepLabel);
+      formDataSplit.append("currentSteps", currentStepLabel);
       formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
@@ -1307,12 +1312,32 @@ const handleAssignOrder = async () => {
 
                 <tbody className="divide-y divide-gray-200">
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="group hover:bg-gray-50">
+                    <tr
+                      key={order.splittedCode || order.split_id || order.uniqueCode || order.id}
+                      className="group hover:bg-gray-50"
+                    >
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.id)}
-                          aria-label={`Select row ${order.id}`}
+                          checked={selectedRows.has(
+                            order.splittedCode ||
+                              order.split_id ||
+                              order.uniqueCode ||
+                              order.id
+                          )}
+                          onCheckedChange={() =>
+                            toggleRowSelection(
+                              order.splittedCode ||
+                                order.split_id ||
+                                order.uniqueCode ||
+                                order.id
+                            )
+                          }
+                          aria-label={`Select row ${
+                            order.splittedCode ||
+                            order.split_id ||
+                            order.uniqueCode ||
+                            order.id
+                          }`}
                         />
                       </td>
 

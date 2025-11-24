@@ -28,6 +28,7 @@ import TpiPage from "./TpiPage";
 
 import DispatchPage from "./DispatchPage";
 import { API_URL } from "../config/api";
+import { StatCardSkeleton } from "../components/loading-skeleton";
 import { getStepLabel } from "../config/workflowSteps";
 
 type SummaryRecord = Record<string, number>;
@@ -120,14 +121,51 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   /* ---------- FETCH SUMMARY ---------- */
   async function fetchSummary() {
     const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
     try {
-      const res = await axios.post(
-        ORDER_LIST_ENDPOINT,
-        { menu_name: getStepLabel("planning") },
-        { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+      const stepKeyMap: Record<string, string> = {
+        materialIssue: "material-issue",
+        semiQc: "semi-qc",
+        phosphatingQc: "phosphating-qc",
+        svs: "svs",
+        testing1: "testing1",
+        testing2: "testing2",
+        marking1: "marking1",
+        marking2: "marking2",
+        pdi1: "pdi1",
+        pdi2: "pdi2",
+        tpi: "tpi",
+        assemblyA: "assembly-a",
+        assemblyB: "assembly-b",
+        assemblyC: "assembly-c",
+        assemblyD: "assembly-d",
+      };
+
+      const keys = [...stageOrder, ...assemblyOrder];
+      const labels = keys.map((k) => ({ k, label: getStepLabel(stepKeyMap[k]) }));
+
+      const results = await Promise.all(
+        labels.map(async ({ k, label }) => {
+          try {
+            const res = await axios.post(
+              ORDER_LIST_ENDPOINT,
+              { menu_name: label },
+              { headers }
+            );
+            const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+            return [k, list.length] as [string, number];
+          } catch {
+            return [k, 0] as [string, number];
+          }
+        })
       );
-      setSummary(normalizeResponse(res.data));
+
+      const out: SummaryRecord = {};
+      results.forEach(([k, count]) => {
+        out[k] = count;
+      });
+      setSummary(out);
     } catch (err) {
       console.error("Dashboard summary error:", err);
     } finally {
@@ -230,7 +268,10 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
               <p className="text-gray-600 mt-1">Real-time insights into your manufacturing operations</p>
             </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <ModernStatCard
+          {summary.totalOrders == null ? (
+            <StatCardSkeleton />
+          ) : (
+            <ModernStatCard
             title="Total Orders"
             value={totalOrders}
             icon={Package}
@@ -238,8 +279,12 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
             change={{ value: "+12%", positive: true }}
             trend={[30, 40, 50, 60, 80]}
           />
+          )}
 
-          <ModernStatCard
+          {summary.inProgress == null ? (
+            <StatCardSkeleton />
+          ) : (
+            <ModernStatCard
             title="In Progress"
             value={summary.inProgress ?? 0}
             icon={Clock}
@@ -247,8 +292,12 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
             change={{ value: "+8%", positive: true }}
             trend={[20, 30, 40, 60, 75]}
           />
+          )}
 
-          <ModernStatCard
+          {summary.completed == null ? (
+            <StatCardSkeleton />
+          ) : (
+            <ModernStatCard
             title="Completed"
             value={summary.completed ?? 0}
             icon={CheckCircle2}
@@ -256,8 +305,12 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
             change={{ value: "+15%", positive: true }}
             trend={[40, 50, 70, 90, 100]}
           />
+          )}
 
-          <ModernStatCard
+          {summary.efficiency == null ? (
+            <StatCardSkeleton />
+          ) : (
+            <ModernStatCard
             title="Efficiency"
             value={(summary.efficiency ?? 0) + "%"}
             icon={TrendingUp}
@@ -265,6 +318,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
             change={{ value: "+5%", positive: true }}
             trend={[50, 60, 70, 80, 90]}
           />
+          )}
         </div>
 
         {/* ---------------- Stage-wise Cards ---------------- */}
