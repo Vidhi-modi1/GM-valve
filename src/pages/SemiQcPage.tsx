@@ -383,15 +383,15 @@ export function SemiQcPage() {
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
   
-  const currentStep = "semi-qc"; // or derive from login role
-  const nextSteps = getNextSteps(currentStep);
+  const currentSteps = "semi-qc"; // or derive from login role
+  const nextSteps = getNextSteps(currentSteps);
 
   console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
-  console.log("Is final step?", isFinalStep(currentStep)); // → false
+  console.log("Is final step?", isFinalStep(currentSteps)); // → false
 
   const handleQuickAssign = (order: AssemblyOrderData) => {
-    const currentStep = "semi-qc"; // 👈 set dynamically based on page
-    const nextSteps = getNextSteps(currentStep);
+    const currentSteps = "semi-qc"; // 👈 set dynamically based on page
+    const nextSteps = getNextSteps(currentSteps);
 
     setSelectedOrder(order);
     setQuickAssignOpen(true);
@@ -702,13 +702,13 @@ const handleAssignOrder = async () => {
       (Array.isArray(nextSteps) ? nextSteps[0] : "semi-qc");
 
     const nextStepLabel = getStepLabel(nextStepKey);
-     const currentStepLabel = getStepLabel(currentStep);
+     const currentStepsLabel = getStepLabel(currentSteps);
 
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("currentStep", currentStepLabel);
+    formData.append("currentSteps", currentStepsLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
