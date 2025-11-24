@@ -30,7 +30,7 @@ import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
 
 import { DashboardHeader } from "../components/dashboard-header.tsx";
-import { FullPageLoader } from "../components/loading-skeleton";
+// import { FullPageLoader } from "../components/loading-skeleton";
 import { getStepLabel } from "../config/workflowSteps";
 
 interface AssemblyOrderData {
@@ -848,7 +848,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
 
       
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
-        {loading && orders.length === 0 && <FullPageLoader />}
+        {/* {loading && orders.length === 0 && <FullPageLoader />} */}
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
