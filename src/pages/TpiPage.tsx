@@ -641,161 +641,336 @@ export function TpiPage() {
   const [isAssigning, setIsAssigning] = useState(false);
 
   // ✅ Assign order to next workflow stage
-  const handleAssignOrder = async () => {
-    if (isAssigning) return;
-    setIsAssigning(true);
-    if (!selectedOrder) return;
-    if (!validateQuickAssign()) return;
+  // const handleAssignOrder = async () => {
+  //   if (isAssigning) return;
+  //   setIsAssigning(true);
+  //   if (!selectedOrder) return;
+  //   if (!validateQuickAssign()) return;
 
-    setAssignStatus({
-      type: "info",
-      message: "Assigning order, please wait...",
-    });
+  //   setAssignStatus({
+  //     type: "info",
+  //     message: "Assigning order, please wait...",
+  //   });
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setAssignStatus({
-          type: "error",
-          message: "Token missing. Please log in again.",
-        });
-        return;
-      }
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     if (!token) {
+  //       setAssignStatus({
+  //         type: "error",
+  //         message: "Token missing. Please log in again.",
+  //       });
+  //       return;
+  //     }
 
-      const mainQty = Number(quickAssignQty || 0);
-      const splitQty = Number(splitAssignQty || 0);
+  //     const mainQty = Number(quickAssignQty || 0);
+  //     const splitQty = Number(splitAssignQty || 0);
+  //     const currentStepLabel = getStepLabel(currentStep);
 
+  //   const formData = new FormData();
+  //   formData.append("orderId", String(selectedOrder.id));
+  //   formData.append("totalQty", String(selectedOrder.qty));
+  //   formData.append("executedQty", String(mainQty));
+  //   formData.append("split_id", String(selectedOrder.split_id || ""));
+  //       formData.append("currentStep", currentStepLabel);
+  //   {
+  //     const currentStep = "tpi";
+  //     const defaultNext = getNextSteps(currentStep)[0] || "";
+  //     const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+  //     if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+  //   }
+
+  //     console.log("📤 Assign main payload (FormData):", {
+  //       orderId: selectedOrder.id,
+  //       totalQty: selectedOrder.qty,
+  //       executedQty: mainQty,
+  //     });
+
+  //     const responseMain = await axios.post(
+  //       `${API_URL}/assign-order`,
+  //       formData,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+
+  //     console.log("✅ Main assign response:", responseMain.data);
+
+  //     const isSuccess =
+  //       responseMain.data?.Resp_code === true ||
+  //       responseMain.data?.Resp_code === "true" ||
+  //       responseMain.data?.status === true;
+
+  //     if (isSuccess) {
+  //       // --- Split assignment ---
+  //       if (splitOrder && splitQty > 0) {
+  //         const formDataSplit = new FormData();
+  //         formDataSplit.append("orderId", String(selectedOrder.id));
+  //         formDataSplit.append("totalQty", String(selectedOrder.qty));
+  //         formDataSplit.append("executedQty", String(splitQty));
+  //         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
+  //         formDataSplit.append("splitOrder", "true");
+  //          formDataSplit.append("currentStep", currentStepLabel);
+  //         {
+  //           const currentStep = "tpi";
+  //           const defaultNext = getNextSteps(currentStep)[0] || "";
+  //           const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+  //           if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
+  //         }
+
+  //         const responseSplit = await axios.post(
+  //           `${API_URL}/assign-order`,
+  //           formDataSplit,
+  //           {
+  //             headers: { Authorization: `Bearer ${token}` },
+  //           }
+  //         );
+
+  //         const isSplitSuccess =
+  //           responseSplit.data?.Resp_code === true ||
+  //           responseSplit.data?.Resp_code === "true" ||
+  //           responseSplit.data?.status === true;
+
+  //         if (isSplitSuccess) {
+  //           const currentStep = "tpi";
+  //           const defaultNext = getNextSteps(currentStep)[0] || "";
+  //           const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+  //           const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
+  //           const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
+  //             `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
+  //           setAssignStatus({ type: "success", message: msg });
+  //         } else {
+  //           setAssignStatus({
+  //             type: "error",
+  //             message: `⚠️ Main assigned, but split failed: ${
+  //               responseSplit.data?.Resp_desc || "Unknown error"
+  //             }`,
+  //           });
+  //         }
+  //       } else {
+  //         const currentStep = "tpi";
+  //         const defaultNext = getNextSteps(currentStep)[0] || "";
+  //         const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
+  //         const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
+  //         setAssignStatus({ type: "success", message: msg });
+  //       }
+
+  //       await fetchOrders();
+  //         setQuickAssignOpen(false);
+  //         setAssignStatus(null);
+  //     } else {
+  //       setAssignStatus({
+  //         type: "error",
+  //         message: `⚠️ ${
+  //           responseMain.data?.Resp_desc || "Order assignment failed."
+  //         }`,
+  //       });
+  //     }
+  //   } catch (error: any) {
+  //     console.error("❌ Error assigning order:", error);
+
+  //     if (error.response) {
+  //       const msg =
+  //         error.response.data?.message ||
+  //         error.response.data?.Resp_desc ||
+  //         "Validation failed.";
+
+  //       const detailed =
+  //         error.response.data?.errors &&
+  //         Object.entries(error.response.data.errors)
+  //           .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
+  //           .join("\n");
+
+  //       setAssignStatus({
+  //         type: "error",
+  //         message: `❌ ${msg}\n${detailed || ""}`,
+  //       });
+  //     } else if (error.request) {
+  //       setAssignStatus({
+  //         type: "error",
+  //         message: "❌ No response from server. Please check your connection.",
+  //       });
+  //     } else {
+  //       setAssignStatus({
+  //         type: "error",
+  //         message: `❌ ${error.message}`,
+  //       });
+  //     }
+  //   } finally {
+  //     setIsAssigning(false);
+  //   }
+  // };
+
+const handleAssignOrder = async () => {
+  if (isAssigning) return;
+  if (!selectedOrder) return;
+  if (!validateQuickAssign()) return;
+
+  setIsAssigning(true);
+
+  setAssignStatus({
+    type: "info",
+    message: "Assigning order, please wait...",
+  });
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setAssignStatus({
+        type: "error",
+        message: "Token missing. Please log in again.",
+      });
+      return;
+    }
+
+    const mainQty = Number(quickAssignQty || 0);
+    const splitQty = Number(splitAssignQty || 0);
+
+    // ✅ Resolve current step safely
+    const currentStepRaw =
+      selectedOrder?.currentStep || selectedOrder?.stage || "TPI";
+    const currentStepLabel =
+      getStepLabel(currentStepRaw) || currentStepRaw || "";
+
+    if (!currentStepLabel) {
+      setAssignStatus({
+        type: "error",
+        message: "❌ Unable to detect current step (currentSteps is empty).",
+      });
+      return;
+    }
+
+    // ✅ Determine next step (main)
+    const fallbackStep = getNextSteps(currentStepRaw)[0] || "";
+    const nextMainStep = quickAssignStep || fallbackStep || currentStepRaw;
+    const nextMainLabel = getStepLabel(nextMainStep) || nextMainStep || "";
+
+    // ✅ MAIN ASSIGNMENT PAYLOAD
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("split_id", String(selectedOrder.split_id || ""));
-    {
-      const currentStep = "tpi";
-      const defaultNext = getNextSteps(currentStep)[0] || "";
-      const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-      if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+    if (selectedOrder.split_id)
+      formData.append("split_id", String(selectedOrder.split_id));
+    formData.append("currentSteps", currentStepLabel); // ✅ required
+    if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
+
+    console.log("📤 MAIN PAYLOAD");
+    for (const p of formData.entries()) console.log(p[0], p[1]);
+
+    const responseMain = await axios.post(
+      `${API_URL}/assign-order`,
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const mainSuccess =
+      responseMain.data?.Resp_code === true ||
+      responseMain.data?.Resp_code === "true" ||
+      responseMain.data?.status === true;
+
+    if (!mainSuccess) {
+      setAssignStatus({
+        type: "error",
+        message:
+          responseMain.data?.Resp_desc || "Order assignment failed.",
+      });
+      return;
     }
 
-      console.log("📤 Assign main payload (FormData):", {
-        orderId: selectedOrder.id,
-        totalQty: selectedOrder.qty,
-        executedQty: mainQty,
-      });
+    let successMsg = `✔ Assigned ${mainQty} → ${
+      nextMainLabel || "next stage"
+    }`;
 
-      const responseMain = await axios.post(
+    // ✅ SPLIT ASSIGNMENT
+    if (splitOrder && splitQty > 0) {
+      const splitStep = splitAssignStep || nextMainStep;
+      const splitLabel = getStepLabel(splitStep) || splitStep || "";
+
+      const formDataSplit = new FormData();
+      formDataSplit.append("orderId", String(selectedOrder.id));
+      formDataSplit.append("totalQty", String(selectedOrder.qty));
+      formDataSplit.append("executedQty", String(splitQty));
+      if (selectedOrder.split_id)
+        formDataSplit.append("split_id", String(selectedOrder.split_id));
+      formDataSplit.append("splitOrder", "true");
+      formDataSplit.append("currentSteps", currentStepLabel); // ✅ required
+      if (splitLabel) formDataSplit.append("nextSteps", splitLabel);
+
+      console.log("📤 SPLIT PAYLOAD");
+      for (const p of formDataSplit.entries())
+        console.log("SPLIT:", p[0], p[1]);
+
+      const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        formDataSplit,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("✅ Main assign response:", responseMain.data);
+      const splitSuccess =
+        responseSplit.data?.Resp_code === true ||
+        responseSplit.data?.Resp_code === "true" ||
+        responseSplit.data?.status === true;
 
-      const isSuccess =
-        responseMain.data?.Resp_code === true ||
-        responseMain.data?.Resp_code === "true" ||
-        responseMain.data?.status === true;
-
-      if (isSuccess) {
-        // --- Split assignment ---
-        if (splitOrder && splitQty > 0) {
-          const formDataSplit = new FormData();
-          formDataSplit.append("orderId", String(selectedOrder.id));
-          formDataSplit.append("totalQty", String(selectedOrder.qty));
-          formDataSplit.append("executedQty", String(splitQty));
-          formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
-          formDataSplit.append("splitOrder", "true");
-          {
-            const currentStep = "tpi";
-            const defaultNext = getNextSteps(currentStep)[0] || "";
-            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-            if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
-          }
-
-          const responseSplit = await axios.post(
-            `${API_URL}/assign-order`,
-            formDataSplit,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-
-          const isSplitSuccess =
-            responseSplit.data?.Resp_code === true ||
-            responseSplit.data?.Resp_code === "true" ||
-            responseSplit.data?.status === true;
-
-          if (isSplitSuccess) {
-            const currentStep = "tpi";
-            const defaultNext = getNextSteps(currentStep)[0] || "";
-            const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-            const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-            const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
-              `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
-            setAssignStatus({ type: "success", message: msg });
-          } else {
-            setAssignStatus({
-              type: "error",
-              message: `⚠️ Main assigned, but split failed: ${
-                responseSplit.data?.Resp_desc || "Unknown error"
-              }`,
-            });
-          }
-        } else {
-          const currentStep = "tpi";
-          const defaultNext = getNextSteps(currentStep)[0] || "";
-          const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-          const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
-          setAssignStatus({ type: "success", message: msg });
-        }
-
-        await fetchOrders();
-          setQuickAssignOpen(false);
-          setAssignStatus(null);
+      if (splitSuccess) {
+        successMsg += `\n✔ Split ${splitQty} → ${
+          splitLabel || "next stage"
+        }`;
       } else {
         setAssignStatus({
           type: "error",
-          message: `⚠️ ${
-            responseMain.data?.Resp_desc || "Order assignment failed."
-          }`,
+          message:
+            "Main assigned but split failed: " +
+            (responseSplit.data?.Resp_desc || "Unknown error"),
         });
+        return;
       }
-    } catch (error: any) {
-      console.error("❌ Error assigning order:", error);
-
-      if (error.response) {
-        const msg =
-          error.response.data?.message ||
-          error.response.data?.Resp_desc ||
-          "Validation failed.";
-
-        const detailed =
-          error.response.data?.errors &&
-          Object.entries(error.response.data.errors)
-            .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-            .join("\n");
-
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${msg}\n${detailed || ""}`,
-        });
-      } else if (error.request) {
-        setAssignStatus({
-          type: "error",
-          message: "❌ No response from server. Please check your connection.",
-        });
-      } else {
-        setAssignStatus({
-          type: "error",
-          message: `❌ ${error.message}`,
-        });
-      }
-    } finally {
-      setIsAssigning(false);
     }
-  };
+
+    setAssignStatus({ type: "success", message: successMsg });
+
+    await fetchOrders();
+
+    setQuickAssignOpen(false);
+    // If you want to *keep* success message, remove this next line:
+    setAssignStatus(null);
+  } catch (error: any) {
+    console.error("❌ Error assigning order:", error);
+
+    if (error.response) {
+      const msg =
+        error.response.data?.message ||
+        error.response.data?.Resp_desc ||
+        "Validation failed.";
+
+      const detailed =
+        error.response.data?.errors &&
+        Object.entries(error.response.data.errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
+          .join("\n");
+
+      setAssignStatus({
+        type: "error",
+        message: `❌ ${msg}\n${detailed || ""}`,
+      });
+    } else if (error.request) {
+      setAssignStatus({
+        type: "error",
+        message:
+          "❌ No response from server. Please check your connection.",
+      });
+    } else {
+      setAssignStatus({
+        type: "error",
+        message: `❌ ${error.message}`,
+      });
+    }
+  } finally {
+    setIsAssigning(false);
+  }
+};
+
+
+
 
     const sortOrders = (list: AssemblyOrderData[]) => {
     return [...list].sort((a, b) => {

@@ -718,11 +718,13 @@ const handleSaveRemarks = async () => {
 
       const mainQty = Number(quickAssignQty || 0);
       const splitQty = Number(splitAssignQty || 0);
+      const currentStepLabel = getStepLabel(currentStep);
 
       const formData = new FormData();
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+          formData.append("currentStep", currentStepLabel);
       // Align with MaterialIssue: include human-readable next step
       {
         const currentStep = "testing1";
@@ -759,6 +761,7 @@ const handleSaveRemarks = async () => {
           formDataSplit.append("orderId", String(selectedOrder.id));
           formDataSplit.append("totalQty", String(selectedOrder.qty));
           formDataSplit.append("executedQty", String(splitQty));
+           formDataSplit.append("currentStep", currentStepLabel);
           formDataSplit.append("splitOrder", "true");
           // Include next step for split leg
           {

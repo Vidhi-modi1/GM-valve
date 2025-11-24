@@ -702,11 +702,13 @@ const handleAssignOrder = async () => {
       (Array.isArray(nextSteps) ? nextSteps[0] : "semi-qc");
 
     const nextStepLabel = getStepLabel(nextStepKey);
+     const currentStepLabel = getStepLabel(currentStep);
 
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
+    formData.append("currentStep", currentStepLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 

@@ -891,6 +891,7 @@ const handleSaveRemarks = async () => {
         quickAssignStep ||
         (Array.isArray(nextSteps) ? nextSteps[0] : "semi-qc");
       const nextStepLabel = getStepLabel(nextStepKey);
+      const currentStepLabel = getStepLabel(currentStep);
 
       //
       // ---------------------------
@@ -901,6 +902,7 @@ const handleSaveRemarks = async () => {
       formData.append("orderId", String(selectedOrder.id));
       formData.append("totalQty", String(selectedOrder.qty));
       formData.append("executedQty", String(mainQty));
+      formData.append("currentStep", currentStepLabel);
       formData.append("nextSteps", nextStepLabel);
       formData.append("split_id", String(selectedOrder.split_id || ""));
 
@@ -937,6 +939,7 @@ const handleSaveRemarks = async () => {
         formDataSplit.append("orderId", String(selectedOrder.id));
         formDataSplit.append("totalQty", String(selectedOrder.qty));
         formDataSplit.append("executedQty", String(splitQty));
+        formDataSplit.append("currentStep", currentStepLabel);
         formDataSplit.append("nextSteps", nextStepLabel);
         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
