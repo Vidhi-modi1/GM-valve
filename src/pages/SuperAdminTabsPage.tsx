@@ -24,7 +24,14 @@ import CustomerSupport from "./CustomerSupport";
 
 // A lightweight tabbed container for Super Admin to see all workflow pages
 const SuperAdminTabsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem("superAdminActiveTab");
+      return saved || "dashboard";
+    } catch {
+      return "dashboard";
+    }
+  });
 
 
   const tabs = useMemo(
@@ -56,6 +63,12 @@ const SuperAdminTabsPage: React.FC = () => {
   );
 
   const current = tabs.find((t) => t.key === activeTab) ?? tabs[0];
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("superAdminActiveTab", activeTab);
+    } catch {}
+  }, [activeTab]);
 
   return (
     <div className="flex flex-col min-h-screen">

@@ -28,7 +28,7 @@ import TpiPage from "./TpiPage";
 
 import DispatchPage from "./DispatchPage";
 import { API_URL } from "../config/api";
-import { StatCardSkeleton } from "../components/loading-skeleton";
+import { StatCardSkeleton, CardLoadingSkeleton } from "../components/loading-skeleton";
 import { getStepLabel } from "../config/workflowSteps";
 
 type SummaryRecord = Record<string, number>;
@@ -41,6 +41,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [summary, setSummary] = useState<SummaryRecord>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
 
   const pollRef = useRef<number | null>(null);
 
@@ -124,6 +125,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
     try {
+      setIsLoadingSummary(true);
       const stepKeyMap: Record<string, string> = {
         materialIssue: "material-issue",
         semiQc: "semi-qc",
@@ -174,6 +176,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
       console.error("Dashboard summary error:", err);
     } finally {
       setIsRefreshing(false);
+      setIsLoadingSummary(false);
     }
   }
 
@@ -272,56 +275,48 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
               <p className="text-gray-600 mt-1">Real-time insights into your manufacturing operations</p>
             </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {summary.totalOrders == null ? (
-            <StatCardSkeleton />
+          {isLoadingSummary ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
           ) : (
-            <ModernStatCard
-            title="Total Orders"
-            value={totalOrders}
-            icon={Package}
-            gradient="blue"
-            change={{ value: "+12%", positive: true }}
-            trend={[30, 40, 50, 60, 80]}
-          />
-          )}
-
-          {summary.inProgress == null ? (
-            <StatCardSkeleton />
-          ) : (
-            <ModernStatCard
-            title="In Progress"
-            value={summary.inProgress ?? 0}
-            icon={Clock}
-            gradient="orange"
-            change={{ value: "+8%", positive: true }}
-            trend={[20, 30, 40, 60, 75]}
-          />
-          )}
-
-          {summary.completed == null ? (
-            <StatCardSkeleton />
-          ) : (
-            <ModernStatCard
-            title="Completed"
-            value={summary.completed ?? 0}
-            icon={CheckCircle2}
-            gradient="green"
-            change={{ value: "+15%", positive: true }}
-            trend={[40, 50, 70, 90, 100]}
-          />
-          )}
-
-          {summary.efficiency == null ? (
-            <StatCardSkeleton />
-          ) : (
-            <ModernStatCard
-            title="Efficiency"
-            value={(summary.efficiency ?? 0) + "%"}
-            icon={TrendingUp}
-            gradient="purple"
-            change={{ value: "+5%", positive: true }}
-            trend={[50, 60, 70, 80, 90]}
-          />
+            <>
+              <ModernStatCard
+                title="Total Orders"
+                value={totalOrders}
+                icon={Package}
+                gradient="blue"
+                change={{ value: "+12%", positive: true }}
+                trend={[30, 40, 50, 60, 80]}
+              />
+              <ModernStatCard
+                title="In Progress"
+                value={summary.inProgress ?? 0}
+                icon={Clock}
+                gradient="orange"
+                change={{ value: "+8%", positive: true }}
+                trend={[20, 30, 40, 60, 75]}
+              />
+              <ModernStatCard
+                title="Completed"
+                value={summary.completed ?? 0}
+                icon={CheckCircle2}
+                gradient="green"
+                change={{ value: "+15%", positive: true }}
+                trend={[40, 50, 70, 90, 100]}
+              />
+              <ModernStatCard
+                title="Efficiency"
+                value={(summary.efficiency ?? 0) + "%"}
+                icon={TrendingUp}
+                gradient="purple"
+                change={{ value: "+5%", positive: true }}
+                trend={[50, 60, 70, 80, 90]}
+              />
+            </>
           )}
         </div>
 
@@ -344,36 +339,37 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {stageOrder.map((k) => {
-              const c = stageColor[k];
+            {isLoadingSummary
+              ? stageOrder.map((_, i) => <CardLoadingSkeleton key={`stage-skel-${i}`} />)
+              : stageOrder.map((k) => {
+                  const c = stageColor[k];
+                  return (
+                    <Card
+                      key={k}
+                      className={`p-4 rounded-xl border bg-gradient-to-br 
+                        from-${c}-50 to-white border-${c}-200
+                        hover:-translate-y-1 hover:shadow-lg transition`}
+                      onClick={() => setCurrentPage(prettyName(k).replace(/ /g, ""))}
+                    >
+                        <div>
 
-              return (
-                <Card
-                  key={k}
-                  className={`p-4 rounded-xl border bg-gradient-to-br 
-                    from-${c}-50 to-white border-${c}-200
-                    hover:-translate-y-1 hover:shadow-lg transition`}
-                  onClick={() => setCurrentPage(prettyName(k).replace(/ /g, ""))}
-                >
-                    <div>
-
-                    <div className="flex justify-between items-center mb-2">
-                        <div className={`p-2 rounded-lg bg-${c}-100`}>
-                        <Package className={`h-4 w-4 text-${c}-600`} />
+                        <div className="flex justify-between items-center mb-2">
+                            <div className={`p-2 rounded-lg bg-${c}-100`}>
+                            <Package className={`h-4 w-4 text-${c}-600`} />
+                            </div>
+                            <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>
+                            Pending
+                            </Badge>
                         </div>
-                        <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>
-                        Pending
-                        </Badge>
-                    </div>
 
-                    <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                    <p className={`text-xl font-semibold text-${c}-900`}>
-                        {summary[k] ?? 0}
-                    </p>
-                    </div>
-                </Card>
-              );
-            })}
+                        <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+                        <p className={`text-xl font-semibold text-${c}-900`}>
+                            {summary[k] ?? 0}
+                        </p>
+                        </div>
+                    </Card>
+                  );
+                })}
           </div>
         </div>
 
@@ -385,31 +381,33 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {assemblyOrder.map((k) => (
-              <Card
-                key={k}
-                className={`p-4 rounded-xl border bg-gradient-to-br 
-                  from-purple-50 to-white border-purple-200
-                  hover:-translate-y-1 hover:shadow-lg transition`}
-              >
-                <div>
-                <div className="flex justify-between items-center mb-2">
-                  <div className="p-2 rounded-lg bg-purple-100">
-                    <Package className="h-4 w-4 text-purple-600" />
-                  </div>
+            {isLoadingSummary
+              ? assemblyOrder.map((_, i) => <CardLoadingSkeleton key={`assembly-skel-${i}`} />)
+              : assemblyOrder.map((k) => (
+                  <Card
+                    key={k}
+                    className={`p-4 rounded-xl border bg-gradient-to-br 
+                      from-purple-50 to-white border-purple-200
+                      hover:-translate-y-1 hover:shadow-lg transition`}
+                  >
+                    <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <Package className="h-4 w-4 text-purple-600" />
+                      </div>
 
-                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
-                    Pending
-                  </Badge>
-                </div>
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
+                        Pending
+                      </Badge>
+                    </div>
 
-                <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                <p className="text-xl font-semibold text-purple-900">
-                  {summary[k] ?? 0}
-                </p>
-                </div>
-              </Card>
-            ))}
+                    <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+                    <p className="text-xl font-semibold text-purple-900">
+                      {summary[k] ?? 0}
+                    </p>
+                    </div>
+                  </Card>
+                ))}
           </div>
         </div>
 
