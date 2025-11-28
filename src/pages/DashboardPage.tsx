@@ -120,73 +120,73 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   };
 
   /* ---------- FETCH SUMMARY ---------- */
-  async function fetchSummary() {
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+  // async function fetchSummary() {
+  //   const token = localStorage.getItem("token");
+  //   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-    try {
-      setIsLoadingSummary(true);
-      const stepKeyMap: Record<string, string> = {
-        materialIssue: "material-issue",
-        semiQc: "semi-qc",
-        phosphatingQc: "phosphating-qc",
-        svs: "svs",
-        testing1: "testing1",
-        testing2: "testing2",
-        marking1: "marking1",
-        marking2: "marking2",
-        pdi1: "pdi1",
-        pdi2: "pdi2",
-        tpi: "tpi",
-        assemblyA: "assembly-a",
-        assemblyB: "assembly-b",
-        assemblyC: "assembly-c",
-        assemblyD: "assembly-d",
-      };
+  //   try {
+  //     setIsLoadingSummary(true);
+  //     const stepKeyMap: Record<string, string> = {
+  //       materialIssue: "material-issue",
+  //       semiQc: "semi-qc",
+  //       phosphatingQc: "phosphating-qc",
+  //       svs: "svs",
+  //       testing1: "testing1",
+  //       testing2: "testing2",
+  //       marking1: "marking1",
+  //       marking2: "marking2",
+  //       pdi1: "pdi1",
+  //       pdi2: "pdi2",
+  //       tpi: "tpi",
+  //       assemblyA: "assembly-a",
+  //       assemblyB: "assembly-b",
+  //       assemblyC: "assembly-c",
+  //       assemblyD: "assembly-d",
+  //     };
 
-      const keys = [...stageOrder, ...assemblyOrder];
-      const labels = keys.map((k) => ({ k, label: getStepLabel(stepKeyMap[k]) }));
+  //     const keys = [...stageOrder, ...assemblyOrder];
+  //     const labels = keys.map((k) => ({ k, label: getStepLabel(stepKeyMap[k]) }));
 
-      const results = await Promise.all(
-        labels.map(async ({ k, label }) => {
-          try {
-            const res = await axios.post(
-              ORDER_LIST_ENDPOINT,
-              { menu_name: label },
-              { headers }
-            );
-            const list = Array.isArray(res?.data?.data) ? res.data.data : [];
-            return [k, list.length] as [string, number];
-          } catch {
-            return [k, 0] as [string, number];
-          }
-        })
-      );
+  //     const results = await Promise.all(
+  //       labels.map(async ({ k, label }) => {
+  //         try {
+  //           const res = await axios.post(
+  //             ORDER_LIST_ENDPOINT,
+  //             { menu_name: label },
+  //             { headers }
+  //           );
+  //           const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+  //           return [k, list.length] as [string, number];
+  //         } catch {
+  //           return [k, 0] as [string, number];
+  //         }
+  //       })
+  //     );
 
-      const out: SummaryRecord = {};
-      results.forEach(([k, count]) => {
-        out[k] = count;
-      });
-      out.totalOrders = results.reduce((sum, [, count]) => sum + count, 0);
-      out.inProgress = out.inProgress ?? 0;
-      out.completed = out.completed ?? 0;
-      out.efficiency = out.efficiency ?? 0;
-      setSummary(out);
-    } catch (err) {
-      console.error("Dashboard summary error:", err);
-    } finally {
-      setIsRefreshing(false);
-      setIsLoadingSummary(false);
-    }
-  }
+  //     const out: SummaryRecord = {};
+  //     results.forEach(([k, count]) => {
+  //       out[k] = count;
+  //     });
+  //     out.totalOrders = results.reduce((sum, [, count]) => sum + count, 0);
+  //     out.inProgress = out.inProgress ?? 0;
+  //     out.completed = out.completed ?? 0;
+  //     out.efficiency = out.efficiency ?? 0;
+  //     setSummary(out);
+  //   } catch (err) {
+  //     console.error("Dashboard summary error:", err);
+  //   } finally {
+  //     setIsRefreshing(false);
+  //     setIsLoadingSummary(false);
+  //   }
+  // }
 
-  useEffect(() => {
-    fetchSummary();
-    pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
+  // useEffect(() => {
+  //   fetchSummary();
+  //   pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
+  //   return () => {
+  //     if (pollRef.current) clearInterval(pollRef.current);
+  //   };
+  // }, []);
 
   /* ---------- PRETTY NAMES ---------- */
   const prettyName = (k: string) => {
@@ -330,7 +330,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
               className="ml-4 flex items-center px-3 py-1 border rounded-md"
               onClick={() => {
                 setIsRefreshing(true);
-                fetchSummary();
+                // fetchSummary();
               }}
             >
               <RefreshCw className="h-4 w-4 mr-1" />

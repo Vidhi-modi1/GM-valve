@@ -223,8 +223,17 @@ export default function App() {
               }
             /> */}
 
+             <Route
+              path="/customer-support"
+              element={
+                <ProtectedRoute allowedRole="customer-support">
+                  <CustomerSupport />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Customer Support: allow any logged-in role to view */}
-            <Route
+            {/* <Route
               path="/customer-support"
               element={
                 <RequireAuth>
@@ -246,7 +255,7 @@ export default function App() {
                   </div>
                 </RequireAuth>
               }
-            />
+            /> */}
 
             {/* ---------------------------------------------------------- */}
 

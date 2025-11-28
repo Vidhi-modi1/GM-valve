@@ -166,7 +166,7 @@ function CustomerSupport() {
     const run = async () => {
       setLoading(true);
       setError(null);
-      const results = await Promise.all(stages.map(s => fetchStage(s.key)));
+      // const results = await Promise.all(stages.map(s => fetchStage(s.key)));
       if (!mounted) return;
       const next: Record<string, OrderData[]> = {};
       stages.forEach((s, idx) => { next[s.key] = results[idx]; });
