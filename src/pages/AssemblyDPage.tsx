@@ -173,12 +173,21 @@ export function AssemblyDPage() {
       // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
       const ok =
         res?.data?.Resp_code === "true" ||
-        res?.data?.Resp_code === true || // ✅ handle boolean true
-        res?.data?.Resp_code === "RCS";
+        res?.data?.Resp_code === true ||
+        res?.data?.Resp_code === "RCS" ||
+        res?.status === 200;
 
-      if (ok && Array.isArray(res.data.data)) {
-        const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+      const raw = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : Array.isArray(res?.data?.orders)
+        ? res.data.orders
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+
+      if (ok && Array.isArray(raw)) {
+        const apiOrders: AssemblyOrderData[] = raw.map(
+          (item: any, index: number) => ({
             id: String(item.id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
@@ -215,11 +224,12 @@ export function AssemblyDPage() {
               item.alert_status === "true" ||
               item.urgent === 1 ||
               item.urgent === "1",
+            originalIndex: index,
           })
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-    setOrders(sortOrders(apiOrders));
+        setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -273,8 +283,15 @@ export function AssemblyDPage() {
       );
     }
 
-    if (assemblyLineFilter !== "all")
-      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (assemblyLineFilter !== "all") {
+      const filterKey = assemblyLineFilter.startsWith("assembly-")
+        ? assemblyLineFilter.split("-")[1].toUpperCase()
+        : assemblyLineFilter.toUpperCase();
+      filtered = filtered.filter((o) => {
+        const line = String(o.assemblyLine || "").toUpperCase();
+        return line === filterKey || line.includes(filterKey);
+      });
+    }
     if (gmsoaFilter !== "all")
       filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
     if (partyFilter !== "all")
@@ -1060,7 +1077,6 @@ const handleAssignOrder = async () => {
 
   // Clear filters
   const clearFilters = () => {
-    setAssemblyLineFilter("all");
     setGmsoaFilter("all");
     setPartyFilter("all");
     setDateFilterMode("range");
@@ -1144,6 +1160,7 @@ const handleAssignOrder = async () => {
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
+            currentStage="assembly-d"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}
@@ -1155,7 +1172,7 @@ const handleAssignOrder = async () => {
               assemblyLines={assemblyLines}
               onClearFilters={clearFilters}
               hasActiveFilters={
-                assemblyLineFilter !== "all" ||
+                // assemblyLineFilter !== "all" ||
                 gmsoaFilter !== "all" ||
                 partyFilter !== "all" ||
                 !!dateFrom ||
@@ -1826,7 +1843,7 @@ const handleAssignOrder = async () => {
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.splittedCode || "N/A"}
+                        {viewedOrder.splittedCode || "-"}
                       </p>
                     </div>
                   </div>
@@ -1896,7 +1913,7 @@ const handleAssignOrder = async () => {
                         Finished Valve
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.finishedValve}
+                        {viewedOrder.finishedValve || "-"}
                       </p>
                     </div>
                     <div>
@@ -1916,7 +1933,7 @@ const handleAssignOrder = async () => {
                         Product SPCL1
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl1 || "N/A"}
+                        {viewedOrder.productSpcl1 || "-"}
                       </p>
                     </div>
                     <div>
@@ -1924,7 +1941,7 @@ const handleAssignOrder = async () => {
                         Product SPCL2
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl2 || "N/A"}
+                        {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">
@@ -1932,7 +1949,7 @@ const handleAssignOrder = async () => {
                         Product SPCL3
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl3 || "N/A"}
+                        {viewedOrder.productSpcl3 || "-"}
                       </p>
                     </div>
                   </div>

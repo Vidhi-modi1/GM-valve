@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Search, Download, Eye, AlertCircle, Package, Clock, CheckCircle2, XCircle, Filter } from 'lucide-react';
+import { Search, Download, Eye, AlertCircle, Package, Clock, CheckCircle2, XCircle, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -161,32 +161,44 @@ function CustomerSupport() {
     }
   };
 
+  const inFlightRef = useRef(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const reloadData = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setIsRefreshing(true);
+    setLoading(true);
+    setError(null);
+    const next: Record<string, OrderData[]> = {};
+    try {
+      const res = await axios.get(
+        CUSTOMER_SUPPORT_ENDPOINT,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const raw = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : Array.isArray(res?.data?.orders)
+        ? res.data.orders
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+      const orders = (raw as any[]).map(mapApiItemToOrder);
+      next['planning'] = orders;
+    } catch (e) {
+      console.warn('GET /customer-support failed', e);
+      next['planning'] = [];
+    }
+    setDataByStage(next);
+    setLoading(false);
+    setIsRefreshing(false);
+    inFlightRef.current = false;
+  };
   useEffect(() => {
     let mounted = true;
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      // const results = await Promise.all(stages.map(s => fetchStage(s.key)));
-      if (!mounted) return;
-      const next: Record<string, OrderData[]> = {};
-      stages.forEach((s, idx) => { next[s.key] = results[idx]; });
-
-      // If everything came back empty, attempt the temporary fallback
-      const allEmpty = Object.values(next).every(arr => (arr?.length ?? 0) === 0);
-      if (allEmpty) {
-        const fallbackOrders = await fetchAllOrdersFallback();
-        if (fallbackOrders.length > 0) {
-          // Place under Planning so existing rendering and filters work
-          next['planning'] = fallbackOrders;
-        }
-      }
-      setDataByStage(next);
-      setLoading(false);
-    };
-    run();
+    reloadData();
     return () => { mounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stages]);
 
   // Aliases to keep existing logic compatible
   const planningOrders = dataByStage['planning'] || [];
@@ -679,6 +691,14 @@ function CustomerSupport() {
           <p className="text-gray-600 mt-1">Comprehensive view of all orders across all workflow stages</p>
         </div>
         <Button
+          onClick={reloadData}
+          disabled={isRefreshing || loading}
+          className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+        <Button
           onClick={handleExport}
           className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
         >
@@ -829,7 +849,13 @@ function CustomerSupport() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={30} className="px-4 py-12 text-center text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={30} className="px-4 py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center gap-3">
@@ -1219,3 +1245,4 @@ function CustomerSupport() {
 }
 
 export default CustomerSupport;
+const CUSTOMER_SUPPORT_ENDPOINT = `${API_URL}/customer-support`;

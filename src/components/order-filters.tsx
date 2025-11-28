@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect } from 'react';
 import { Filter, X, SlidersHorizontal, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
@@ -9,6 +9,7 @@ import { format } from "date-fns";
 export type DateFilterMode = 'year' | 'month' | 'range';
 
 interface OrderFiltersProps {
+  currentStage?: string;
   assemblyLineFilter: string;
   setAssemblyLineFilter: (value: string) => void;
   dateFilterMode: DateFilterMode;
@@ -23,6 +24,7 @@ interface OrderFiltersProps {
 }
 
 export function OrderFilters({
+  currentStage,
   assemblyLineFilter,
   setAssemblyLineFilter,
   dateFilterMode,
@@ -38,7 +40,21 @@ export function OrderFilters({
   const [isExpanded, setIsExpanded] = useState(true);
   // Generate year options (current year and past 5 years)
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+  const allowedAssemblies = ["assembly-a", "assembly-b", "assembly-c", "assembly-d"];
+
+useEffect(() => {
+  if (allowedAssemblies.includes(currentStage)) {
+    setAssemblyLineFilter(currentStage); // set default selected
+  }
+}, [currentStage]);
+
+const assemblyOptions = allowedAssemblies.includes(currentStage)
+  ? [currentStage]    // only show this assembly
+  : assemblyLines;     // normal list
+
+
   
   // Generate month options
   const months = [
@@ -112,12 +128,26 @@ export function OrderFilters({
                   <SelectTrigger className="h-10 bg-white/90 backdrop-blur-sm border-2 border-[#174a9f]/20 hover:border-[#174a9f]/40 focus:border-[#174a9f] transition-all duration-200 shadow-sm hover:shadow-md">
                     <SelectValue placeholder="Select Line" />
                   </SelectTrigger>
-                  <SelectContent>
+                  {/* <SelectContent>
                     <SelectItem value="all">All Assembly Lines</SelectItem>
                     {assemblyLines.map(line => (
                       <SelectItem key={line} value={line}>{line}</SelectItem>
                     ))}
-                  </SelectContent>
+                  </SelectContent> */}
+                  <SelectContent>
+  {!allowedAssemblies.includes(currentStage) && (
+    <SelectItem value="all">All Assembly Lines</SelectItem>
+  )}
+
+  {assemblyOptions.map(line => (
+    <SelectItem key={line} value={line}>
+      {line.replace("assembly-", "").toUpperCase()}
+
+
+    </SelectItem>
+  ))}
+</SelectContent>
+
                 </Select>
               </div>
 
@@ -242,7 +272,7 @@ export function OrderFilters({
                     </div>
                   )}
                   
-                  {dateFilterMode === 'range' && (
+                  {/* {dateFilterMode === 'range' && (
                     <div className="p-4">
                       <div className="text-sm text-[#174a9f] mb-4">Select Date Range</div>
                       <div className="flex gap-4">
@@ -266,7 +296,45 @@ export function OrderFilters({
                         </div>
                       </div>
                     </div>
-                  )}
+                  )} */}
+                  {dateFilterMode === 'range' && (
+  <div className="p-4">
+    <div className="text-sm text-[#174a9f] mb-4">Select Date Range</div>
+
+    <div className="flex gap-4">
+      {/* Start Date */}
+      <div className="space-y-2">
+        <div className="text-xs text-[#174a9f]/70 px-1">Start Date</div>
+        <Calendar
+          mode="single"
+          selected={dateFrom}
+          onSelect={setDateFrom}
+          initialFocus
+          defaultMonth={dateFrom ?? new Date()}
+        />
+      </div>
+
+      {/* End Date */}
+      <div className="space-y-2">
+        <div className="text-xs text-[#174a9f]/70 px-1">End Date</div>
+        <Calendar
+          mode="single"
+          selected={dateTo}
+          onSelect={setDateTo}
+          disabled={date => dateFrom ? date < dateFrom : false}
+          defaultMonth={
+            dateTo 
+              ? dateTo 
+              : dateFrom 
+                ? new Date(dateFrom.getFullYear(), dateFrom.getMonth() + 1, 1)
+                : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+          }
+        />
+      </div>
+    </div>
+  </div>
+)}
+
                 </PopoverContent>
               </Popover>
             </div>

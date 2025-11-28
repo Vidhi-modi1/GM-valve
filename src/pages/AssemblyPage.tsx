@@ -270,8 +270,15 @@ export function AssemblyPage() {
       );
     }
 
-    if (assemblyLineFilter !== "all")
-      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (assemblyLineFilter !== "all") {
+      const filterKey = assemblyLineFilter.startsWith("assembly-")
+        ? assemblyLineFilter.split("-")[1].toUpperCase()
+        : assemblyLineFilter.toUpperCase();
+      filtered = filtered.filter((o) => {
+        const line = String(o.assemblyLine || "").toUpperCase();
+        return line === filterKey || line.includes(filterKey);
+      });
+    }
     if (gmsoaFilter !== "all")
       filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
     if (partyFilter !== "all")

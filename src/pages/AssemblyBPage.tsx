@@ -137,6 +137,7 @@ export function AssemblyBPage() {
 
   // token
   const token = localStorage.getItem("token");
+  
 
   // Fetch orders from API (POST)
   const fetchOrders = async () => {
@@ -179,7 +180,7 @@ export function AssemblyBPage() {
 
       if (ok && Array.isArray(res.data.data)) {
         const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+          (item: any, index: number) => ({
             id: String(item.id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
@@ -206,6 +207,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
             inspection: item.inspection || "",
             painting: item.painting || "",
             remarks: item.remarks || "",
+            
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
             alertStatus:
@@ -215,6 +217,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
               item.alert_status === "true" ||
               item.urgent === 1 ||
               item.urgent === "1",
+               originalIndex: index,
           })
         );
 
@@ -273,8 +276,15 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
       );
     }
 
-    if (assemblyLineFilter !== "all")
-      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (assemblyLineFilter !== "all") {
+      const filterKey = assemblyLineFilter.startsWith("assembly-")
+        ? assemblyLineFilter.split("-")[1].toUpperCase()
+        : assemblyLineFilter.toUpperCase();
+      filtered = filtered.filter((o) => {
+        const line = String(o.assemblyLine || "").toUpperCase();
+        return line === filterKey || line.includes(filterKey);
+      });
+    }
     if (gmsoaFilter !== "all")
       filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
     if (partyFilter !== "all")
@@ -704,14 +714,8 @@ const handleSaveRemarks = async () => {
   };
 
     const sortOrders = (list: AssemblyOrderData[]) => {
-  return [...list].sort((a, b) => {
-    // urgent first
-    // const aUrg = a.alertStatus ? 1 : 0;
-    // const bUrg = b.alertStatus ? 1 : 0;
-    // if (aUrg !== bUrg) return bUrg - aUrg;
-
-    // otherwise restore original order
-    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+    return [...list].sort((a, b) => {
+      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
   });
 };
 
@@ -920,20 +924,20 @@ const handleAssignOrder = async () => {
       return;
     }
 
-    // ✅ DEFINE CURRENT STEP FOR THIS PAGE
-    const currentStep = "assembly-b";
+    // ✅ DEFINE PAGE CURRENT STEP — REQUIRED
+    const currentSteps = "assembly-b";
 
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // ✅ Determine next step (workflow or dropdown)
+    // ✅ next step key from dropdown or workflow
     const nextStepKey =
       quickAssignStep ||
-      (Array.isArray(nextSteps) ? nextSteps[0] : "");
+      (Array.isArray(nextSteps) ? nextSteps[0] : "Assembly D");
 
-    // ✅ Convert step keys → backend readable labels
+    // ✅ Convert stored keys into readable labels
     const nextStepLabel = getStepLabel(nextStepKey);
-    const currentStepLabel = getStepLabel(currentStep);
+    const currentStepLabel = getStepLabel(currentSteps);
 
     //
     // ---------------------------
@@ -944,7 +948,7 @@ const handleAssignOrder = async () => {
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("currentStep", currentStepLabel);
+    formData.append("currentSteps", currentStepLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
@@ -980,14 +984,11 @@ const handleAssignOrder = async () => {
       formDataSplit.append("orderId", String(selectedOrder.id));
       formDataSplit.append("totalQty", String(selectedOrder.qty));
       formDataSplit.append("executedQty", String(splitQty));
-      formDataSplit.append("currentStep", currentStepLabel);
+      formDataSplit.append("currentSteps", currentStepLabel);
       formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
-      console.log(
-        "📤 SPLIT PAYLOAD:",
-        Object.fromEntries(formDataSplit.entries())
-      );
+      console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
@@ -1089,7 +1090,7 @@ const handleAssignOrder = async () => {
 
   // Clear filters
   const clearFilters = () => {
-    setAssemblyLineFilter("all");
+  
     setGmsoaFilter("all");
     setPartyFilter("all");
     setDateFilterMode("range");
@@ -1173,6 +1174,7 @@ const handleAssignOrder = async () => {
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
+            currentStage="assembly-b"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}
@@ -1184,7 +1186,7 @@ const handleAssignOrder = async () => {
               assemblyLines={assemblyLines}
               onClearFilters={clearFilters}
               hasActiveFilters={
-                assemblyLineFilter !== "all" ||
+                
                 gmsoaFilter !== "all" ||
                 partyFilter !== "all" ||
                 !!dateFrom ||
@@ -1856,7 +1858,7 @@ const handleAssignOrder = async () => {
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.splittedCode || "N/A"}
+                        {viewedOrder.splittedCode || "-"}
                       </p>
                     </div>
                   </div>
@@ -1926,7 +1928,7 @@ const handleAssignOrder = async () => {
                         Finished Valve
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.finishedValve}
+                        {viewedOrder.finishedValve || "-"}
                       </p>
                     </div>
                     <div>
@@ -1946,7 +1948,7 @@ const handleAssignOrder = async () => {
                         Product SPCL1
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl1 || "N/A"}
+                        {viewedOrder.productSpcl1 || "-"}
                       </p>
                     </div>
                     <div>
@@ -1954,7 +1956,7 @@ const handleAssignOrder = async () => {
                         Product SPCL2
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl2 || "N/A"}
+                        {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">
@@ -1962,7 +1964,7 @@ const handleAssignOrder = async () => {
                         Product SPCL3
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl3 || "N/A"}
+                        {viewedOrder.productSpcl3 || "-"}
                       </p>
                     </div>
                   </div>

@@ -174,12 +174,21 @@ export function AssemblyCPage() {
       // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
       const ok =
         res?.data?.Resp_code === "true" ||
-        res?.data?.Resp_code === true || // ✅ handle boolean true
-        res?.data?.Resp_code === "RCS";
+        res?.data?.Resp_code === true ||
+        res?.data?.Resp_code === "RCS" ||
+        res?.status === 200;
 
-      if (ok && Array.isArray(res.data.data)) {
-        const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+      const raw = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : Array.isArray(res?.data?.orders)
+        ? res.data.orders
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+
+      if (ok && Array.isArray(raw)) {
+        const apiOrders: AssemblyOrderData[] = raw.map(
+          (item: any, index: number) => ({
             id: String(item.id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
@@ -215,11 +224,12 @@ export function AssemblyCPage() {
               item.alert_status === "true" ||
               item.urgent === 1 ||
               item.urgent === "1",
+            originalIndex: index,
           })
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-    setOrders(sortOrders(apiOrders));
+        setOrders(sortOrders(apiOrders));
         setError(null);
         setMessage(null);
       } else {
@@ -273,8 +283,15 @@ export function AssemblyCPage() {
       );
     }
 
-    if (assemblyLineFilter !== "all")
-      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (assemblyLineFilter !== "all") {
+      const filterKey = assemblyLineFilter.startsWith("assembly-")
+        ? assemblyLineFilter.split("-")[1].toUpperCase()
+        : assemblyLineFilter.toUpperCase();
+      filtered = filtered.filter((o) => {
+        const line = String(o.assemblyLine || "").toUpperCase();
+        return line === filterKey || line.includes(filterKey);
+      });
+    }
     if (gmsoaFilter !== "all")
       filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
     if (partyFilter !== "all")
@@ -894,18 +911,18 @@ const handleAssignOrder = async () => {
       return;
     }
 
-    // ✅ DEFINE current step FOR THIS PAGE
-    const currentStep = "assembly-c";
+    // ✅ DEFINE PAGE CURRENT STEP — REQUIRED
+    const currentSteps = "assembly-c";
 
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // ✅ Determine next step key from dropdown or workflow
+    // ✅ next step key from dropdown or workflow
     const nextStepKey =
       quickAssignStep ||
-      (Array.isArray(nextSteps) ? nextSteps[0] : "");
+      (Array.isArray(nextSteps) ? nextSteps[0] : "Assembly D");
 
-    // ✅ Convert workflow keys → backend labels
+    // ✅ Convert stored keys into readable labels
     const nextStepLabel = getStepLabel(nextStepKey);
     const currentStepLabel = getStepLabel(currentSteps);
 
@@ -918,8 +935,8 @@ const handleAssignOrder = async () => {
     formData.append("orderId", String(selectedOrder.id));
     formData.append("totalQty", String(selectedOrder.qty));
     formData.append("executedQty", String(mainQty));
-    formData.append("currentSteps", currentStepLabel); // ✅ FIXED
-    formData.append("nextSteps", nextStepLabel); // ✅ SINGLE correct entry
+    formData.append("currentSteps", currentStepLabel);
+    formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
     console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
@@ -958,10 +975,7 @@ const handleAssignOrder = async () => {
       formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
-      console.log(
-        "📤 SPLIT PAYLOAD:",
-        Object.fromEntries(formDataSplit.entries())
-      );
+      console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
@@ -985,9 +999,6 @@ const handleAssignOrder = async () => {
       }
     }
 
-    //
-    // ✅ SUCCESS RESPONSE
-    //
     setAssignStatus({ type: "success", message: successMessage });
 
     await fetchOrders();
@@ -1066,7 +1077,6 @@ const handleAssignOrder = async () => {
 
   // Clear filters
   const clearFilters = () => {
-    setAssemblyLineFilter("all");
     setGmsoaFilter("all");
     setPartyFilter("all");
     setDateFilterMode("range");
@@ -1150,6 +1160,7 @@ const handleAssignOrder = async () => {
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
+            currentStage="assembly-c"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}
@@ -1161,7 +1172,7 @@ const handleAssignOrder = async () => {
               assemblyLines={assemblyLines}
               onClearFilters={clearFilters}
               hasActiveFilters={
-                assemblyLineFilter !== "all" ||
+                // assemblyLineFilter !== "all" ||
                 gmsoaFilter !== "all" ||
                 partyFilter !== "all" ||
                 !!dateFrom ||
@@ -1832,7 +1843,7 @@ const handleAssignOrder = async () => {
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.splittedCode || "N/A"}
+                        {viewedOrder.splittedCode || "-"}
                       </p>
                     </div>
                   </div>
@@ -1902,7 +1913,7 @@ const handleAssignOrder = async () => {
                         Finished Valve
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.finishedValve}
+                        {viewedOrder.finishedValve || "-"}
                       </p>
                     </div>
                     <div>
@@ -1922,7 +1933,7 @@ const handleAssignOrder = async () => {
                         Product SPCL1
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl1 || "N/A"}
+                        {viewedOrder.productSpcl1 || "-"}
                       </p>
                     </div>
                     <div>
@@ -1930,7 +1941,7 @@ const handleAssignOrder = async () => {
                         Product SPCL2
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl2 || "N/A"}
+                        {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">
@@ -1938,7 +1949,7 @@ const handleAssignOrder = async () => {
                         Product SPCL3
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl3 || "N/A"}
+                        {viewedOrder.productSpcl3 || "-"}
                       </p>
                     </div>
                   </div>

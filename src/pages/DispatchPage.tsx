@@ -331,21 +331,6 @@ setOrders(sortOrders(apiOrders));
           String(o.product).toLowerCase().includes(term)
       );
     }
-    //    const seen = new Set<string>();
-    // filtered = filtered.filter((o) => {
-    //   if (seen.has(o.id)) return false;
-    //   seen.add(o.id);
-    //   return true;
-    // });
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
-    filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
 
     return filtered;
   }, [
@@ -955,6 +940,7 @@ setOrders(sortOrders(apiOrders));
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
+            currentStage="default"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}
@@ -1443,7 +1429,7 @@ setOrders(sortOrders(apiOrders));
                         Splitted Code
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.splittedCode || "N/A"}
+                        {viewedOrder.splittedCode || "-"}
                       </p>
                     </div>
                   </div>
@@ -1513,7 +1499,7 @@ setOrders(sortOrders(apiOrders));
                         Finished Valve
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.finishedValve}
+                        {viewedOrder.finishedValve || "-"}
                       </p>
                     </div>
                     <div>
@@ -1533,7 +1519,7 @@ setOrders(sortOrders(apiOrders));
                         Product SPCL1
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl1 || "N/A"}
+                        {viewedOrder.productSpcl1 || "-"}
                       </p>
                     </div>
                     <div>
@@ -1541,7 +1527,7 @@ setOrders(sortOrders(apiOrders));
                         Product SPCL2
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl2 || "N/A"}
+                        {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">
@@ -1549,7 +1535,7 @@ setOrders(sortOrders(apiOrders));
                         Product SPCL3
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl3 || "N/A"}
+                        {viewedOrder.productSpcl3 || "-"}
                       </p>
                     </div>
                   </div>

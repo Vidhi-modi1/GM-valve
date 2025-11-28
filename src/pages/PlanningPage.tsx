@@ -32,6 +32,7 @@ import { API_URL } from "../config/api.ts";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
 // import { FullPageLoader } from "../components/loading-skeleton";
 import { getStepLabel } from "../config/workflowSteps";
+import TablePagination from "../components/table-pagination";
 
 interface AssemblyOrderData {
   id: string;
@@ -77,6 +78,10 @@ export function PlanningPage() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
+  const [total, setTotal] = useState<number>(0);
+  const [lastPage, setLastPage] = useState<number>(1);
 
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
@@ -148,7 +153,7 @@ export function PlanningPage() {
 
       const currentStage = "planning";
       const stageLabel = getStepLabel(currentStage);
-      const payload = { menu_name: stageLabel };
+      const payload = { menu_name: stageLabel, page, per_page: perPage };
 
       const res = await axios.post(
         `${API_URL}/order-list`,
@@ -212,6 +217,14 @@ export function PlanningPage() {
         console.log("✅ Orders fetched:", apiOrders.length, "records");
         // Sort so urgent items appear at top on initial load
         setOrders(sortOrders(apiOrders));
+        const p = res?.data?.pagination;
+        if (p) {
+          setTotal(Number(p.total || apiOrders.length));
+          setLastPage(Number(p.last_page || 1));
+        } else {
+          setTotal(apiOrders.length);
+          setLastPage(1);
+        }
         setError(null);
         setMessage(null);
       } else {
@@ -230,7 +243,7 @@ export function PlanningPage() {
   useEffect(() => {
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, perPage]);
 
   // filter option lists
   const assemblyLines = useMemo(
@@ -908,6 +921,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
+            currentStage="default"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}
@@ -1280,6 +1294,16 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
             </div>
           </div>
         </div>
+
+        <TablePagination
+          page={page}
+          perPage={perPage}
+          total={total}
+          lastPage={lastPage}
+          onChangePage={setPage}
+          onChangePerPage={setPerPage}
+          disabled={loading}
+        />
 
         {/* Quick Assign Dialog */}
         {/* <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
@@ -1688,7 +1712,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                         Finished Valve
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.finishedValve}
+                        {viewedOrder.finishedValve || "-"}
                       </p>
                     </div>
                     <div>
@@ -1708,7 +1732,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                         Product SPCL1
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl1 || "N/A"}
+                        {viewedOrder.productSpcl1 || "-"}
                       </p>
                     </div>
                     <div>
@@ -1716,7 +1740,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                         Product SPCL2
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl2 || "N/A"}
+                        {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">
@@ -1724,7 +1748,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                         Product SPCL3
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.productSpcl3 || "N/A"}
+                        {viewedOrder.productSpcl3 || "-"}
                       </p>
                     </div>
                   </div>

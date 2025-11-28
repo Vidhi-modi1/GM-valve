@@ -714,6 +714,7 @@ const handleAssignOrder = async () => {
 
         <div className="mt-4">
           <OrderFilters
+          currentStage="default"
             assemblyLineFilter={assemblyLineFilter}
             setAssemblyLineFilter={setAssemblyLineFilter}
             dateFilterMode={dateFilterMode}
@@ -1112,7 +1113,7 @@ const handleAssignOrder = async () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-500 text-sm">Finished Valve</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.finishedValve}</p>
+                    <p className="text-gray-900 mt-1">{viewedOrder.finishedValve || "-"}</p>
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">GM Logo</Label>

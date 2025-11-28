@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Package, Clock, TrendingUp, CheckCircle2, RefreshCw } from "lucide-react";
 
-// import { AddOrderModal } from "../components/add-order-modal";
 import { ModernStatCard } from "../components/modern-stat-card";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -29,16 +28,14 @@ import TpiPage from "./TpiPage";
 import DispatchPage from "./DispatchPage";
 import { API_URL } from "../config/api";
 import { StatCardSkeleton, CardLoadingSkeleton } from "../components/loading-skeleton";
-import { getStepLabel } from "../config/workflowSteps";
 
 type SummaryRecord = Record<string, number>;
 
-const ORDER_LIST_ENDPOINT = `${API_URL}/order-list`;
+const ORDER_COUNTS_ENDPOINT = `${API_URL}/order-counts`;
 const POLL_INTERVAL_MS = 15000;
 
 export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const [currentPage, setCurrentPage] = useState("Dashboard");
-  const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [summary, setSummary] = useState<SummaryRecord>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
@@ -104,15 +101,17 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
       }
     }
 
-    if (data.stages) {
+    if (data.stages && Array.isArray(data.stages)) {
       data.stages.forEach((s: any) => {
         out[normalizeKey(s.stage)] = Number(s.pending ?? 0);
       });
     }
 
-    if (data.assembly) {
+    if (data.assembly && Array.isArray(data.assembly)) {
       data.assembly.forEach((s: any) => {
-        out[normalizeKey("assembly" + s.line)] = Number(s.pending ?? 0);
+        // expecting s.line e.g. "A" and s.pending
+        const key = normalizeKey("assembly" + s.line);
+        out[key] = Number(s.pending ?? 0);
       });
     }
 
@@ -120,73 +119,70 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   };
 
   /* ---------- FETCH SUMMARY ---------- */
-  // async function fetchSummary() {
-  //   const token = localStorage.getItem("token");
-  //   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+async function fetchSummary(isRefresh = false) {
+  const token = localStorage.getItem("token");
+  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-  //   try {
-  //     setIsLoadingSummary(true);
-  //     const stepKeyMap: Record<string, string> = {
-  //       materialIssue: "material-issue",
-  //       semiQc: "semi-qc",
-  //       phosphatingQc: "phosphating-qc",
-  //       svs: "svs",
-  //       testing1: "testing1",
-  //       testing2: "testing2",
-  //       marking1: "marking1",
-  //       marking2: "marking2",
-  //       pdi1: "pdi1",
-  //       pdi2: "pdi2",
-  //       tpi: "tpi",
-  //       assemblyA: "assembly-a",
-  //       assemblyB: "assembly-b",
-  //       assemblyC: "assembly-c",
-  //       assemblyD: "assembly-d",
-  //     };
+  try {
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoadingSummary(true);
 
-  //     const keys = [...stageOrder, ...assemblyOrder];
-  //     const labels = keys.map((k) => ({ k, label: getStepLabel(stepKeyMap[k]) }));
+    const res = await axios.get(ORDER_COUNTS_ENDPOINT, { headers });
+    setSummary(normalizeResponse(res.data));
 
-  //     const results = await Promise.all(
-  //       labels.map(async ({ k, label }) => {
-  //         try {
-  //           const res = await axios.post(
-  //             ORDER_LIST_ENDPOINT,
-  //             { menu_name: label },
-  //             { headers }
-  //           );
-  //           const list = Array.isArray(res?.data?.data) ? res.data.data : [];
-  //           return [k, list.length] as [string, number];
-  //         } catch {
-  //           return [k, 0] as [string, number];
-  //         }
-  //       })
-  //     );
+  } catch (err) {
+    console.error("Dashboard summary error:", err);
+  } finally {
+    if (isRefresh) setIsRefreshing(false);
+    else setIsLoadingSummary(false);
+  }
+}
 
-  //     const out: SummaryRecord = {};
-  //     results.forEach(([k, count]) => {
-  //       out[k] = count;
-  //     });
-  //     out.totalOrders = results.reduce((sum, [, count]) => sum + count, 0);
-  //     out.inProgress = out.inProgress ?? 0;
-  //     out.completed = out.completed ?? 0;
-  //     out.efficiency = out.efficiency ?? 0;
-  //     setSummary(out);
-  //   } catch (err) {
-  //     console.error("Dashboard summary error:", err);
-  //   } finally {
-  //     setIsRefreshing(false);
-  //     setIsLoadingSummary(false);
-  //   }
-  // }
 
-  // useEffect(() => {
-  //   fetchSummary();
-  //   pollRef.current = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
-  //   return () => {
-  //     if (pollRef.current) clearInterval(pollRef.current);
-  //   };
-  // }, []);
+  /* ---------- POLLING & INITIAL LOAD ---------- */
+  useEffect(() => {
+    // Always fetch once when component mounts
+    fetchSummary();
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // manage polling only while on Dashboard
+    if (currentPage !== "Dashboard") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
+
+    // If a poll is already running, clear it then re-create (prevents duplicates)
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+
+    pollRef.current = window.setInterval(() => {
+      // don't trigger another fetch if one is already in progress
+      if (!isLoadingSummary) {
+        fetchSummary();
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [currentPage, isLoadingSummary]);
 
   /* ---------- PRETTY NAMES ---------- */
   const prettyName = (k: string) => {
@@ -201,7 +197,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
       marking2: "Marking-2",
       pdi1: "PDI-1",
       pdi2: "PDI-2",
-      tpi: "TPI"
+      tpi: "TPI",
     };
 
     if (map[k]) return map[k];
@@ -221,7 +217,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
     marking2: "teal",
     pdi1: "violet",
     pdi2: "violet",
-    tpi: "rose"
+    tpi: "rose",
   };
 
   const stageOrder = Object.keys(stageColor);
@@ -245,7 +241,17 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
     PDI1: <Pdi1Page />,
     PDI2: <Pdi2Page />,
     TPI: <TpiPage />,
-    Dispatch: <DispatchPage />
+    Dispatch: <DispatchPage />,
+  };
+
+  // helper: convert stage key to the page key we use in `pages`
+  const stageToPageKey = (k: string) => {
+    if (k.startsWith("assembly")) {
+      // assemblyA -> AssemblyA
+      return "Assembly" + k.slice(-1).toUpperCase();
+    }
+    // prettyName("materialIssue") -> "Material Issue" -> remove spaces -> MaterialIssue
+    return prettyName(k).replace(/\s+/g, "");
   };
 
   if (currentPage !== "Dashboard") return <>{pages[currentPage]}</>;
@@ -261,28 +267,27 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
 
   return (
     <div className="page-container">
-
       <div className="max-w-7xl mx-auto py-10 px-6 space-y-10 main-content">
-
         {/* ---------------- Summary Stats ---------------- */}
-         <div className="top-title">
-              <h1 className="text-gray-900 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-[#174a9f] to-[#1a5cb8] rounded-xl shadow-lg">
-                  <Package className="h-6 w-6 text-white" />
-                </div>
-                Dashboard Overview
-              </h1>
-              <p className="text-gray-600 mt-1">Real-time insights into your manufacturing operations</p>
+        <div className="top-title">
+          <h1 className="text-gray-900 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-[#174a9f] to-[#1a5cb8] rounded-xl shadow-lg">
+              <Package className="h-6 w-6 text-white" />
             </div>
+            Dashboard Overview
+          <button
+  className="ml-4 flex items-center px-3 py-1 border rounded-md"
+  onClick={() => fetchSummary(true)}
+>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </button>
+          </h1>
+          <p className="text-gray-600 mt-1">Real-time insights into your manufacturing operations</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {isLoadingSummary ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
-          ) : (
+         
             <>
               <ModernStatCard
                 title="Total Orders"
@@ -317,7 +322,6 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
                 trend={[50, 60, 70, 80, 90]}
               />
             </>
-          )}
         </div>
 
         {/* ---------------- Stage-wise Cards ---------------- */}
@@ -325,48 +329,28 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
           <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
             <Clock className="h-5 w-5 text-[#174a9f]" />
             Stage-wise Pending Quantity
-
-            <button
-              className="ml-4 flex items-center px-3 py-1 border rounded-md"
-              onClick={() => {
-                setIsRefreshing(true);
-                // fetchSummary();
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
-            </button>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {isLoadingSummary
-              ? stageOrder.map((_, i) => <CardLoadingSkeleton key={`stage-skel-${i}`} />)
-              : stageOrder.map((k) => {
+            { stageOrder.map((k) => {
                   const c = stageColor[k];
                   return (
                     <Card
                       key={k}
-                      className={`p-4 rounded-xl border bg-gradient-to-br 
-                        from-${c}-50 to-white border-${c}-200
-                        hover:-translate-y-1 hover:shadow-lg transition`}
-                      onClick={() => setCurrentPage(prettyName(k).replace(/ /g, ""))}
+                      className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
+                      onClick={() => setCurrentPage(stageToPageKey(k))}
                     >
-                        <div>
-
+                      <div>
                         <div className="flex justify-between items-center mb-2">
-                            <div className={`p-2 rounded-lg bg-${c}-100`}>
+                          <div className={`p-2 rounded-lg bg-${c}-100`}>
                             <Package className={`h-4 w-4 text-${c}-600`} />
-                            </div>
-                            <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>
-                            Pending
-                            </Badge>
+                          </div>
+                          <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>Pending</Badge>
                         </div>
 
                         <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                        <p className={`text-xl font-semibold text-${c}-900`}>
-                            {summary[k] ?? 0}
-                        </p>
-                        </div>
+                        <p className={`text-xl font-semibold text-${c}-900`}>{summary[k] ?? 0}</p>
+                      </div>
                     </Card>
                   );
                 })}
@@ -381,39 +365,29 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {isLoadingSummary
-              ? assemblyOrder.map((_, i) => <CardLoadingSkeleton key={`assembly-skel-${i}`} />)
-              : assemblyOrder.map((k) => (
+            {assemblyOrder.map((k) => (
                   <Card
                     key={k}
-                    className={`p-4 rounded-xl border bg-gradient-to-br 
-                      from-purple-50 to-white border-purple-200
-                      hover:-translate-y-1 hover:shadow-lg transition`}
+                    className={`p-4 rounded-xl border bg-gradient-to-br from-purple-50 to-white border-purple-200 hover:-translate-y-1 hover:shadow-lg transition`}
+                    onClick={() => setCurrentPage("Assembly" + k.slice(-1).toUpperCase())}
                   >
                     <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="p-2 rounded-lg bg-purple-100">
-                        <Package className="h-4 w-4 text-purple-600" />
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="p-2 rounded-lg bg-purple-100">
+                          <Package className="h-4 w-4 text-purple-600" />
+                        </div>
+
+                        <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">Pending</Badge>
                       </div>
 
-                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
-                        Pending
-                      </Badge>
-                    </div>
-
-                    <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                    <p className="text-xl font-semibold text-purple-900">
-                      {summary[k] ?? 0}
-                    </p>
+                      <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+                      <p className="text-xl font-semibold text-purple-900">{summary[k] ?? 0}</p>
                     </div>
                   </Card>
                 ))}
           </div>
         </div>
-
       </div>
-
-      {/* AddOrderModal removed; header handles file upload for planning */}
     </div>
   );
 }
