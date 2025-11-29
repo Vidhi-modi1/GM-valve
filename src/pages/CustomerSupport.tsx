@@ -172,17 +172,16 @@ function CustomerSupport() {
     setError(null);
     const next: Record<string, OrderData[]> = {};
     try {
-      const res = await axios.get(
-        CUSTOMER_SUPPORT_ENDPOINT,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+     const res = await axios.post(
+      CUSTOMER_SUPPORT_ENDPOINT,
+      {}, // body is optional but safest to keep
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
       const raw = Array.isArray(res?.data?.data)
-        ? res.data.data
-        : Array.isArray(res?.data?.orders)
-        ? res.data.orders
-        : Array.isArray(res?.data)
-        ? res.data
-        : [];
+  ? res.data.data
+  : [];
+
       const orders = (raw as any[]).map(mapApiItemToOrder);
       next['planning'] = orders;
     } catch (e) {
@@ -224,36 +223,17 @@ function CustomerSupport() {
   const dispatchOrders = dataByStage['dispatch'] || [];
 
   // Consolidate all orders from all stages
-  const allOrders = useMemo(() => {
-    const ordersMap = new Map<string, OrderData & { currentStage: string }>();
-    const addOrder = (order: OrderData, stage: string) => {
-      const existing = ordersMap.get(order.uniqueCode);
-      if (!existing || order.qtyExe > existing.qtyExe) {
-        ordersMap.set(order.uniqueCode, { ...order, currentStage: stage });
-      }
-    };
+const allOrders = useMemo(() => {
+  // Flatten all stages
+  const flattened = Object.values(dataByStage).flat();
 
-    const addWithLabel = (orders: OrderData[], key: string) => orders.forEach(o => addOrder(o, getStepLabel(key)));
-    addWithLabel(planningOrders, 'planning');
-    addWithLabel(materialIssueOrders, 'material-issue');
-    addWithLabel(semiQcOrders, 'semi-qc');
-    addWithLabel(phosphatingOrders, 'phosphating');
-    addWithLabel(assemblyAOrders, 'assembly-a');
-    addWithLabel(assemblyBOrders, 'assembly-b');
-    addWithLabel(assemblyCOrders, 'assembly-c');
-    addWithLabel(assemblyDOrders, 'assembly-d');
-    addWithLabel((dataByStage['testing1'] || []), 'testing1');
-    addWithLabel((dataByStage['testing2'] || []), 'testing2');
-    addWithLabel(svsOrders, 'svs');
-    addWithLabel((dataByStage['marking1'] || []), 'marking1');
-    addWithLabel((dataByStage['marking2'] || []), 'marking2');
-    addWithLabel(pdi1Orders, 'pdi1');
-    addWithLabel(pdi2Orders, 'pdi2');
-    addWithLabel(tpiOrders, 'tpi');
-    addWithLabel(dispatchOrders, 'dispatch');
+  // Assign currentStage from your stage key (if available)
+  return flattened.map((order: any) => ({
+    ...order,
+    currentStage: order.currentStage || "", // keep as-is or empty
+  }));
+}, [dataByStage]);
 
-    return Array.from(ordersMap.values());
-  }, [dataByStage]);
 
   // Filter orders
   const filteredOrders = useMemo(() => {
@@ -867,7 +847,7 @@ function CustomerSupport() {
               ) : (
                 filteredOrders.map((order) => (
                   <tr
-                    key={order.uniqueCode}
+                    key={`${order.id}-${order.uniqueCode}`}
                     className="border-b border-gray-100 hover:bg-blue-50/50 transition-colors duration-150"
                   >
                     <td className="px-4 py-3 sticky left-0 bg-white hover:bg-blue-50/50 z-10">

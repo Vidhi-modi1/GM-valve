@@ -40,6 +40,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
 
+  const didFetchOnce = useRef(false);
   const pollRef = useRef<number | null>(null);
 
   /* ---------- KEY NORMALIZATION ---------- */
@@ -95,10 +96,26 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
         ["inProgress", "inProgress"],
         ["completed", "completed"],
         ["efficiency", "efficiency"],
+        
       ];
+      
       for (const [src, dest] of pairs) {
         if (counts[src] != null) out[dest] = Number(counts[src]) || 0;
       }
+
+      // ----------- Add comparison values (dynamic % changes) -----------
+if (counts.totalOrdersCompare != null)
+  out.totalOrdersCompare = counts.totalOrdersCompare;
+
+if (counts.inProgressCompare != null)
+  out.inProgressCompare = counts.inProgressCompare;
+
+if (counts.completedCompare != null)
+  out.completedCompare = counts.completedCompare;
+
+if (counts.efficiencyCompare != null)
+  out.efficiencyCompare = counts.efficiencyCompare;
+
     }
 
     if (data.stages && Array.isArray(data.stages)) {
@@ -140,49 +157,20 @@ async function fetchSummary(isRefresh = false) {
 
 
   /* ---------- POLLING & INITIAL LOAD ---------- */
-  useEffect(() => {
-    // Always fetch once when component mounts
-    fetchSummary();
+useEffect(() => {
+  if (didFetchOnce.current) return;  // avoid double fetch
+  didFetchOnce.current = true;
 
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  fetchSummary();
 
-  useEffect(() => {
-    // manage polling only while on Dashboard
-    if (currentPage !== "Dashboard") {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
-    }
-
-    // If a poll is already running, clear it then re-create (prevents duplicates)
+  return () => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
+  };
+}, []);
 
-    pollRef.current = window.setInterval(() => {
-      // don't trigger another fetch if one is already in progress
-      if (!isLoadingSummary) {
-        fetchSummary();
-      }
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
-  }, [currentPage, isLoadingSummary]);
 
   /* ---------- PRETTY NAMES ---------- */
   const prettyName = (k: string) => {
@@ -294,7 +282,10 @@ async function fetchSummary(isRefresh = false) {
                 value={totalOrders}
                 icon={Package}
                 gradient="blue"
-                change={{ value: "+12%", positive: true }}
+           change={{
+  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+  positive: true
+}}
                 trend={[30, 40, 50, 60, 80]}
               />
               <ModernStatCard
@@ -302,7 +293,10 @@ async function fetchSummary(isRefresh = false) {
                 value={summary.inProgress ?? 0}
                 icon={Clock}
                 gradient="orange"
-                change={{ value: "+8%", positive: true }}
+          change={{
+  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+  positive: true
+}}
                 trend={[20, 30, 40, 60, 75]}
               />
               <ModernStatCard
@@ -310,7 +304,10 @@ async function fetchSummary(isRefresh = false) {
                 value={summary.completed ?? 0}
                 icon={CheckCircle2}
                 gradient="green"
-                change={{ value: "+15%", positive: true }}
+           change={{
+  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+  positive: true
+}}
                 trend={[40, 50, 70, 90, 100]}
               />
               <ModernStatCard
@@ -318,7 +315,10 @@ async function fetchSummary(isRefresh = false) {
                 value={(summary.efficiency ?? 0) + "%"}
                 icon={TrendingUp}
                 gradient="purple"
-                change={{ value: "+5%", positive: true }}
+                change={{
+  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+  positive: true
+}}
                 trend={[50, 60, 70, 80, 90]}
               />
             </>
