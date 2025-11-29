@@ -219,11 +219,19 @@ export function PlanningPage() {
         setOrders(sortOrders(apiOrders));
         const p = res?.data?.pagination;
         if (p) {
-          setTotal(Number(p.total || apiOrders.length));
-          setLastPage(Number(p.last_page || 1));
+          const nextTotal = Number(p.total ?? apiOrders.length);
+          const nextPer = Number(p.per_page ?? perPage);
+          const nextPage = Number(p.current_page ?? page);
+          const lastRaw = (p.last_page ?? Math.ceil(nextTotal / Math.max(nextPer, 1)));
+          const nextLast = Number(lastRaw || 1);
+          setTotal(nextTotal);
+          setPerPage(nextPer);
+          setPage(nextPage);
+          setLastPage(nextLast);
         } else {
-          setTotal(apiOrders.length);
-          setLastPage(1);
+          const nextTotal = apiOrders.length;
+          setTotal(nextTotal);
+          setLastPage(Math.max(1, Math.ceil(nextTotal / Math.max(perPage, 1))));
         }
         setError(null);
         setMessage(null);

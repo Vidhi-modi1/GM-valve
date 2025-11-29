@@ -30,6 +30,7 @@ interface OrderData {
   customerPoNo: string;
   codeNo: string;
   product: string;
+  totalQty: number;
   qty: number;
   qtyExe: number;
   qtyPending: number;
@@ -45,7 +46,10 @@ interface OrderData {
   alertStatus: boolean;
   expectedDeliveryDate?: string;
   workflowHistory?: Array<{ stage: string; enteredAt: string; exitedAt?: string; qtyProcessed: number }>;
+  stageProgress?: Record<string, string>;
 }
+
+const CUSTOMER_SUPPORT_ENDPOINT = `${API_URL}/customer-support`;
 
 function CustomerSupport() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +60,7 @@ function CustomerSupport() {
   const [editingDeliveryDate, setEditingDeliveryDate] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiCounts, setApiCounts] = useState<{ totalOrders?: number; totalQty?: number; completeOrders?: number; urgentOrders?: number; pendingQty?: number } | null>(null);
 
   // Real-time stage data fetched from API per pages convention
   const [dataByStage, setDataByStage] = useState<Record<string, OrderData[]>>({});
@@ -81,37 +86,39 @@ function CustomerSupport() {
   }, []);
 
   const mapApiItemToOrder = (item: any): OrderData => ({
-    id: String(item.id),
-    assemblyLine: item.assembly_no || '',
-    gmsoaNo: item.soa_no || '',
-    soaSrNo: item.soa_sr_no || '',
-    assemblyDate: item.assembly_date || '',
-    uniqueCode: item.unique_code || item.order_no || '',
-    splittedCode: item.splitted_code || '',
-    party: item.party_name || item.party || '',
-    customerPoNo: item.customer_po_no || '',
-    codeNo: item.code_no || '',
-    product: item.product || '',
-    qty: Number(item.qty || 0),
-    qtyExe: Number(item.qty_executed || 0),
-    qtyPending: Number(item.qty_pending || 0),
-    finishedValve: item.finished_valve || '',
-    gmLogo: item.gm_logo || '',
-    namePlate: item.name_plate || '',
-    productSpcl1: item.product_spc1 || '',
-    productSpcl2: item.product_spc2 || '',
-    productSpcl3: item.product_spc3 || '',
-    inspection: item.inspection || '',
-    painting: item.painting || '',
-    remarks: item.remarks || '',
-    alertStatus:
-      item.is_urgent === true ||
-      item.is_urgent === 'true' ||
-      item.alert_status === true ||
-      item.alert_status === 'true' ||
-      item.urgent === 1 ||
-      item.urgent === '1',
-    workflowHistory: item.workflowHistory || [],
+  id: String(item.id),
+  assemblyLine: item.assembly_no || '',
+  gmsoaNo: item.soa_no || '',
+  soaSrNo: item.soa_sr_no || '',
+  assemblyDate: item.assembly_date || '',
+  uniqueCode: item.unique_code || item.order_no || '',
+  splittedCode: item.splitted_code || '',
+  party: item.party_name || item.party || '',
+  customerPoNo: item.customer_po_no || '',
+  codeNo: item.code_no || '',
+  product: item.product || '',
+  totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
+  qty: Number(item.qty || 0),
+  qtyExe: Number(item.qty_executed || 0),
+  qtyPending: Number(item.qty_pending || 0),
+  finishedValve: item.finished_valve || '',
+  gmLogo: item.gm_logo || '',
+  namePlate: item.name_plate || '',
+  productSpcl1: item.product_spc1 || '',
+  productSpcl2: item.product_spc2 || '',
+  productSpcl3: item.product_spc3 || '',
+  inspection: item.inspection || '',
+  painting: item.painting || '',
+  remarks: item.remarks || '',
+  alertStatus:
+    item.is_urgent === true ||
+    item.is_urgent === 'true' ||
+    item.alert_status === true ||
+    item.alert_status === 'true' ||
+    item.urgent === 1 ||
+    item.urgent === '1',
+  workflowHistory: item.workflowHistory || [],
+  stageProgress: item.stage_progress || {},
   });
 
   const fetchStage = async (stageKey: string): Promise<OrderData[]> => {
@@ -179,10 +186,11 @@ function CustomerSupport() {
     );
 
       const raw = Array.isArray(res?.data?.data)
-  ? res.data.data
-  : [];
+        ? res.data.data
+        : [];
 
       const orders = (raw as any[]).map(mapApiItemToOrder);
+      setApiCounts(res?.data?.counts || null);
       next['planning'] = orders;
     } catch (e) {
       console.warn('GET /customer-support failed', e);
@@ -224,15 +232,19 @@ function CustomerSupport() {
 
   // Consolidate all orders from all stages
 const allOrders = useMemo(() => {
-  // Flatten all stages
-  const flattened = Object.values(dataByStage).flat();
+  return (dataByStage["planning"] || []).map(order => {
+    // REAL stage from API
+    const stageLabel = getStepLabel(
+      (order.status || "").toLowerCase().replace(/\s+/g, "-")
+    );
 
-  // Assign currentStage from your stage key (if available)
-  return flattened.map((order: any) => ({
-    ...order,
-    currentStage: order.currentStage || "", // keep as-is or empty
-  }));
+    return {
+      ...order,
+      currentStage: stageLabel || "Unknown"
+    };
+  });
 }, [dataByStage]);
+
 
 
   // Filter orders
@@ -256,11 +268,11 @@ const allOrders = useMemo(() => {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const totalOrders = allOrders.length;
-    const totalQty = allOrders.reduce((sum, order) => sum + order.qty, 0);
-    const totalCompleted = allOrders.reduce((sum, order) => sum + order.qtyExe, 0);
-    const totalPending = allOrders.reduce((sum, order) => sum + order.qtyPending, 0);
-    const alertCount = allOrders.filter(order => order.alertStatus).length;
+    const totalOrders = apiCounts?.totalOrders ?? allOrders.length;
+    const totalQty = apiCounts?.totalQty ?? allOrders.reduce((sum, order) => sum + (order.totalQty || 0), 0);
+    const totalCompleted = apiCounts?.completeOrders ?? allOrders.reduce((sum, order) => sum + order.qtyExe, 0);
+    const totalPending = apiCounts?.pendingQty ?? allOrders.reduce((sum, order) => sum + order.qtyPending, 0);
+    const alertCount = apiCounts?.urgentOrders ?? allOrders.filter(order => order.alertStatus).length;
 
     // Calculate pending quantities for each stage
     const materialIssuePending = materialIssueOrders.reduce((sum, order) => sum + order.qtyPending, 0);
@@ -295,7 +307,7 @@ const allOrders = useMemo(() => {
     // In-progress and done counts per stage
     const makeCounts = (orders: OrderData[]) => ({
       inProgress: orders.filter(o => o.qtyExe > 0 && o.qtyPending > 0).length,
-      done: orders.filter(o => o.qtyPending === 0 && (o.qty > 0 || o.qtyExe > 0)).length,
+      done: orders.filter(o => o.qtyPending === 0 && (o.totalQty > 0 || o.qtyExe > 0)).length,
     });
 
     const materialIssueCounts = makeCounts(materialIssueOrders);
@@ -495,7 +507,7 @@ const allOrders = useMemo(() => {
           orderNo: order.customerPoNo,
           codeNo: order.codeNo,
           product: order.product,
-          qty: order.qty,
+          qty: order.totalQty,
           qtyExecuted: order.qtyExe,
           qtyPending: order.qtyPending,
           // New workflow columns using configured labels
@@ -610,33 +622,40 @@ const allOrders = useMemo(() => {
   };
 
   const getProgressPercentage = (order: OrderData) => {
-    return order.qty > 0 ? Math.round((order.qtyExe / order.qty) * 100) : 0;
+    return order.totalQty > 0 ? Math.round((order.qtyExe / order.totalQty) * 100) : 0;
   };
 
   // Get stage status for an order
+  const toProgressKey = (label: string) => {
+    if (label === 'Phosphating QC') return 'Phosphating';
+    if (label === 'Testing1') return 'Testing 1';
+    if (label === 'Testing2') return 'Testing 2';
+    if (label === 'Marking1') return 'Marking 1';
+    if (label === 'Marking2') return 'Marking 2';
+    if (label === 'PDI1') return 'PDI 1';
+    if (label === 'PDI2') return 'PDI 2';
+    return label;
+  };
+
   const getStageStatus = (order: OrderData & { currentStage: string }, stage: string) => {
+    const key = toProgressKey(stage);
+    const sp = order.stageProgress || {};
+    const v = sp[key];
+    if (v === 'ok' || v === 'pending') return v;
     if (!order.workflowHistory) return '';
-    
     const stageIndex = order.workflowHistory.findIndex(w => w.stage === stage);
-    
-    // Stage not started yet
     if (stageIndex === -1) return '';
-    
-    // Stage is completed (has exitedAt)
     if (order.workflowHistory[stageIndex].exitedAt) {
       return 'OK';
     }
-    
-    // Stage is current (no exitedAt and is the current stage)
     if (order.currentStage === stage) {
       return 'IN PROCESS';
     }
-    
     return '';
   };
 
   const renderStageCell = (status: string) => {
-    if (status === 'OK') {
+    if (status === 'OK' || status === 'ok') {
       return (
         <div className="flex items-center justify-center">
           <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
@@ -645,11 +664,11 @@ const allOrders = useMemo(() => {
         </div>
       );
     }
-    if (status === 'IN PROCESS') {
+    if (status === 'IN PROCESS' || status === 'pending') {
       return (
         <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
-            IN PROCESS
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 border-blue-200 rounded text-xs font-medium">
+            Pending
           </span>
         </div>
       );
@@ -661,7 +680,8 @@ const allOrders = useMemo(() => {
     <div className="p-6 max-w-[1920px] mx-auto space-y-6 animate-fade-in-up">
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between ctm-wrap">
-        <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
           <h1 className="text-gray-900 flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-[#174a9f] to-[#1a5cb8] rounded-xl shadow-lg">
               <Package className="h-6 w-6 text-white" />
@@ -669,8 +689,8 @@ const allOrders = useMemo(() => {
             Customer Support
           </h1>
           <p className="text-gray-600 mt-1">Comprehensive view of all orders across all workflow stages</p>
-        </div>
-        <Button
+          </div>
+          <Button
           onClick={reloadData}
           disabled={isRefreshing || loading}
           className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -678,6 +698,8 @@ const allOrders = useMemo(() => {
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
+        </div>
+        
         <Button
           onClick={handleExport}
           className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
@@ -792,7 +814,7 @@ const allOrders = useMemo(() => {
 
       {/* Orders Table */}
       <Card className="bg-white/70 backdrop-blur-sm border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto"> 
           <table className="w-full">
             <thead>
               <tr className="bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 border-b border-gray-200">
@@ -847,7 +869,8 @@ const allOrders = useMemo(() => {
               ) : (
                 filteredOrders.map((order) => (
                   <tr
-                    key={`${order.id}-${order.uniqueCode}`}
+                    key={`${order.id}-${order.uniqueCode}-${Math.random()}`}
+
                     className="border-b border-gray-100 hover:bg-blue-50/50 transition-colors duration-150"
                   >
                     <td className="px-4 py-3 sticky left-0 bg-white hover:bg-blue-50/50 z-10">
@@ -885,7 +908,7 @@ const allOrders = useMemo(() => {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                        {order.qty}
+                        {order.totalQty}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -1052,7 +1075,7 @@ const allOrders = useMemo(() => {
                       <div>
                         <p className="text-sm text-gray-600">Total Quantity</p>
                         <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                          {selectedOrder.qty}
+                          {selectedOrder.totalQty}
                         </Badge>
                       </div>
                       <div>
@@ -1225,4 +1248,3 @@ const allOrders = useMemo(() => {
 }
 
 export default CustomerSupport;
-const CUSTOMER_SUPPORT_ENDPOINT = `${API_URL}/customer-support`;

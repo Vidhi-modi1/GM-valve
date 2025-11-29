@@ -361,16 +361,21 @@ export function AssemblyDPage() {
           String(o.product).toLowerCase().includes(term)
       );
     }
-
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
+ const seen = new Set<string>();
     filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
       return true;
     });
+    // const seen = new Set<string>();
+    // const makeRowKey = (o: AssemblyOrderData) =>
+    //   o.splittedCode || o.split_id || o.uniqueCode || o.id;
+    // filtered = filtered.filter((o) => {
+    //   const key = makeRowKey(o);
+    //   if (seen.has(key)) return false;
+    //   seen.add(key);
+    //   return true;
+    // });
 
     return filtered;
   }, [
