@@ -41,6 +41,7 @@ import {
   isFinalStep,
 } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import TablePagination from "../components/table-pagination";
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -86,6 +87,8 @@ export function TpiPage() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -331,15 +334,15 @@ export function TpiPage() {
     }
 
 
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
-    filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    // const seen = new Set<string>();
+    // const makeRowKey = (o: AssemblyOrderData) =>
+    //   o.splittedCode || o.split_id || o.uniqueCode || o.id;
+    // filtered = filtered.filter((o) => {
+    //   const key = makeRowKey(o);
+    //   if (seen.has(key)) return false;
+    //   seen.add(key);
+    //   return true;
+    // });
 
     return filtered;
   }, [
@@ -354,6 +357,15 @@ export function TpiPage() {
     dateTo,
     getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
   const toggleRowSelection = (orderId: string) => {
@@ -468,7 +480,19 @@ export function TpiPage() {
   };
 
   const handleQuickAssignCancel = () => {
+    if (isAssigning && assignAbortRef.current) {
+      assignAbortRef.current.abort();
+    }
+    setIsAssigning(false);
+    setAssignStatus(null);
     setQuickAssignOpen(false);
+    setSelectedOrder(null);
+    setQuickAssignStep("");
+    setQuickAssignQty("");
+    setSplitOrder(false);
+    setSplitAssignStep("");
+    setSplitAssignQty("");
+    setQuickAssignErrors({});
   };
 
   // Bin Card / Print
@@ -645,6 +669,7 @@ export function TpiPage() {
     message: string;
   } | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
+  const assignAbortRef = useRef<AbortController | null>(null);
 
   // ✅ Assign order to next workflow stage
   // const handleAssignOrder = async () => {
@@ -853,7 +878,7 @@ const handleAssignOrder = async () => {
     // ✅ MAIN ASSIGNMENT PAYLOAD
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
-    formData.append("totalQty", String(selectedOrder.qty));
+    formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
     formData.append("executedQty", String(mainQty));
     if (selectedOrder.split_id)
       formData.append("split_id", String(selectedOrder.split_id));
@@ -863,10 +888,14 @@ const handleAssignOrder = async () => {
     console.log("📤 MAIN PAYLOAD");
     for (const p of formData.entries()) console.log(p[0], p[1]);
 
+    assignAbortRef.current?.abort();
+    const controller = new AbortController();
+    assignAbortRef.current = controller;
+
     const responseMain = await axios.post(
       `${API_URL}/assign-order`,
       formData,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }
     );
 
     const mainSuccess =
@@ -894,7 +923,7 @@ const handleAssignOrder = async () => {
 
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.qty));
+      formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
       formDataSplit.append("executedQty", String(splitQty));
       if (selectedOrder.split_id)
         formDataSplit.append("split_id", String(selectedOrder.split_id));
@@ -909,7 +938,7 @@ const handleAssignOrder = async () => {
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
         formDataSplit,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }
       );
 
       const splitSuccess =
@@ -934,15 +963,26 @@ const handleAssignOrder = async () => {
 
     setAssignStatus({ type: "success", message: successMsg });
 
-    await fetchOrders();
+    const makeKey = (o: AssemblyOrderData) =>
+      (o.splittedCode || o.split_id)
+        ? (o.splittedCode || o.split_id)
+        : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+            .map((v) => v ?? "")
+            .join("|");
+    const selectedKey = makeKey(selectedOrder);
+
+    setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
+    setSelectedRows((prev) => {
+      const copy = new Set(prev);
+      copy.delete(selectedKey);
+      return copy;
+    });
 
     setQuickAssignOpen(false);
-    // If you want to *keep* success message, remove this next line:
-    setAssignStatus(null);
   } catch (error: any) {
-    console.error("❌ Error assigning order:", error);
-
-    if (error.response) {
+    if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED") {
+      setAssignStatus({ type: "info", message: "Assignment canceled." });
+    } else if (error.response) {
       const msg =
         error.response.data?.message ||
         error.response.data?.Resp_desc ||
@@ -965,10 +1005,8 @@ const handleAssignOrder = async () => {
           "❌ No response from server. Please check your connection.",
       });
     } else {
-      setAssignStatus({
-        type: "error",
-        message: `❌ ${error.message}`,
-      });
+      console.error("❌ Error assigning order:", error);
+      setAssignStatus({ type: "error", message: "Server error while assigning." });
     }
   } finally {
     setIsAssigning(false);
@@ -1298,7 +1336,7 @@ const handleAssignOrder = async () => {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
+                  {paginatedOrders.map((order) => (
                     <tr key={order.id} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
@@ -1463,6 +1501,7 @@ const handleAssignOrder = async () => {
                   ))}
                 </tbody>
               </table>
+             
               {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
@@ -1474,6 +1513,15 @@ const handleAssignOrder = async () => {
             </div>
           </div>
         </div>
+         <TablePagination
+                page={page}
+                perPage={perPage}
+                total={filteredOrders.length}
+                lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+                onChangePage={setPage}
+                onChangePerPage={setPerPage}
+                disabled={loading}
+              />
 
         {/* Quick Assign Dialog (Dispatch only) */}
         <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>

@@ -86,6 +86,7 @@ export function MaterialIssuePage() {
 
   // API data + UI state
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+  const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -229,6 +230,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
         setOrders(sortOrders(apiOrders));
+        setFullOrders(null);
         const p = res?.data?.pagination;
         if (p) {
           setTotal(Number(p.total || apiOrders.length));
@@ -259,6 +261,103 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage]);
 
+  const useGlobalSearch = useMemo(() => {
+    const hasSearch = localSearchTerm.trim().length > 0;
+    const hasFilters = assemblyLineFilter !== "all" || gmsoaFilter !== "all" || partyFilter !== "all";
+    const hasDate = Boolean(dateFrom) || Boolean(dateTo);
+    return hasSearch || hasFilters || hasDate || showUrgentOnly;
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+
+  const fetchAllPages = async () => {
+    try {
+      setLoading(true);
+      const currentStage = "material-issue";
+      const stageLabel = getStepLabel(currentStage);
+      const first = await axios.post(
+        `${API_URL}/order-list`,
+        { menu_name: stageLabel, page: 1, per_page: perPage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const ok =
+        first?.data?.Resp_code === "true" ||
+        first?.data?.Resp_code === true ||
+        first?.data?.Resp_code === "RCS";
+      if (!ok) {
+        setFullOrders(null);
+        return;
+      }
+      const p = first?.data?.pagination;
+      const last = Number(p?.last_page || 1);
+      const requests: Promise<any>[] = [];
+      for (let pg = 1; pg <= last; pg++) {
+        requests.push(
+          axios.post(
+            `${API_URL}/order-list`,
+            { menu_name: stageLabel, page: pg, per_page: perPage },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+        );
+      }
+      const responses = await Promise.all(requests);
+      let all: AssemblyOrderData[] = [];
+      for (const r of responses) {
+        if (Array.isArray(r?.data?.data)) {
+          const chunk: AssemblyOrderData[] = r.data.data.map((item: any, index: number) => ({
+            id: String(item.id),
+            assemblyLine: item.assembly_no || "",
+            gmsoaNo: item.soa_no || "",
+            soaSrNo: item.soa_sr_no || "",
+            assemblyDate: item.assembly_date || "",
+            uniqueCode: item.unique_code || item.order_no || "",
+            split_id: item.split_id || item.splitted_code || "",
+            splittedCode: item.splitted_code || "",
+            party: item.party_name || item.party || "",
+            customerPoNo: item.customer_po_no || "",
+            codeNo: item.code_no || "",
+            product: item.product || "",
+            qty: Number(item.qty || 0),
+            totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
+            qtyExe: Number(item.qty_executed || 0),
+            qtyPending: Number(item.qty_pending || 0),
+            finishedValve: item.finished_valve || "",
+            gmLogo: item.gm_logo || "",
+            namePlate: item.name_plate || "",
+            productSpcl1: item.product_spc1 || "",
+            productSpcl2: item.product_spc2 || "",
+            productSpcl3: item.product_spc3 || "",
+            inspection: item.inspection || "",
+            painting: item.painting || "",
+            remarks: item.remarks || "",
+            alertStatus:
+              item.is_urgent === true ||
+              item.is_urgent === "true" ||
+              item.alert_status === true ||
+              item.alert_status === "true" ||
+              item.urgent === 1 ||
+              item.urgent === "1",
+            originalIndex: index,
+          }));
+          all = all.concat(chunk);
+        }
+      }
+      // Do not deduplicate Material Issue; show all API rows reliably
+      setFullOrders(sortOrders(all));
+    } catch (e) {
+      setFullOrders(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (useGlobalSearch) {
+      if (!fullOrders) fetchAllPages();
+    } else {
+      setFullOrders(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useGlobalSearch, perPage]);
+
   // filter option lists
   const assemblyLines = useMemo(
     () =>
@@ -284,7 +383,8 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
 
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
-    let filtered = orders.slice();
+    const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+    let filtered = source.slice();
 
     if (showUrgentOnly) {
       // Check both: local context flag (getAlertStatus) and server-provided order.alertStatus
@@ -368,6 +468,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     return filtered;
   }, [
     orders,
+    fullOrders,
     localSearchTerm,
     showUrgentOnly,
     assemblyLineFilter,
@@ -379,7 +480,29 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     getAlertStatus,
   ]);
 
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+
   // selection helpers
+  const rowKey = (o: AssemblyOrderData) => {
+    if (o.splittedCode) return String(o.splittedCode);
+    if (o.split_id) return String(o.split_id);
+    const hasComposite = (o.uniqueCode || o.soaSrNo || o.gmsoaNo || o.codeNo || o.assemblyLine);
+    if (hasComposite) {
+      return [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+        .map((v) => v ?? "")
+        .join("|");
+    }
+    return `${o.id}-${o.originalIndex ?? ""}`;
+  };
+
   const toggleRowSelection = (orderId: string) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
@@ -392,7 +515,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
-      return new Set(filteredOrders.map((o) => o.id));
+      return new Set(filteredOrders.map((o) => rowKey(o)));
     });
   };
 
@@ -464,11 +587,20 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
   };
 
   const handleQuickAssignCancel = () => {
+    setIsAssigning(false);
+    setAssignStatus(null);
     setQuickAssignOpen(false);
+    setSelectedOrder(null);
+    setQuickAssignStep("");
+    setQuickAssignQty("");
+    setSplitOrder(false);
+    setSplitAssignStep("");
+    setSplitAssignQty("");
+    setQuickAssignErrors({});
   };
 
   // Bin Card / Print
-  const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
+  const selectedOrdersData = orders.filter((o) => selectedRows.has(rowKey(o)));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
     const handlePrintBinCard = () => {
     const cards = selectedOrdersData
@@ -710,7 +842,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
       //
       const formData = new FormData();
       formData.append("orderId", String(selectedOrder.id));
-      formData.append("totalQty", String(selectedOrder.qty));
+      formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
       formData.append("executedQty", String(mainQty));
       formData.append("currentSteps", currentStepLabel);
       formData.append("nextSteps", nextStepLabel);
@@ -747,9 +879,9 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
       if (splitOrder && splitQty > 0) {
         const formDataSplit = new FormData();
         formDataSplit.append("orderId", String(selectedOrder.id));
-        formDataSplit.append("totalQty", String(selectedOrder.qty));
+        formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
         formDataSplit.append("executedQty", String(splitQty));
-           formDataSplit.append("currentSteps", currentStepsLabel);
+          formDataSplit.append("currentSteps", currentStepLabel);
         formDataSplit.append("nextSteps", nextStepLabel);
         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
@@ -781,10 +913,15 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
 
       setAssignStatus({ type: "success", message: successMessage });
 
-      await fetchOrders();
+      const selectedKey = rowKey(selectedOrder);
+      setOrders((prev) => prev.filter((o) => rowKey(o) !== selectedKey));
+      setSelectedRows((prev) => {
+        const copy = new Set(prev);
+        copy.delete(selectedKey);
+        return copy;
+      });
 
-        setQuickAssignOpen(false);
-        setAssignStatus(null);
+      setQuickAssignOpen(false);
 
   } catch (error) {
     console.error("❌ Error assigning order:", error);
@@ -1105,12 +1242,12 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="group hover:bg-gray-50">
+                  {paginatedOrders.map((order) => (
+                    <tr key={rowKey(order)} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.id)}
+                          checked={selectedRows.has(rowKey(order))}
+                          onCheckedChange={() => toggleRowSelection(rowKey(order))}
                           aria-label={`Select row ${order.id}`}
                         />
                       </td>
@@ -1294,15 +1431,20 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
          <TablePagination
           page={page}
           perPage={perPage}
-          total={total}
-          lastPage={lastPage}
+          total={filteredOrders.length}
+          lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
           onChangePage={setPage}
           onChangePerPage={setPerPage}
           disabled={loading}
         />
 
         {/* Quick Assign Dialog */}
-        <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
+        <Dialog open={quickAssignOpen} onOpenChange={(open) => {if (!open) {
+      setQuickAssignOpen(false);
+      setIsAssigning(false);       // <-- STOP assigning
+      setAssignStatus(null);       // <-- clear status message
+    }
+  }}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Quick Assign Order</DialogTitle>
@@ -1394,8 +1536,8 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
               <Button variant="outline" onClick={handleQuickAssignCancel}>
-                Cancel
-              </Button>
+                             Cancel
+                           </Button>
               <Button
                 onClick={handleAssignOrder}
                 disabled={

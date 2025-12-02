@@ -41,6 +41,7 @@ import {
   isFinalStep,
 } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import TablePagination from "../components/table-pagination";
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -86,6 +87,8 @@ export function PhosphatingPage() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -344,15 +347,15 @@ export function PhosphatingPage() {
       );
     }
 
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
-    filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    // const seen = new Set<string>();
+    // const makeRowKey = (o: AssemblyOrderData) =>
+    //   o.splittedCode || o.split_id || o.uniqueCode || o.id;
+    // filtered = filtered.filter((o) => {
+    //   const key = makeRowKey(o);
+    //   if (seen.has(key)) return false;
+    //   seen.add(key);
+    //   return true;
+    // });
 
     return filtered;
   }, [
@@ -367,6 +370,15 @@ export function PhosphatingPage() {
     dateTo,
     getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
   const toggleRowSelection = (orderId: string) => {
@@ -422,15 +434,15 @@ export function PhosphatingPage() {
   //   return Object.keys(errs).length === 0;
   // };
   // const currentStep = "phosphating";
-  const currentStep = "phosphating"; // or derive from login role
-  const nextSteps = getNextSteps(currentStep);
+  const currentSteps = "phosphating"; // or derive from login role
+  const nextSteps = getNextSteps(currentSteps);
 
   console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
-  console.log("Is final step?", isFinalStep(currentStep)); // → false
+  console.log("Is final step?", isFinalStep(currentSteps)); // → false
 
   const handleQuickAssign = (order: AssemblyOrderData) => {
-    const currentStep = "phosphating"; // 👈 set dynamically based on page
-    const nextSteps = getNextSteps(currentStep);
+    const currentSteps = "phosphating"; // 👈 set dynamically based on page
+    const nextSteps = getNextSteps(currentSteps);
 
     setSelectedOrder(order);
     setQuickAssignOpen(true);
@@ -480,12 +492,34 @@ export function PhosphatingPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleQuickAssignCancel = () => {
+ const handleQuickAssignCancel = () => {
+
+    setIsAssigning(false);
+
+    setAssignStatus(null);
+
     setQuickAssignOpen(false);
+
+    setSelectedOrder(null);
+
+    setQuickAssignStep("");
+
+    setQuickAssignQty("");
+
+    setSplitOrder(false);
+
+    setSplitAssignStep("");
+
+    setSplitAssignQty("");
+
+    setQuickAssignErrors({});
+
   };
 
   // Bin Card / Print
-  const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
+ const selectedOrdersData = orders.filter((o) =>
+    selectedRows.has(o.splittedCode || o.split_id || o.uniqueCode || o.id)
+  );
   const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
     const cards = selectedOrdersData
@@ -497,7 +531,7 @@ export function PhosphatingPage() {
           <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
           <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
         </div>
-        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
+       <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><br><span style="padding-top:2px;">${order.product}</span></div>
         <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
           <div><strong>QTY:</strong> ${order.totalQty}</div>
           <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
@@ -899,12 +933,13 @@ const handleAssignOrder = async () => {
     }
 
     // ✅ Current workflow step of THIS PAGE
-    const currentStep = "Phosphating QC"; // <-- use backend expected label!
+    const currentStepKey = "phosphating";
+    const currentStep = getStepLabel(currentStepKey);
 
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    const nextStepOptions = getNextSteps(currentStep);
+    const nextStepOptions = getNextSteps(currentSteps);
 
     let nextStep =
       quickAssignStep ||
@@ -940,7 +975,7 @@ const handleAssignOrder = async () => {
     // ✅ MAIN PAYLOAD — SEND LABELS
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
-    formData.append("totalQty", String(selectedOrder.qty));
+    formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
     formData.append("executedQty", String(mainQty));
     formData.append("currentSteps", currentStep);
     formData.append("nextSteps", nextStep);
@@ -972,7 +1007,7 @@ const handleAssignOrder = async () => {
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.qty));
+      formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
       formDataSplit.append("executedQty", String(splitQty));
       formDataSplit.append("currentSteps", currentStep);
       formDataSplit.append("nextSteps", nextStep);
@@ -987,7 +1022,21 @@ const handleAssignOrder = async () => {
 
     setAssignStatus({ type: "success", message: successMessage });
 
-    await fetchOrders();
+    const makeKey = (o: AssemblyOrderData) =>
+      (o.splittedCode || o.split_id)
+        ? (o.splittedCode || o.split_id)
+        : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+            .map((v) => v ?? "")
+            .join("|");
+    const selectedKey = makeKey(selectedOrder);
+
+    setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
+    setSelectedRows((prev) => {
+      const copy = new Set(prev);
+      copy.delete(selectedKey);
+      return copy;
+    });
+
     setQuickAssignOpen(false);
     setAssignStatus(null);
   } catch (error: any) {
@@ -1318,12 +1367,12 @@ const handleAssignOrder = async () => {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="group hover:bg-gray-50">
+                  {paginatedOrders.map((order, idx) => (
+                    <tr key={(order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine, idx].map((v) => v ?? "").join("|")} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.id)}
+                          checked={selectedRows.has((order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine].map((v) => v ?? "").join("|") )}
+                          onCheckedChange={() => toggleRowSelection((order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine].map((v) => v ?? "").join("|") )}
                           aria-label={`Select row ${order.id}`}
                         />
                       </td>
@@ -1483,6 +1532,7 @@ const handleAssignOrder = async () => {
                   ))}
                 </tbody>
               </table>
+            
                {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
@@ -1494,6 +1544,16 @@ const handleAssignOrder = async () => {
             </div>
           </div>
         </div>
+
+          <TablePagination
+                page={page}
+                perPage={perPage}
+                total={filteredOrders.length}
+                lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+                onChangePage={setPage}
+                onChangePerPage={setPerPage}
+                disabled={loading}
+              />
 
         {/* Quick Assign Dialog */}
         <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>

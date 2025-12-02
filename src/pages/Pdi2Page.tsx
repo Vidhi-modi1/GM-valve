@@ -41,6 +41,7 @@ import {
   isFinalStep,
 } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import TablePagination from "../components/table-pagination";
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -86,6 +87,8 @@ export function Pdi2Page() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -431,15 +434,15 @@ export function Pdi2Page() {
     //   seen.add(o.id);
     //   return true;
     // });
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
-    filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    // const seen = new Set<string>();
+    // const makeRowKey = (o: AssemblyOrderData) =>
+    //   o.splittedCode || o.split_id || o.uniqueCode || o.id;
+    // filtered = filtered.filter((o) => {
+    //   const key = makeRowKey(o);
+    //   if (seen.has(key)) return false;
+    //   seen.add(key);
+    //   return true;
+    // });
 
     return filtered;
   }, [
@@ -454,6 +457,15 @@ export function Pdi2Page() {
     dateTo,
     getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
   const toggleRowSelection = (orderId: string) => {
@@ -568,7 +580,16 @@ export function Pdi2Page() {
   };
 
   const handleQuickAssignCancel = () => {
+    setIsAssigning(false);
+    setAssignStatus(null);
     setQuickAssignOpen(false);
+    setSelectedOrder(null);
+    setQuickAssignStep("");
+    setQuickAssignQty("");
+    setSplitOrder(false);
+    setSplitAssignStep("");
+    setSplitAssignQty("");
+    setQuickAssignErrors({});
   };
 
   // Bin Card / Print
@@ -829,7 +850,7 @@ export function Pdi2Page() {
   
         const formDataSplit = new FormData();
         formDataSplit.append("orderId", String(selectedOrder.id));
-        formDataSplit.append("totalQty", String(selectedOrder.qty));
+        formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
         formDataSplit.append("executedQty", String(splitQty));
         formDataSplit.append("nextSteps", splitLabel);
         formDataSplit.append("currentSteps", currentStepLabel); // ✅ required
@@ -861,9 +882,22 @@ export function Pdi2Page() {
       }
   
       setAssignStatus({ type: "success", message: successMsg });
-  
-      await fetchOrders();
-  
+
+      const makeKey = (o: AssemblyOrderData) =>
+        (o.splittedCode || o.split_id)
+          ? (o.splittedCode || o.split_id)
+          : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+              .map((v) => v ?? "")
+              .join("|");
+      const selectedKey = makeKey(selectedOrder);
+
+      setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
+      setSelectedRows((prev) => {
+        const copy = new Set(prev);
+        copy.delete(selectedKey);
+        return copy;
+      });
+
       setQuickAssignOpen(false);
       setAssignStatus(null);
     } catch (error: any) {
@@ -1208,12 +1242,12 @@ export function Pdi2Page() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="group hover:bg-gray-50">
+                  {paginatedOrders.map((order) => (
+                    <tr key={order.splittedCode || order.split_id || order.uniqueCode || order.id} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.id)}
+                          checked={selectedRows.has(order.splittedCode || order.split_id || order.uniqueCode || order.id)}
+                          onCheckedChange={() => toggleRowSelection(order.splittedCode || order.split_id || order.uniqueCode || order.id)}
                           aria-label={`Select row ${order.id}`}
                         />
                       </td>
@@ -1372,6 +1406,7 @@ export function Pdi2Page() {
                   ))}
                 </tbody>
               </table>
+              
                {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
@@ -1383,6 +1418,15 @@ export function Pdi2Page() {
             </div>
           </div>
         </div>
+        <TablePagination
+                page={page}
+                perPage={perPage}
+                total={filteredOrders.length}
+                lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+                onChangePage={setPage}
+                onChangePerPage={setPerPage}
+                disabled={loading}
+              />
 
         {/* Quick Assign Dialog */}
         <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>

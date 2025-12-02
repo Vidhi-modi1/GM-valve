@@ -41,6 +41,7 @@ import {
   isFinalStep,
 } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import TablePagination from "../components/table-pagination";
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -86,6 +87,8 @@ export function SemiQcPage() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -192,10 +195,16 @@ export function SemiQcPage() {
   customerPoNo: item.customer_po_no || "",
   codeNo: item.code_no || "",
   product: item.product || "",
-  totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
-  qty: Number(item.qty || 0),
-  qtyExe: Number(item.qty_executed || 0),
-  qtyPending: Number(item.qty_pending || 0),
+  totalQty: Number(
+    item.semi_qc_total_qty ??
+    item.totalQty ??
+    item.total_qty ??
+    item.qty ??
+    0
+  ),
+  qty: Number(item.qty ?? item.semi_qc_qty ?? 0),
+  qtyExe: Number(item.semi_qc_qty_executed ?? item.qty_executed ?? item.qtyExe ?? 0),
+  qtyPending: Number(item.semi_qc_qty_pending ?? item.qty_pending ?? 0),
   finishedValve: item.finished_valve || "",
   gmLogo: item.gm_logo || "",
   namePlate: item.name_plate || "",
@@ -343,16 +352,6 @@ export function SemiQcPage() {
       );
     }
 
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
-    filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
     return filtered;
   }, [
     orders,
@@ -366,6 +365,15 @@ export function SemiQcPage() {
     dateTo,
     getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
   const toggleRowSelection = (rowKey: string) => {
@@ -381,7 +389,7 @@ export function SemiQcPage() {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
       const keys = filteredOrders.map(
-        (o) => o.splittedCode || o.split_id || o.uniqueCode || o.id
+        (o) => (o.splittedCode || o.split_id) ? (o.splittedCode || o.split_id) : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine].map((v) => v ?? "").join("|")
       );
       return new Set(keys);
     });
@@ -450,7 +458,16 @@ export function SemiQcPage() {
   };
 
   const handleQuickAssignCancel = () => {
+    setIsAssigning(false);
+    setAssignStatus(null);
     setQuickAssignOpen(false);
+    setSelectedOrder(null);
+    setQuickAssignStep("");
+    setQuickAssignQty("");
+    setSplitOrder(false);
+    setSplitAssignStep("");
+    setSplitAssignQty("");
+    setQuickAssignErrors({});
   };
 
   // Bin Card / Print
@@ -716,7 +733,7 @@ const handleAssignOrder = async () => {
 
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
-    formData.append("totalQty", String(selectedOrder.qty));
+    formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
     formData.append("executedQty", String(mainQty));
     formData.append("currentSteps", currentStepsLabel);
     formData.append("nextSteps", nextStepLabel);
@@ -748,7 +765,7 @@ const handleAssignOrder = async () => {
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.qty));
+      formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
       formDataSplit.append("executedQty", String(splitQty));
       formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
@@ -780,10 +797,23 @@ const handleAssignOrder = async () => {
     }
     setAssignStatus({ type: "success", message: successMessage });
 
-    await fetchOrders();
+    const makeKey = (o: AssemblyOrderData) =>
+      (o.splittedCode || o.split_id)
+        ? (o.splittedCode || o.split_id)
+        : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+            .map((v) => v ?? "")
+            .join("|");
+    const selectedKey = makeKey(selectedOrder);
 
-      setQuickAssignOpen(false);
-      setAssignStatus(null);
+    setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
+    setSelectedRows((prev) => {
+      const copy = new Set(prev);
+      copy.delete(selectedKey);
+      return copy;
+    });
+
+    setQuickAssignOpen(false);
+    setAssignStatus(null);
 
 
   } catch (error) {
@@ -1077,26 +1107,16 @@ const handleAssignOrder = async () => {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
+                  {paginatedOrders.map((order, idx) => (
                     <tr
-                      key={order.splittedCode || order.split_id || order.uniqueCode || order.id}
+                      key={(order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine, idx].map((v) => v ?? "").join("|")}
                       className="group hover:bg-gray-50"
                     >
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(
-                            order.splittedCode ||
-                              order.split_id ||
-                              order.uniqueCode ||
-                              order.id
-                          )}
+                          checked={selectedRows.has((order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine].map((v) => v ?? "").join("|") )}
                           onCheckedChange={() =>
-                            toggleRowSelection(
-                              order.splittedCode ||
-                                order.split_id ||
-                                order.uniqueCode ||
-                                order.id
-                            )
+                            toggleRowSelection((order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine].map((v) => v ?? "").join("|") )
                           }
                           aria-label={`Select row ${
                             order.splittedCode ||
@@ -1262,6 +1282,7 @@ const handleAssignOrder = async () => {
                   ))}
                 </tbody>
               </table>
+             
               {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
@@ -1269,10 +1290,22 @@ const handleAssignOrder = async () => {
               )}
                 </>
               )}
+
+             
               
             </div>
           </div>
         </div>
+
+          <TablePagination
+                page={page}
+                perPage={perPage}
+                total={filteredOrders.length}
+                lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+                onChangePage={setPage}
+                onChangePerPage={setPerPage}
+                disabled={loading}
+              />
 
         {/* Quick Assign Dialog */}
         <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>

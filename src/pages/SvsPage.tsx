@@ -24,6 +24,7 @@ import { OrderFilters } from '../components/order-filters';
 import { API_URL } from '../config/api.ts';
 import { getNextSteps, getStepLabel } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import TablePagination from "../components/table-pagination";
 
 interface AssemblyOrderData {
   id: string;
@@ -65,6 +66,8 @@ export function SvsPage() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
@@ -284,8 +287,17 @@ export function SvsPage() {
     dateFilterMode,
     dateFrom,
     dateTo,
-    getAlertStatus
+    getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   const toggleRowSelection = (orderId: string) => {
     setSelectedRows((prev) => {
@@ -907,7 +919,7 @@ const handleAssignOrder = async () => {
               </thead>
 
               <tbody className="divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
+                {paginatedOrders.map((order) => (
                   <tr key={order.id} className="group hover:bg-gray-50">
                     <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                       <Checkbox
@@ -998,6 +1010,7 @@ const handleAssignOrder = async () => {
                 ))}
               </tbody>
             </table>
+           
             {filteredOrders.length === 0 && (
               <div className="p-6 text-center text-gray-500">No SVS orders found.</div>
             )}
@@ -1007,6 +1020,15 @@ const handleAssignOrder = async () => {
           </div>
         </div>
       </div>
+       <TablePagination
+              page={page}
+              perPage={perPage}
+              total={filteredOrders.length}
+              lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+              onChangePage={setPage}
+              onChangePerPage={setPerPage}
+              disabled={loading}
+            />
 
       {/* Quick Assign Dialog */}
       <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>

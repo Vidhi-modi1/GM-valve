@@ -41,6 +41,7 @@ import {
   isFinalStep,
 } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
+import TablePagination from "../components/table-pagination";
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -57,6 +58,7 @@ interface AssemblyOrderData {
   customerPoNo: string;
   codeNo: string;
   product: string;
+  totalQty: number;
   qty: number;
   qtyExe: number;
   qtyPending: number;
@@ -86,6 +88,8 @@ export function AssemblyDPage() {
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -361,12 +365,12 @@ export function AssemblyDPage() {
           String(o.product).toLowerCase().includes(term)
       );
     }
- const seen = new Set<string>();
-    filtered = filtered.filter((o) => {
-      if (seen.has(o.id)) return false;
-      seen.add(o.id);
-      return true;
-    });
+//  const seen = new Set<string>();
+//     filtered = filtered.filter((o) => {
+//       if (seen.has(o.id)) return false;
+//       seen.add(o.id);
+//       return true;
+//     });
     // const seen = new Set<string>();
     // const makeRowKey = (o: AssemblyOrderData) =>
     //   o.splittedCode || o.split_id || o.uniqueCode || o.id;
@@ -390,6 +394,15 @@ export function AssemblyDPage() {
     dateTo,
     getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
   const toggleRowSelection = (rowKey: string) => {
@@ -1331,7 +1344,7 @@ const handleAssignOrder = async () => {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
+                  {paginatedOrders.map((order) => (
                     <tr
                       key={order.splittedCode || order.split_id || order.uniqueCode || order.id}
                       className="group hover:bg-gray-50"
@@ -1516,6 +1529,7 @@ const handleAssignOrder = async () => {
                   ))}
                 </tbody>
               </table>
+             
               {filteredOrders.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
                   No orders found.
@@ -1526,6 +1540,15 @@ const handleAssignOrder = async () => {
             </div>
           </div>
         </div>
+         <TablePagination
+                page={page}
+                perPage={perPage}
+                total={filteredOrders.length}
+                lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+                onChangePage={setPage}
+                onChangePerPage={setPerPage}
+                disabled={loading}
+              />
 
         {/* Quick Assign Dialog */}
         <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>

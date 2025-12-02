@@ -144,7 +144,7 @@ if (Resp_code === "true") {
 } else if (Resp_desc?.toLowerCase().includes("validation errors")) {
 
   setStatusType("error");
-  setStatusMessage("❌ Validation errors found in uploaded data.");
+  setStatusMessage("Validation errors found in uploaded data.");
   setMismatchFileUrl(file_url || null);
   setLastErrorType("validation");
 

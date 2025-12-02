@@ -28,6 +28,8 @@ export function TablePagination({
   onChangePerPage,
   disabled,
 }: Props) {
+  const canPrev = page > 1;
+  const canNext = page < Math.max(lastPage, 1);
   return (
     <div className="flex items-center justify-between mt-4">
       <div className="text-sm text-gray-600">Page {page} of {Math.max(lastPage, 1)} • Total {total}</div>
@@ -49,7 +51,8 @@ export function TablePagination({
             <PaginationItem>
               <PaginationPrevious
                 href="#"
-                onClick={(e) => { e.preventDefault(); if (page > 1 && !disabled) onChangePage(page - 1); }}
+                onClick={(e) => { e.preventDefault(); if (canPrev) onChangePage(page - 1); }}
+                aria-disabled={!canPrev}
               />
             </PaginationItem>
             <PaginationItem>
@@ -60,7 +63,8 @@ export function TablePagination({
             <PaginationItem>
               <PaginationNext
                 href="#"
-                onClick={(e) => { e.preventDefault(); if (page < lastPage && !disabled) onChangePage(page + 1); }}
+                onClick={(e) => { e.preventDefault(); if (canNext) onChangePage(page + 1); }}
+                aria-disabled={!canNext}
               />
             </PaginationItem>
           </PaginationContent>

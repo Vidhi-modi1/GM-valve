@@ -76,6 +76,7 @@ export function PlanningPage() {
 
   // API data + UI state
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+  const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -217,6 +218,7 @@ export function PlanningPage() {
         console.log("✅ Orders fetched:", apiOrders.length, "records");
         // Sort so urgent items appear at top on initial load
         setOrders(sortOrders(apiOrders));
+        setFullOrders(null);
         const p = res?.data?.pagination;
         if (p) {
           const nextTotal = Number(p.total ?? apiOrders.length);
@@ -253,6 +255,111 @@ export function PlanningPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage]);
 
+  const useGlobalSearch = useMemo(() => {
+    const hasSearch = localSearchTerm.trim().length > 0;
+    const hasFilters = assemblyLineFilter !== "all" || gmsoaFilter !== "all" || partyFilter !== "all";
+    const hasDate = Boolean(dateFrom) || Boolean(dateTo);
+    return hasSearch || hasFilters || hasDate || showUrgentOnly;
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+
+  const fetchAllPages = async () => {
+    try {
+      setLoading(true);
+      const currentStage = "planning";
+      const stageLabel = getStepLabel(currentStage);
+      const first = await axios.post(
+        `${API_URL}/order-list`,
+        { menu_name: stageLabel, page: 1, per_page: perPage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const ok =
+        first?.data?.Resp_code === "true" ||
+        first?.data?.Resp_code === true ||
+        first?.data?.Resp_code === "RCS";
+      if (!ok) {
+        setFullOrders(null);
+        return;
+      }
+      const p = first?.data?.pagination;
+      const last = Number(p?.last_page || 1);
+      const requests: Promise<any>[] = [];
+      for (let pg = 1; pg <= last; pg++) {
+        requests.push(
+          axios.post(
+            `${API_URL}/order-list`,
+            { menu_name: stageLabel, page: pg, per_page: perPage },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+        );
+      }
+      const responses = await Promise.all(requests);
+      let all: AssemblyOrderData[] = [];
+      for (const r of responses) {
+        if (Array.isArray(r?.data?.data)) {
+          const chunk: AssemblyOrderData[] = r.data.data.map((item: any, index: number) => ({
+            id: String(item.id),
+            assemblyLine: item.assembly_no || "",
+            gmsoaNo: item.soa_no || "",
+            soaSrNo: item.soa_sr_no || "",
+            assemblyDate: item.assembly_date || "",
+            uniqueCode: item.unique_code || item.order_no || "",
+            splittedCode: item.splitted_code || "",
+            split_id: item.split_id || item.splitted_code || "",
+            party: item.party_name || item.party || "",
+            customerPoNo: item.customer_po_no || "",
+            codeNo: item.code_no || "",
+            product: item.product || "",
+            poQty: Number(item.po_qty ?? item.qty ?? 0),
+            qty: Number(item.qty || 0),
+            qtyExe: Number(item.qty_executed || 0),
+            qtyPending: Number(item.qty_pending || 0),
+            finishedValve: item.finished_valve || "",
+            gmLogo: item.gm_logo || "",
+            namePlate: item.name_plate || "",
+            productSpcl1: item.product_spc1 || "",
+            productSpcl2: item.product_spc2 || "",
+            productSpcl3: item.product_spc3 || "",
+            inspection: item.inspection || "",
+            painting: item.painting || "",
+            remarks: item.remarks || "",
+            alertStatus:
+              item.is_urgent === true ||
+              item.is_urgent === "true" ||
+              item.alert_status === true ||
+              item.alert_status === "true" ||
+              item.urgent === 1 ||
+              item.urgent === "1",
+            originalIndex: index,
+          }));
+          all = all.concat(chunk);
+        }
+      }
+      // Deduplicate by composite key
+      const seen = new Set<string>();
+      const makeRowKey = (o: AssemblyOrderData) => o.splittedCode || o.split_id || o.uniqueCode || o.id;
+      const deduped = all.filter((o) => {
+        const key = makeRowKey(o);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setFullOrders(sortOrders(deduped));
+    } catch (e) {
+      setFullOrders(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (useGlobalSearch) {
+      if (!fullOrders) fetchAllPages();
+    } else {
+      setFullOrders(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useGlobalSearch, perPage]);
+
   // filter option lists
   const assemblyLines = useMemo(
     () =>
@@ -277,7 +384,8 @@ export function PlanningPage() {
   );
 
   const filteredOrders = useMemo(() => {
-    let filtered = orders.slice();
+    const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+    let filtered = source.slice();
 
     if (showUrgentOnly) {
       filtered = filtered.filter(
@@ -370,6 +478,7 @@ export function PlanningPage() {
     return filtered;
   }, [
     orders,
+    fullOrders,
     localSearchTerm,
     showUrgentOnly,
     assemblyLineFilter,
@@ -380,6 +489,16 @@ export function PlanningPage() {
     dateTo,
     getAlertStatus,
   ]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
   const toggleRowSelection = (orderId: string) => {
@@ -1098,7 +1217,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
+                  {paginatedOrders.map((order) => (
                     <tr key={order.id} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
@@ -1306,8 +1425,8 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
         <TablePagination
           page={page}
           perPage={perPage}
-          total={total}
-          lastPage={lastPage}
+          total={filteredOrders.length}
+          lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
           onChangePage={setPage}
           onChangePerPage={setPerPage}
           disabled={loading}

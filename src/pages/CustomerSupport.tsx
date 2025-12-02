@@ -16,6 +16,7 @@ import {
 } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
+import TablePagination from "../components/table-pagination";
 
 // Local normalized order type (avoid components import)
 interface OrderData {
@@ -61,6 +62,8 @@ function CustomerSupport() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [apiCounts, setApiCounts] = useState<{ totalOrders?: number; totalQty?: number; completeOrders?: number; urgentOrders?: number; pendingQty?: number } | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
 
   // Real-time stage data fetched from API per pages convention
   const [dataByStage, setDataByStage] = useState<Record<string, OrderData[]>>({});
@@ -262,9 +265,18 @@ const allOrders = useMemo(() => {
       const matchesStage = selectedStage === 'all' || order.currentStage === selectedStage;
       const matchesLine = selectedAssemblyLine === 'all' || order.assemblyLine === selectedAssemblyLine;
 
-      return matchesSearch && matchesStage && matchesLine;
-    });
+    return matchesSearch && matchesStage && matchesLine;
+  });
   }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedStage, selectedAssemblyLine]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -867,7 +879,7 @@ const allOrders = useMemo(() => {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                paginatedOrders.map((order) => (
                   <tr
                     key={`${order.id}-${order.uniqueCode}-${Math.random()}`}
 
@@ -987,8 +999,18 @@ const allOrders = useMemo(() => {
               )}
             </tbody>
           </table>
+          
         </div>
       </Card>
+      <TablePagination
+            page={page}
+            perPage={perPage}
+            total={filteredOrders.length}
+            lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+            onChangePage={setPage}
+            onChangePerPage={setPerPage}
+            disabled={loading}
+          />
 
       {/* Results Summary */}
       <div className="text-center text-gray-600 text-sm">
