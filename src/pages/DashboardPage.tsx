@@ -58,6 +58,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const pollRef = useRef<number | null>(null);
 
   
+  
 
   /* ---------- KEY NORMALIZATION ---------- */
   const normalizeKey = (r: string) => {
@@ -112,7 +113,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
         ["inProgress", "inProgress"],
         ["completed", "completed"],
         ["efficiency", "efficiency"],
-        
+        ["pendingDispatch", "dispatch"],
       ];
       
       for (const [src, dest] of pairs) {
@@ -374,16 +375,21 @@ useEffect(() => {
       }}
       className="border px-3 py-1 rounded-md shadow-sm"
     /> */}
-    <input
+<input
   type="date"
-  value={selectedDate || null}
+  value={selectedDate}   // blank by default
   onChange={(e) => {
     const v = e.target.value;
-    setSelectedDate(v);
-    fetchSummary(false, v);
+
+    // Only update when full date is selected
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      setSelectedDate(v);
+      fetchSummary(false, v);
+    }
   }}
   className="border px-3 py-1 rounded-md shadow-sm"
 />
+
 
   </div>
 

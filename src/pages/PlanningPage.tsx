@@ -1155,7 +1155,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                       Splitted Code
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
                       Party
                     </th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
@@ -1164,7 +1164,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                       Code No
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-80">
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-20">
                       Product
                     </th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
@@ -1252,8 +1252,10 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.splittedCode}
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs truncate min-w-28">
+                      <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
+                        <div  style={{ width: "120px" }}>
                         {order.party}
+                        </div>
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.customerPoNo}
@@ -1262,9 +1264,16 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
                         {order.codeNo}
                       </td>
 
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 w-80">
-                        <div className="line-clamp-2">{order.product}</div>
-                      </td>
+                    <td className="px-3 py-2 text-center text-sm text-gray-900 min-w-90">
+  <div
+    className="line-clamp-2"
+    style={{ width: "300px" }}
+    title={order.product}   // 👈 shows full text on hover
+  >
+    {order.product}
+  </div>
+</td>
+
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.poQty}
                       </td>

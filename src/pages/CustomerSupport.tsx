@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Search, Download, Eye, AlertCircle, Package, Clock, CheckCircle2, XCircle, Filter, RefreshCw } from 'lucide-react';
+import { Search, Download, Eye, AlertCircle, Package, Clock, CheckCircle2, XCircle, Filter, RefreshCw, History  } from 'lucide-react';
+import { ListOrdered } from "lucide-react";
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -69,6 +70,9 @@ function CustomerSupport() {
 
   // Real-time stage data fetched from API per pages convention
   const [dataByStage, setDataByStage] = useState<Record<string, OrderData[]>>({});
+
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+const [orderHistory, setOrderHistory] = useState<any[]>([]);
 
   const token = localStorage.getItem('token');
 
@@ -263,6 +267,42 @@ const stageKey = rawStage
     }
   };
 
+const fetchOrderHistory = async (order: OrderData) => {
+  try {
+    const res = await axios.post(
+      `${API_URL}/order-history`,
+      {
+        per_page: 20,
+        current_page: 1,
+        orderId: order.id
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const splits = res?.data?.splits || {};
+    const historyList = Object.values(splits).flat();
+
+    // ❌ If no data → Don't open modal
+    if (historyList.length === 0) {
+      setOrderHistory([]);
+      return; // ← STOP HERE (modal will NOT open)
+    }
+
+    // ✔ If data exists → open modal
+    setOrderHistory(historyList);
+    setShowHistoryDialog(true);
+
+  } catch (err) {
+    console.error("Error fetching order history", err);
+
+    // 💡 Do not open modal on error too
+    setOrderHistory([]);
+  }
+};
+
+
+
+
   // Temporary frontend fallback: if all stage-specific calls return empty (often due to role restrictions),
   // try a single aggregated GET /order-list so Customer Support can still see data.
   const fetchAllOrdersFallback = async (): Promise<OrderData[]> => {
@@ -288,78 +328,6 @@ const stageKey = rawStage
 
   const inFlightRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-//   const reloadData = async () => {
-//     if (inFlightRef.current) return;
-//     inFlightRef.current = true;
-//     setIsRefreshing(true);
-//     setLoading(true);
-//     setError(null);
-//     const next: Record<string, OrderData[]> = {};
-//     try {
-// //    const res = await axios.post(
-// //   CUSTOMER_SUPPORT_ENDPOINT,
-// //   {
-// //     per_page: perPage,
-// //     current_page: page,
-// //     stage: selectedStage === "all" ? "" : getStepLabel(selectedStage)
-// //   },
-// //   { headers: { Authorization: `Bearer ${token}` } }
-// // );
-// const stageLabel =
-//   selectedStage === "all"
-//     ? ""
-//     : getStepLabel(selectedStage); // <-- Converts key → label
-
-// const res = await axios.post(
-//   CUSTOMER_SUPPORT_ENDPOINT,
-//   {
-//     per_page: perPage,
-//     current_page: page,
-//     stage: stageLabel
-//   },
-//   { headers: { Authorization: `Bearer ${token}` } }
-// );
-
-
-
-//       const raw = Array.isArray(res?.data?.data)
-//         ? res.data.data
-//         : [];
-
-//       const orders = (raw as any[]).map(mapApiItemToOrder);
-//       setApiCounts(res?.data?.counts || null);
-//      try {
-//   const raw = Array.isArray(res?.data?.data)
-//     ? res.data.data
-//     : [];
-
-//   const orders = (raw as any[]).map(mapApiItemToOrder);
-//   setApiCounts(res?.data?.counts || null);
-
-//   // ⭐ FIX: group orders by their actual stage
-//   orders.forEach(order => {
-//     const stageKey = (order.stage || "")
-//       .toLowerCase()
-//       .replace(/\s+/g, "-");
-
-//     if (!next[stageKey]) next[stageKey] = [];
-//     next[stageKey].push(order);
-//   });
-
-//     } catch (e) {
-//       console.warn("GET /customer-support failed", e);
-//     }
-
-//     } catch (e) {
-//       console.warn('GET /customer-support failed', e);
-//       next['planning'] = [];
-//     }
-//     setDataByStage(next);
-//     setLoading(false);
-//     setIsRefreshing(false);
-//     inFlightRef.current = false;
-//   };
 
 const reloadData = async () => {
 
@@ -723,9 +691,6 @@ const allOrders = useMemo(() => {
         { header: 'TPI', key: 'tpi', width: 10 },
         { header: 'Dispatch', key: 'dispatch', width: 12 },
       ];
-
-      // Note: The default header is added at row 1 by worksheet.columns
-      // We need to move it to row 4 and add our custom date/time rows
       
       // Insert rows at the top to shift headers down
       worksheet.spliceRows(1, 0, [], [], []); // Insert 3 blank rows
@@ -912,6 +877,8 @@ const allOrders = useMemo(() => {
     return colors[stage] || 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
+  
+
   const getProgressPercentage = (order: OrderData) => {
     return order.totalQty > 0 ? Math.round((order.qtyExe / order.totalQty) * 100) : 0;
   };
@@ -969,7 +936,7 @@ const v =
     if (status === 'IN PROCESS') {
       return (
         <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 border-blue-200 rounded text-xs font-medium">
+          <span className="px-2 py-1 bg-purple-100 text-purple-700 border-purple-200 rounded text-xs font-medium">
             In Progress
           </span>
         </div>
@@ -1129,19 +1096,19 @@ const v =
           <table className="w-full">
             <thead>
               <tr className="bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-gray-700 sticky left-0 bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 z-10 ctm-opacity">Assembly Line</th>
-                <th className="px-4 py-3 text-left text-gray-700">GMSOA NO.</th>
-                <th className="px-4 py-3 text-left text-gray-700">SOA SR NO.</th>
-                <th className="px-4 py-3 text-center text-gray-700">Assembly Date</th>
-                <th className="px-4 py-3 text-left text-gray-700">Unique Code</th>
-                <th className="px-4 py-3 text-left text-gray-700">Party</th>
-                <th className="px-4 py-3 text-left text-gray-700">Order No.</th>
-                <th className="px-4 py-3 text-left text-gray-700">Code No.</th>
-                <th className="px-4 py-3 text-left text-gray-700">Product</th>
-                <th className="px-4 py-3 text-center text-gray-700">PO Qty</th>
-                <th className="px-4 py-3 text-center text-gray-700 bg-sky-50/80">Expected Delivery Date</th>
-                <th className="px-4 py-3 text-center text-gray-700">Qty</th>
-                <th className="px-4 py-3 text-center text-gray-700">Qty Executed</th>
+                <th className="px-4 py-3 text-center text-gray-700 sticky left-0 bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 z-10 ctm-opacity">Assembly Line</th>
+                <th className="px-4 py-3 text-gray-700 truncate text-center">GMSOA NO.</th>
+                <th className="px-4 py-3 text-gray-700 text-center truncate">SOA SR NO.</th>
+                <th className="px-4 py-3 text-center text-gray-700 truncate text-center">Assembly Date</th>
+                <th className="px-4 py-3 text-gray-700 truncate text-center">Unique Code</th>
+                <th className="px-4 py-3 text-gray-700 truncate text-center">Party</th>
+                <th className="px-4 py-3 text-gray-700 truncate text-center">Order No.</th>
+                <th className="px-4 py-3 text-gray-700 truncate text-center">Code No.</th>
+                <th className="px-4 py-3 text-gray-700 truncate text-center">Product</th>
+                <th className="px-4 py-3 text-center text-gray-700 truncate text-center">PO Qty</th>
+                <th className="px-4 py-3 text-center text-gray-700 bg-sky-50/80 truncate text-center">Expected Delivery Date</th>
+                <th className="px-4 py-3 text-center text-gray-700 truncate text-center">Qty</th>
+                <th className="px-4 py-3 text-center text-gray-700 truncate text-center">Qty Executed</th>
                 <th className="px-4 py-3 text-center text-gray-700">Qty Pending</th>
                 <th className="px-4 py-3 text-center text-gray-700 bg-blue-50/80">Planning</th>
                 <th className="px-4 py-3 text-center text-gray-700 bg-purple-50/80">Material Issue</th>
@@ -1196,14 +1163,14 @@ const v =
                         </Badge>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{order.gmsoaNo}</td>
-                    <td className="px-4 py-3 text-gray-700">{order.soaSrNo}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{order.gmsoaNo}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{order.soaSrNo}</td>
                     <td className="px-4 py-3 text-center text-gray-700 truncate">{order.assemblyDate}</td>
-                    <td className="px-4 py-3 text-gray-700 truncate">{order.uniqueCode}</td>
-                    <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{order.party}</td>
-                    <td className="px-4 py-3 text-gray-700">{order.customerPoNo}</td>
-                    <td className="px-4 py-3 text-gray-700">{order.codeNo}</td>
-                    <td className="px-4 py-3 text-gray-700 max-w-[300px] truncate" title={order.product}>
+                    <td className="px-4 py-3 text-center text-gray-700 truncate">{order.uniqueCode}</td>
+                    <td className="px-4 py-3 text-center text-gray-700 max-w-[200px] truncate">{order.party}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{order.customerPoNo}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{order.codeNo}</td>
+                    <td className="px-4 py-3 text-center text-gray-700 max-w-[300px] truncate" title={order.product}>
                       {order.product}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -1240,58 +1207,58 @@ const v =
                         {order.qtyPending}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 bg-blue-50/30">
+                    <td className="px-4 py-3 bg-blue-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('planning')))}
                     </td>
-                    <td className="px-4 py-3 bg-purple-50/30">
+                    <td className="px-4 py-3 bg-purple-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('material-issue')))}
                     </td>
-                    <td className="px-4 py-3 bg-yellow-50/30">
+                    <td className="px-4 py-3 bg-yellow-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('semi-qc')))}
                     </td>
-                    <td className="px-4 py-3 bg-orange-50/30">
+                    <td className="px-4 py-3 bg-orange-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('phosphating')))}
                     </td>
-                    <td className="px-4 py-3 bg-indigo-50/30">
+                    <td className="px-4 py-3 bg-indigo-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('assembly-a')))}
                     </td>
-                    <td className="px-4 py-3 bg-indigo-50/30">
+                    <td className="px-4 py-3 bg-indigo-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('assembly-b')))}
                     </td>
-                    <td className="px-4 py-3 bg-indigo-50/30">
+                    <td className="px-4 py-3 bg-indigo-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('assembly-c')))}
                     </td>
-                    <td className="px-4 py-3 bg-indigo-50/30">
+                    <td className="px-4 py-3 bg-indigo-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('assembly-d')))}
                     </td>
-                    <td className="px-4 py-3 bg-pink-50/30">
+                    <td className="px-4 py-3 bg-pink-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('testing1')))}
                     </td>
-                    <td className="px-4 py-3 bg-pink-50/30">
+                    <td className="px-4 py-3 bg-pink-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('testing2')))}
                     </td>
-                    <td className="px-4 py-3 bg-green-50/30">
+                    <td className="px-4 py-3 bg-green-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('svs')))}
                     </td>
-                    <td className="px-4 py-3 bg-teal-50/30">
+                    <td className="px-4 py-3 bg-teal-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('marking1')))}
                     </td>
-                    <td className="px-4 py-3 bg-teal-50/30">
+                    <td className="px-4 py-3 bg-teal-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('marking2')))}
                     </td>
-                    <td className="px-4 py-3 bg-gray-50/30">
+                    <td className="px-4 py-3 bg-gray-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('pdi1')))}
                     </td>
-                    <td className="px-4 py-3 bg-gray-50/30">
+                    <td className="px-4 py-3 bg-gray-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('pdi2')))}
                     </td>
-                    <td className="px-4 py-3 bg-rose-50/30">
+                    <td className="px-4 py-3 bg-rose-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('tpi')))}
                     </td>
-                    <td className="px-4 py-3 bg-emerald-50/30">
+                    <td className="px-4 py-3 bg-emerald-50/30 truncate">
                       {renderStageCell(getStageStatus(order, getStepLabel('dispatch')))}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center truncate">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1300,14 +1267,15 @@ const v =
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                     {/* <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleViewHistory(order)}
-                      className="hover:bg-[#174a9f]/10 hover:text-[#174a9f]"
-                    >
-                      <History className="h-4 w-4" />
-                    </Button> */}
+                     <Button
+  size="sm"
+  variant="ghost"
+  onClick={() => fetchOrderHistory(order)}
+  className="hover:bg-[#174a9f]/10 hover:text-[#174a9f]"
+>
+  <History className="h-4 w-4" />
+</Button>
+
                     </td>
                   </tr>
                 ))
@@ -1580,6 +1548,106 @@ const v =
           )}
         </DialogContent>
       </Dialog>
+
+{/* HISTORY DIALOG – TABLE VERSION */}
+<Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+  <DialogContent className="max-w-[800px] w-full modal-main overflow-y-auto rounded-xl shadow-lg">
+    
+    <DialogHeader>
+      <DialogTitle className="text-xl flex items-center gap-2">
+        <History className="h-5 w-5 text-[#174a9f]" />
+        Order History
+      </DialogTitle>
+      <DialogDescription className="text-gray-600">
+        Stage-by-stage workflow with timestamps and quantities.
+      </DialogDescription>
+    </DialogHeader>
+
+    {/* Table Container */}
+    <div className="border rounded-lg bg-white">
+
+      {/* TABLE */}
+      <table className="w-full border-collapse">
+        {/* TABLE HEAD */}
+        <thead className="bg-gray-100 text-gray-700 text-sm border-b">
+          <tr>
+            <th className="px-4 py-3 text-left w-[40%]">Stage / Time</th>
+            <th className="px-4 py-3 text-center w-[20%]">Qty</th>
+            <th className="px-4 py-3 text-center w-[20%]">Assigned</th>
+            <th className="px-4 py-3 text-center w-[20%]">Duration</th>
+          </tr>
+        </thead>
+
+        {/* TABLE BODY SCROLL AREA */}
+      </table>
+
+      <div className="max-h-[60vh] overflow-y-auto">
+        <table className="w-full border-collapse">
+          <tbody className="text-sm">
+
+            {orderHistory.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center text-gray-500 py-4">
+                  No history found
+                </td>
+              </tr>
+            ) : (
+              orderHistory.map((h, i) => (
+                <tr
+                  key={i}
+                  className="border-b hover:bg-blue-50/40 transition"
+                >
+                  {/* Stage + Time */}
+                  <td className="px-4 py-4 align-top">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium border ${getStageColor(
+                        h.currentStage
+                      )}`}
+                    >
+                      {h.currentStage}
+                    </span>
+
+                    <div className="text-xs text-gray-700 mt-1">
+                      <div>{h.entered}</div>
+                      {h.exited && <div>{h.exited}</div>}
+                    </div>
+                  </td>
+
+                  {/* Qty */}
+                  <td className="px-4 py-4 text-center">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
+                      {h.qty}
+                    </span>
+                  </td>
+
+                  {/* Assigned Qty */}
+                  <td className="px-4 py-4 text-center">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
+                      {h.assigned_qty}
+                    </span>
+                  </td>
+
+                  {/* Duration */}
+                  <td className="px-4 py-4 text-center">
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-medium">
+                      {h.duration}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </DialogContent>
+</Dialog>
+
+
+
+
     </div>
   );
 }

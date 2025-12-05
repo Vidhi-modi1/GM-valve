@@ -890,14 +890,14 @@ const handleAssignOrder = async () => {
                     </button>
                   </th>
 
-                  <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-32">Assembly Line</th>
+                  <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">Assembly Line</th>
                   <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">GMSOA NO.</th>
                   <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">SOA Sr. No.</th>
                   <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Assembly Date</th>
 
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-36">Unique Code</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Splitted Code</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Party</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">Party</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Customer PO No.</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Code No</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-80">Product</th>
@@ -929,7 +929,7 @@ const handleAssignOrder = async () => {
                       />
                     </td>
 
-                    <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 min-w-32">
+                    <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 w-20">
                       <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
                         {order.assemblyLine}
                       </Badge>
@@ -941,12 +941,15 @@ const handleAssignOrder = async () => {
 
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 font-mono min-w-36">{order.uniqueCode}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.splittedCode}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">{order.party}</td>
+                    <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs"><div  style={{ width: "120px" }}>{order.party}</div></td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.customerPoNo}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.codeNo}</td>
 
                     <td className="px-3 py-2 text-center text-sm text-gray-900 w-80">
-                      <div className="line-clamp-2">{order.product}</div>
+                      <div className="line-clamp-2"
+                          style={{ width: "300px" }}
+                          title={order.product}
+                        >{order.product}</div>
                     </td>
 
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.totalQty}</td>
