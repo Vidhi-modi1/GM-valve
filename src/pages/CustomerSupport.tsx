@@ -26,6 +26,7 @@ interface OrderData {
   soaSrNo: string;
   assemblyDate: string;
   uniqueCode: string;
+  poQty: number;
   splittedCode: string;
   party: string;
   customerPoNo: string;
@@ -46,6 +47,7 @@ interface OrderData {
   remarks: string;
   alertStatus: boolean;
   expectedDeliveryDate?: string;
+  stage?: string;
   workflowHistory?: Array<{ stage: string; enteredAt: string; exitedAt?: string; qtyProcessed: number }>;
   stageProgress?: Record<string, string>;
 }
@@ -82,47 +84,160 @@ function CustomerSupport() {
       }
     } catch {}
 
-    const keys = role.includes("customer-support")
-      ? ["planning"]
-      : getAllWorkflowSteps();
+    const keys = getAllWorkflowSteps();
     return keys.map((key) => ({ key, display: getStepLabel(key) }));
   }, []);
 
-  const mapApiItemToOrder = (item: any): OrderData => ({
-  id: String(item.id),
-  assemblyLine: item.assembly_no || '',
-  gmsoaNo: item.soa_no || '',
-  soaSrNo: item.soa_sr_no || '',
-  assemblyDate: item.assembly_date || '',
-  uniqueCode: item.unique_code || item.order_no || '',
-  splittedCode: item.splitted_code || '',
-  party: item.party_name || item.party || '',
-  customerPoNo: item.customer_po_no || '',
-  codeNo: item.code_no || '',
-  product: item.product || '',
-  totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
-  qty: Number(item.qty || 0),
-  qtyExe: Number(item.qty_executed || 0),
-  qtyPending: Number(item.qty_pending || 0),
-  finishedValve: item.finished_valve || '',
-  gmLogo: item.gm_logo || '',
-  namePlate: item.name_plate || '',
-  productSpcl1: item.product_spc1 || '',
-  productSpcl2: item.product_spc2 || '',
-  productSpcl3: item.product_spc3 || '',
-  inspection: item.inspection || '',
-  painting: item.painting || '',
-  remarks: item.remarks || '',
-  alertStatus:
-    item.is_urgent === true ||
-    item.is_urgent === 'true' ||
-    item.alert_status === true ||
-    item.alert_status === 'true' ||
-    item.urgent === 1 ||
-    item.urgent === '1',
-  workflowHistory: item.workflowHistory || [],
-  stageProgress: item.stage_progress || {},
+// const mapApiItemToOrder = (item: any): OrderData => {
+  
+//   // Backend sends stage only in 'status'
+//   const rawStage =
+//     item.status ||
+//     item.stage ||
+//     item.stage_name ||
+//     item.current_stage ||
+//     item.menu_name ||
+//     "";
+
+//   // Normalize → material-issue, semi-qc, svs, etc.
+//   const stageKey = rawStage
+//     .trim()
+//     .toLowerCase()
+//     .replace(/\s+/g, "-");
+
+//   return {
+//     id: String(item.id),
+//     assemblyLine: item.assembly_no || '',
+//     gmsoaNo: item.soa_no || '',
+//     soaSrNo: item.soa_sr_no || '',
+//     assemblyDate: item.assembly_date || '',
+
+//     uniqueCode: item.unique_code || item.order_no || '',
+
+//     splittedCode: item.splitted_code || '',
+//     party: item.party_name || item.party || '',
+//     customerPoNo: item.customer_po_no || '',
+//     codeNo: item.code_no || '',
+//     product: item.product || '',
+//     totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
+//     qty: Number(item.qty || 0),
+//     qtyExe: Number(item.qty_executed || 0),
+//     qtyPending: Number(item.qty_pending || 0),
+//     poQty: Number(item.po_qty || 0),
+
+//     finishedValve: item.finished_valve || '',
+//     gmLogo: item.gm_logo || '',
+//     namePlate: item.name_plate || '',
+//     productSpcl1: item.product_spc1 || '',
+//     productSpcl2: item.product_spc2 || '',
+//     productSpcl3: item.product_spc3 || '',
+//     inspection: item.inspection || '',
+//     painting: item.painting || '',
+//     remarks: item.remarks || '',
+
+//     alertStatus:
+//       item.is_urgent === true ||
+//       item.is_urgent === 'true' ||
+//       item.alert_status === true ||
+//       item.alert_status === 'true' ||
+//       item.urgent === 1 ||
+//       item.urgent === '1',
+
+//     expectedDeliveryDate:
+//       item.expected_delivery_date ||
+//       item.expectedDeliveryDate ||
+//       item.delivery_date ||
+//       '',
+
+//     stage: rawStage,     // Human readable (ex: "Material Issue")
+//     stageKey: stageKey,  // Normalized (ex: "material-issue")
+
+//     workflowHistory: item.workflowHistory || [],
+//     stageProgress: item.stage_progress || {},
+//   };
+// };
+
+const mapApiItemToOrder = (item: any): OrderData => {
+  // Backend sends stage only in 'status'
+  const rawStage =
+    item.status ||
+    item.stage ||
+    item.stage_name ||
+    item.current_stage ||
+    item.menu_name ||
+    "";
+
+  // ⭐ Strong normalization → material-issue, assembly-a, semi-qc, etc.
+const stageKey = rawStage
+  .replace(/-/g, " ")          // Assembly-A → Assembly A
+  .replace(/\s+/g, " ")        // remove extra spaces
+  .trim()
+  .toLowerCase()
+  .replace(/ /g, "-");         // Assembly A → assembly-a
+
+  // ⭐ Normalize backend stage_progress keys
+  const cleanedProgress: Record<string, string> = {};
+  Object.entries(item.stage_progress || {}).forEach(([key, value]) => {
+    const normalized = key
+      .replace(/-/g, " ")        // Remove hyphens
+      .replace(/\s+/g, " ")      // Collapse multiple spaces
+      .trim();                   // Remove edges
+
+    cleanedProgress[normalized] = value;
   });
+
+  return {
+    id: String(item.id),
+    assemblyLine: item.assembly_no || '',
+    gmsoaNo: item.soa_no || '',
+    soaSrNo: item.soa_sr_no || '',
+    assemblyDate: item.assembly_date || '',
+
+    uniqueCode: item.unique_code || item.order_no || '',
+
+    splittedCode: item.splitted_code || '',
+    party: item.party_name || item.party || '',
+    customerPoNo: item.customer_po_no || '',
+    codeNo: item.code_no || '',
+    product: item.product || '',
+    totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
+    qty: Number(item.qty || 0),
+    qtyExe: Number(item.qty_executed || 0),
+    qtyPending: Number(item.qty_pending || 0),
+    poQty: Number(item.po_qty || 0),
+
+    finishedValve: item.finished_valve || '',
+    gmLogo: item.gm_logo || '',
+    namePlate: item.name_plate || '',
+    productSpcl1: item.product_spc1 || '',
+    productSpcl2: item.product_spc2 || '',
+    productSpcl3: item.product_spc3 || '',
+    inspection: item.inspection || '',
+    painting: item.painting || '',
+    remarks: item.remarks || '',
+
+    alertStatus:
+      item.is_urgent === true ||
+      item.is_urgent === 'true' ||
+      item.alert_status === true ||
+      item.alert_status === 'true' ||
+      item.urgent === 1 ||
+      item.urgent === '1',
+
+    expectedDeliveryDate:
+      item.expected_delivery_date ||
+      item.expectedDeliveryDate ||
+      item.delivery_date ||
+      '',
+
+    stage: rawStage,         // Human readable (ex: "Material Issue")
+    stageKey: stageKey,      // Normalized (ex: "material-issue")
+
+    workflowHistory: item.workflowHistory || [],
+    stageProgress: cleanedProgress,   // ⭐ FINAL FIX
+  };
+};
+
 
   const fetchStage = async (stageKey: string): Promise<OrderData[]> => {
     try {
@@ -174,41 +289,164 @@ function CustomerSupport() {
   const inFlightRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const reloadData = async () => {
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    setIsRefreshing(true);
-    setLoading(true);
-    setError(null);
-    const next: Record<string, OrderData[]> = {};
-    try {
-     const res = await axios.post(
+//   const reloadData = async () => {
+//     if (inFlightRef.current) return;
+//     inFlightRef.current = true;
+//     setIsRefreshing(true);
+//     setLoading(true);
+//     setError(null);
+//     const next: Record<string, OrderData[]> = {};
+//     try {
+// //    const res = await axios.post(
+// //   CUSTOMER_SUPPORT_ENDPOINT,
+// //   {
+// //     per_page: perPage,
+// //     current_page: page,
+// //     stage: selectedStage === "all" ? "" : getStepLabel(selectedStage)
+// //   },
+// //   { headers: { Authorization: `Bearer ${token}` } }
+// // );
+// const stageLabel =
+//   selectedStage === "all"
+//     ? ""
+//     : getStepLabel(selectedStage); // <-- Converts key → label
+
+// const res = await axios.post(
+//   CUSTOMER_SUPPORT_ENDPOINT,
+//   {
+//     per_page: perPage,
+//     current_page: page,
+//     stage: stageLabel
+//   },
+//   { headers: { Authorization: `Bearer ${token}` } }
+// );
+
+
+
+//       const raw = Array.isArray(res?.data?.data)
+//         ? res.data.data
+//         : [];
+
+//       const orders = (raw as any[]).map(mapApiItemToOrder);
+//       setApiCounts(res?.data?.counts || null);
+//      try {
+//   const raw = Array.isArray(res?.data?.data)
+//     ? res.data.data
+//     : [];
+
+//   const orders = (raw as any[]).map(mapApiItemToOrder);
+//   setApiCounts(res?.data?.counts || null);
+
+//   // ⭐ FIX: group orders by their actual stage
+//   orders.forEach(order => {
+//     const stageKey = (order.stage || "")
+//       .toLowerCase()
+//       .replace(/\s+/g, "-");
+
+//     if (!next[stageKey]) next[stageKey] = [];
+//     next[stageKey].push(order);
+//   });
+
+//     } catch (e) {
+//       console.warn("GET /customer-support failed", e);
+//     }
+
+//     } catch (e) {
+//       console.warn('GET /customer-support failed', e);
+//       next['planning'] = [];
+//     }
+//     setDataByStage(next);
+//     setLoading(false);
+//     setIsRefreshing(false);
+//     inFlightRef.current = false;
+//   };
+
+const reloadData = async () => {
+
+  if (inFlightRef.current) return;
+  inFlightRef.current = true;
+  setIsRefreshing(true);
+  setLoading(true);
+  setError(null);
+
+  const next: Record<string, OrderData[]> = {};
+
+  try {
+    const stageLabel =
+      selectedStage === "all"
+        ? ""
+        : getStepLabel(selectedStage);
+
+    const res = await axios.post(
       CUSTOMER_SUPPORT_ENDPOINT,
-      {}, // body is optional but safest to keep
+      {
+        per_page: perPage,
+        current_page: page,
+        menu_name: stageLabel
+
+      },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-      const raw = Array.isArray(res?.data?.data)
-        ? res.data.data
-        : [];
+    const raw = Array.isArray(res?.data?.data)
+      ? res.data.data
+      : [];
 
-      const orders = (raw as any[]).map(mapApiItemToOrder);
-      setApiCounts(res?.data?.counts || null);
-      next['planning'] = orders;
+    const orders = (raw as any[]).map(mapApiItemToOrder);
+    setApiCounts(res?.data?.counts || null);
+
+    // ⭐ FIX: store orders by REAL stage
+    orders.forEach(order => {
+      if (!next[order.stageKey]) next[order.stageKey] = [];
+  next[order.stageKey].push(order);
+    });
+
+  } catch (e) {
+    console.warn("GET /customer-support failed", e);
+  }
+
+  setDataByStage(next);
+  setLoading(false);
+  setIsRefreshing(false);
+  inFlightRef.current = false;
+};
+
+  const saveDeliveryDate = async (order: OrderData, date: string) => {
+    try {
+      const form = new FormData();
+      form.append('orderId', String(order.id));
+      form.append('unique_code', String(order.uniqueCode));
+      form.append('date', date);
+      const res = await axios.post(
+        `${API_URL}/add-delivery-date`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const ok =
+        res?.data?.Resp_code === 'true' ||
+        res?.data?.Resp_code === true ||
+        res?.data?.status === true;
+      if (ok) {
+        setDataByStage(prev => {
+          const cur = prev['planning'] || [];
+          const updated = cur.map(o =>
+            o.uniqueCode === order.uniqueCode ? { ...o, expectedDeliveryDate: date } : o
+          );
+          return { ...prev, planning: updated };
+        });
+        setEditingDeliveryDate(prev => {
+          const next = { ...prev };
+          delete next[order.uniqueCode];
+          return next;
+        });
+      }
     } catch (e) {
-      console.warn('GET /customer-support failed', e);
-      next['planning'] = [];
     }
-    setDataByStage(next);
-    setLoading(false);
-    setIsRefreshing(false);
-    inFlightRef.current = false;
   };
-  useEffect(() => {
-    let mounted = true;
-    reloadData();
-    return () => { mounted = false; };
-  }, [stages]);
+useEffect(() => {
+  reloadData();
+}, [selectedStage, selectedAssemblyLine, page, perPage]);
+
 
   // Aliases to keep existing logic compatible
   const planningOrders = dataByStage['planning'] || [];
@@ -225,7 +463,9 @@ function CustomerSupport() {
     ...assemblyCOrders,
     ...assemblyDOrders,
   ];
-  const testingOrders = [...(dataByStage['testing1'] || []), ...(dataByStage['testing2'] || [])];
+  // const testingOrders = [...(dataByStage['testing1'] || []), ...(dataByStage['testing2'] || [])];
+    const testing1Orders = dataByStage['testing1'] || [];
+      const testing2Orders = dataByStage['testing2'] || [];
   const svsOrders = dataByStage['svs'] || [];
   const markingOrders = [...(dataByStage['marking1'] || []), ...(dataByStage['marking2'] || [])];
   const pdi1Orders = dataByStage['pdi1'] || [];
@@ -234,40 +474,76 @@ function CustomerSupport() {
   const dispatchOrders = dataByStage['dispatch'] || [];
 
   // Consolidate all orders from all stages
-const allOrders = useMemo(() => {
-  return (dataByStage["planning"] || []).map(order => {
-    // REAL stage from API
-    const stageLabel = getStepLabel(
-      (order.status || "").toLowerCase().replace(/\s+/g, "-")
-    );
+// const allOrders = useMemo(() => {
+//   return (dataByStage["planning"] || []).map(order => {
+//     const stageLabel = order.stage
+//       ? getStepLabel(order.stage)
+//       : getStepLabel((order as any).status || "");
 
-    return {
+//     return {
+//       ...order,
+//       currentStage: stageLabel || "Unknown"
+//     };
+//   });
+// }, [dataByStage]);
+const allOrders = useMemo(() => {
+  return Object.values(dataByStage)
+    .flat()
+    .map(order => ({
       ...order,
-      currentStage: stageLabel || "Unknown"
-    };
-  });
+      stageKey: order.stageKey,                    // already computed
+      currentStage: getStepLabel(order.stageKey),  // Human display
+    }));
 }, [dataByStage]);
 
 
 
-  // Filter orders
-  const filteredOrders = useMemo(() => {
-    return allOrders.filter(order => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        order.uniqueCode.toLowerCase().includes(searchLower) ||
-        order.gmsoaNo.toLowerCase().includes(searchLower) ||
-        order.party.toLowerCase().includes(searchLower) ||
-        order.customerPoNo.toLowerCase().includes(searchLower) ||
-        order.product.toLowerCase().includes(searchLower) ||
-        order.codeNo.toLowerCase().includes(searchLower);
 
-      const matchesStage = selectedStage === 'all' || order.currentStage === selectedStage;
-      const matchesLine = selectedAssemblyLine === 'all' || order.assemblyLine === selectedAssemblyLine;
+
+
+  // Filter orders
+  // const filteredOrders = useMemo(() => {
+  //   return allOrders.filter(order => {
+  //     const searchLower = searchTerm.toLowerCase();
+  //     const matchesSearch = 
+  //       order.uniqueCode.toLowerCase().includes(searchLower) ||
+  //       order.gmsoaNo.toLowerCase().includes(searchLower) ||
+  //       order.party.toLowerCase().includes(searchLower) ||
+  //       order.customerPoNo.toLowerCase().includes(searchLower) ||
+  //       order.product.toLowerCase().includes(searchLower) ||
+  //       order.codeNo.toLowerCase().includes(searchLower);
+
+  //    const matchesStage =
+  // selectedStage === "all" ||
+  // order.stageKey === selectedStage;
+  //     const matchesLine = selectedAssemblyLine === 'all' || order.assemblyLine === selectedAssemblyLine;
+
+  //   return matchesSearch && matchesStage && matchesLine;
+  // });
+  // }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+  const filteredOrders = useMemo(() => {
+  return allOrders.filter(order => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      order.uniqueCode.toLowerCase().includes(searchLower) ||
+      order.gmsoaNo.toLowerCase().includes(searchLower) ||
+      order.party.toLowerCase().includes(searchLower) ||
+      order.customerPoNo.toLowerCase().includes(searchLower) ||
+      order.product.toLowerCase().includes(searchLower) ||
+      order.codeNo.toLowerCase().includes(searchLower);
+
+    const matchesStage =
+      selectedStage === "all" ||
+      order.stageKey === selectedStage;    // ✔ Corrected
+
+    const matchesLine =
+      selectedAssemblyLine === "all" ||
+      order.assemblyLine === selectedAssemblyLine;
 
     return matchesSearch && matchesStage && matchesLine;
   });
-  }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+}, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -295,7 +571,8 @@ const allOrders = useMemo(() => {
     const assemblyBPending = assemblyBOrders.reduce((sum, order) => sum + order.qtyPending, 0);
     const assemblyCPending = assemblyCOrders.reduce((sum, order) => sum + order.qtyPending, 0);
     const assemblyDPending = assemblyDOrders.reduce((sum, order) => sum + order.qtyPending, 0);
-    const testingPending = testingOrders.reduce((sum, order) => sum + order.qtyPending, 0);
+    const testingPending = testing1Orders.reduce((sum, order) => sum + order.qtyPending, 0);
+       const testingPending2 = testing2Orders.reduce((sum, order) => sum + order.qtyPending, 0);
     const svsPending = svsOrders.reduce((sum, order) => sum + order.qtyPending, 0);
     const markingPending = markingOrders.reduce((sum, order) => sum + order.qtyPending, 0);
     const testing1Pending = (dataByStage['testing1'] || []).reduce((sum, order) => sum + order.qtyPending, 0);
@@ -355,6 +632,7 @@ const allOrders = useMemo(() => {
       assemblyCPending,
       assemblyDPending,
       testingPending,
+      testingPending2,
       svsPending,
       markingPending,
       testing1Pending,
@@ -615,6 +893,7 @@ const allOrders = useMemo(() => {
       'Planning': 'bg-blue-100 text-blue-700 border-blue-200',
       'Material Issue': 'bg-purple-100 text-purple-700 border-purple-200',
       'Semi QC': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'Phosphating': 'bg-orange-100 text-orange-700 border-orange-200',
       'Phosphating QC': 'bg-orange-100 text-orange-700 border-orange-200',
       'Assembly A': 'bg-indigo-100 text-indigo-700 border-indigo-200',
       'Assembly B': 'bg-indigo-100 text-indigo-700 border-indigo-200',
@@ -638,22 +917,33 @@ const allOrders = useMemo(() => {
   };
 
   // Get stage status for an order
-  const toProgressKey = (label: string) => {
-    if (label === 'Phosphating QC') return 'Phosphating';
-    if (label === 'Testing1') return 'Testing 1';
-    if (label === 'Testing2') return 'Testing 2';
-    if (label === 'Marking1') return 'Marking 1';
-    if (label === 'Marking2') return 'Marking 2';
-    if (label === 'PDI1') return 'PDI 1';
-    if (label === 'PDI2') return 'PDI 2';
-    return label;
-  };
+ const toProgressKey = (label: string) => {
+  if (label === 'Phosphating QC') return 'Phosphating';
+  return label;
+};
 
   const getStageStatus = (order: OrderData & { currentStage: string }, stage: string) => {
-    const key = toProgressKey(stage);
     const sp = order.stageProgress || {};
-    const v = sp[key];
-    if (v === 'ok' || v === 'pending') return v;
+    const key = toProgressKey(stage);
+   const normalizedStage = stage
+  .replace(/-/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+  console.log("ACTUAL PROGRESS KEYS:", Object.keys(order.stageProgress));
+
+
+const v =
+  sp[normalizedStage] ||                 // Assembly D
+  sp[normalizedStage.toUpperCase()] ||   // ASSEMBLY D
+  sp[normalizedStage.toLowerCase()] ||   // assembly d
+  sp[key];
+
+    if (v != null) {
+      const vNorm = String(v).trim().toLowerCase().replace(/\s+/g, '_');
+      if (vNorm === 'ok') return 'OK';
+      if (vNorm === 'pending') return 'pending';
+      if (vNorm === 'in_progress' || vNorm === 'inprogress') return 'IN PROCESS';
+    }
     if (!order.workflowHistory) return '';
     const stageIndex = order.workflowHistory.findIndex(w => w.stage === stage);
     if (stageIndex === -1) return '';
@@ -676,7 +966,16 @@ const allOrders = useMemo(() => {
         </div>
       );
     }
-    if (status === 'IN PROCESS' || status === 'pending') {
+    if (status === 'IN PROCESS') {
+      return (
+        <div className="flex items-center justify-center">
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 border-blue-200 rounded text-xs font-medium">
+            In Progress
+          </span>
+        </div>
+      );
+    }
+    if (status === 'pending') {
       return (
         <div className="flex items-center justify-center">
           <span className="px-2 py-1 bg-blue-100 text-blue-700 border-blue-200 rounded text-xs font-medium">
@@ -804,7 +1103,7 @@ const allOrders = useMemo(() => {
             <SelectContent>
               <SelectItem value="all">All Stages</SelectItem>
               {stages.map((s) => (
-                <SelectItem key={s.key} value={s.display}>{s.display}</SelectItem>
+                <SelectItem key={s.key} value={s.key}>{s.display}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -834,10 +1133,12 @@ const allOrders = useMemo(() => {
                 <th className="px-4 py-3 text-left text-gray-700">GMSOA NO.</th>
                 <th className="px-4 py-3 text-left text-gray-700">SOA SR NO.</th>
                 <th className="px-4 py-3 text-center text-gray-700">Assembly Date</th>
+                <th className="px-4 py-3 text-left text-gray-700">Unique Code</th>
                 <th className="px-4 py-3 text-left text-gray-700">Party</th>
                 <th className="px-4 py-3 text-left text-gray-700">Order No.</th>
                 <th className="px-4 py-3 text-left text-gray-700">Code No.</th>
                 <th className="px-4 py-3 text-left text-gray-700">Product</th>
+                <th className="px-4 py-3 text-center text-gray-700">PO Qty</th>
                 <th className="px-4 py-3 text-center text-gray-700 bg-sky-50/80">Expected Delivery Date</th>
                 <th className="px-4 py-3 text-center text-gray-700">Qty</th>
                 <th className="px-4 py-3 text-center text-gray-700">Qty Executed</th>
@@ -897,22 +1198,28 @@ const allOrders = useMemo(() => {
                     </td>
                     <td className="px-4 py-3 text-gray-700">{order.gmsoaNo}</td>
                     <td className="px-4 py-3 text-gray-700">{order.soaSrNo}</td>
-                    <td className="px-4 py-3 text-center text-gray-700">{order.assemblyDate}</td>
+                    <td className="px-4 py-3 text-center text-gray-700 truncate">{order.assemblyDate}</td>
+                    <td className="px-4 py-3 text-gray-700 truncate">{order.uniqueCode}</td>
                     <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{order.party}</td>
                     <td className="px-4 py-3 text-gray-700">{order.customerPoNo}</td>
                     <td className="px-4 py-3 text-gray-700">{order.codeNo}</td>
                     <td className="px-4 py-3 text-gray-700 max-w-[300px] truncate" title={order.product}>
                       {order.product}
                     </td>
+                    <td className="px-4 py-3 text-center">
+                        {order.poQty}
+                    </td>
                     <td className="px-4 py-3 bg-sky-50/30 text-center">
                       <Input
                         type="date"
                         value={editingDeliveryDate[order.uniqueCode] ?? order.expectedDeliveryDate ?? ''}
                         onChange={(e) => {
+                          const val = e.target.value;
                           setEditingDeliveryDate(prev => ({
                             ...prev,
-                            [order.uniqueCode]: e.target.value
+                            [order.uniqueCode]: val
                           }));
+                          saveDeliveryDate(order, val);
                         }}
                         min={new Date().toISOString().split('T')[0]}
                         className="w-40 mx-auto text-sm border-gray-300 focus:border-[#174a9f] focus:ring-[#174a9f]"
@@ -993,6 +1300,14 @@ const allOrders = useMemo(() => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
+                     <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleViewHistory(order)}
+                      className="hover:bg-[#174a9f]/10 hover:text-[#174a9f]"
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
                     </td>
                   </tr>
                 ))
