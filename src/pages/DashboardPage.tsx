@@ -161,6 +161,9 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoadingSummary(true);
 
+    // ❌ REMOVE THIS LINE
+    // setSummary({});
+
     const payload = dateArg ? { assembly_date: dateArg } : {};
     const res = await axios.post(ORDER_COUNTS_ENDPOINT, payload, { headers });
     setSummary(normalizeResponse(res.data));
@@ -172,6 +175,7 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
     else setIsLoadingSummary(false);
   }
 }
+
 
 
 
@@ -285,28 +289,42 @@ useEffect(() => {
             </div>
             Dashboard Overview
           <button
-  className="ml-4 flex items-center px-3 py-1 border rounded-md"
-  onClick={() => fetchSummary(true, selectedDate || undefined)}
->
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
-            </button>
+            className="ml-4 flex items-center px-3 py-1 border rounded-md"
+            onClick={() => {
+              if (pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+              }
+
+              // Refresh the data using the currently selected date
+              fetchSummary(true, selectedDate || undefined);
+            }}
+          >
+  <RefreshCw className="h-4 w-4 mr-1" />
+  Refresh
+</button>
+
           </h1>
           <p className="text-gray-600 mt-1">Real-time insights into your manufacturing operations</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-         
-            <>
+        <>
+          {isLoadingSummary || isRefreshing ? (
+             <div className="text-center font-700">
+              {/* <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton /> */}
+              Loading....
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <ModernStatCard
                 title="Total Orders"
                 value={totalOrders}
                 icon={Package}
                 gradient="blue"
-           change={{
-  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-  positive: true
-}}
+                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
                 trend={[30, 40, 50, 60, 80]}
               />
               <ModernStatCard
@@ -314,10 +332,7 @@ useEffect(() => {
                 value={summary.inProgress ?? 0}
                 icon={Clock}
                 gradient="orange"
-          change={{
-  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-  positive: true
-}}
+                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
                 trend={[20, 30, 40, 60, 75]}
               />
               <ModernStatCard
@@ -325,10 +340,7 @@ useEffect(() => {
                 value={summary.completed ?? 0}
                 icon={CheckCircle2}
                 gradient="green"
-           change={{
-  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-  positive: true
-}}
+                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
                 trend={[40, 50, 70, 90, 100]}
               />
               <ModernStatCard
@@ -336,93 +348,120 @@ useEffect(() => {
                 value={(summary.efficiency ?? 0) + "%"}
                 icon={TrendingUp}
                 gradient="purple"
-                change={{
-  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-  positive: true
-}}
+                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
                 trend={[50, 60, 70, 80, 90]}
               />
-            </>
-        </div>
+            </div>
+          )}
+        </>
 
         {/* ---------------- Stage-wise Cards ---------------- */}
-        <div>
-          <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
-            <Clock className="h-5 w-5 text-[#174a9f]" />
-            Stage-wise Pending Quantity
-          </h2>
+     <div>
+  <div className="flex items-center justify-between">
+    <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
+      <Clock className="h-5 w-5 text-[#174a9f]" />
+      Stage-wise Pending Quantity
+    </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            { stageOrder.map((k) => {
-                const c = stageColor[k];
-                return (
-                  <Card
-                    key={k}
-                    className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
-                    onClick={() => setCurrentPage(stageToPageKey(k))}
-                  >
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <div className={`p-2 rounded-lg bg-${c}-100`}>
-                          <Package className={`h-4 w-4 text-${c}-600`} />
-                        </div>
-                        <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>Pending</Badge>
-                      </div>
+    {/* ✅ Date Input ALWAYS visible */}
+    {/* <input
+      type="date"
+      value={selectedDate}
+      onChange={(e) => {
+        const v = e.target.value;
+        setSelectedDate(v);
+        fetchSummary(false, v);
+      }}
+      className="border px-3 py-1 rounded-md shadow-sm"
+    /> */}
+    <input
+  type="date"
+  value={selectedDate || null}
+  onChange={(e) => {
+    const v = e.target.value;
+    setSelectedDate(v);
+    fetchSummary(false, v);
+  }}
+  className="border px-3 py-1 rounded-md shadow-sm"
+/>
 
-                      <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                      <p className={`text-xl font-semibold text-${c}-900`}>{summary[k] ?? 0}</p>
-                    </div>
-                  </Card>
-                );
-              })}
-          </div>
-        </div>
+  </div>
+
+  {/* ❗Loading affects ONLY the cards, NOT the date input */}
+  {isLoadingSummary || isRefreshing ? (
+    <div className="text-center font-700">Loading...</div>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {stageOrder.map((k) => {
+        const c = stageColor[k];
+        return (
+          <Card
+            key={k}
+            className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
+            onClick={() => setCurrentPage(stageToPageKey(k))}
+          >
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <div className={`p-2 rounded-lg bg-${c}-100`}>
+                  <Package className={`h-4 w-4 text-${c}-600`} />
+                </div>
+                <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>
+                  Pending
+                </Badge>
+              </div>
+              <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+              <p className={`text-xl font-semibold text-${c}-900`}>{summary[k] ?? 0}</p>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  )}
+</div>
+
 
         {/* ---------------- Assembly Cards ---------------- */}
         <div>
+
           <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
             <Clock className="text-[#174a9f] pt-5 mt-5" />
             Assembly Line-wise Pending Quantity
           </h2>
 
-          {isAdmin && (
-            <div className="mt-4 pb-4 flex gap-3 items-center">
-              <label className="text-sm font-medium text-gray-700">Select Date:</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelectedDate(v);
-                  fetchSummary(false, v);
-                }}
-                className="border px-3 py-1 rounded-md shadow-sm"
-              />
+
+          {isLoadingSummary || isRefreshing ? (
+            // <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            //   <CardLoadingSkeleton />
+            //   <CardLoadingSkeleton />
+            //   <CardLoadingSkeleton />
+            //   <CardLoadingSkeleton />
+            //   <CardLoadingSkeleton />
+            // </div>
+            <div className="text-center font-700">
+              Loading....
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {assemblyOrder.map((k) => (
+                <Card
+                  key={k}
+                  className={`p-4 rounded-xl border bg-gradient-to-br from-purple-50 to-white border-purple-200 hover:-translate-y-1 hover:shadow-lg transition`}
+                  onClick={() => setCurrentPage("Assembly" + k.slice(-1).toUpperCase())}
+                >
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <Package className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">Pending</Badge>
+                    </div>
+                    <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+                    <p className="text-xl font-semibold text-purple-900">{summary[k] ?? 0}</p>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {assemblyOrder.map((k) => (
-                  <Card
-                    key={k}
-                    className={`p-4 rounded-xl border bg-gradient-to-br from-purple-50 to-white border-purple-200 hover:-translate-y-1 hover:shadow-lg transition`}
-                    onClick={() => setCurrentPage("Assembly" + k.slice(-1).toUpperCase())}
-                  >
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="p-2 rounded-lg bg-purple-100">
-                          <Package className="h-4 w-4 text-purple-600" />
-                        </div>
-
-                        <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">Pending</Badge>
-                      </div>
-
-                      <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                      <p className="text-xl font-semibold text-purple-900">{summary[k] ?? 0}</p>
-                    </div>
-                  </Card>
-                ))}
-          </div>
         </div>
       </div>
     </div>
