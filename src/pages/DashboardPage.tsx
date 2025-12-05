@@ -39,9 +39,25 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const [summary, setSummary] = useState<SummaryRecord>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  const getCurrentUserRole = () => {
+    try {
+      const s = localStorage.getItem("user") || localStorage.getItem("userData");
+      if (!s) return "";
+      const u = JSON.parse(s);
+      const rawRole = typeof u?.role === "object" ? u.role?.name : u?.role;
+      return String(rawRole || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+  const isAdmin = getCurrentUserRole().includes("admin");
 
   const didFetchOnce = useRef(false);
   const pollRef = useRef<number | null>(null);
+
+  
 
   /* ---------- KEY NORMALIZATION ---------- */
   const normalizeKey = (r: string) => {
@@ -136,15 +152,17 @@ if (counts.efficiencyCompare != null)
   };
 
   /* ---------- FETCH SUMMARY ---------- */
-async function fetchSummary(isRefresh = false) {
+async function fetchSummary(isRefresh = false, dateArg?: string) {
   const token = localStorage.getItem("token");
-  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
+  headers["Content-Type"] = "application/json";
 
   try {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoadingSummary(true);
 
-    const res = await axios.get(ORDER_COUNTS_ENDPOINT, { headers });
+    const payload = dateArg ? { assembly_date: dateArg } : {};
+    const res = await axios.post(ORDER_COUNTS_ENDPOINT, payload, { headers });
     setSummary(normalizeResponse(res.data));
 
   } catch (err) {
@@ -156,12 +174,13 @@ async function fetchSummary(isRefresh = false) {
 }
 
 
+
   /* ---------- POLLING & INITIAL LOAD ---------- */
 useEffect(() => {
   if (didFetchOnce.current) return;  // avoid double fetch
   didFetchOnce.current = true;
 
-  fetchSummary();
+  fetchSummary(false, selectedDate || undefined);
 
   return () => {
     if (pollRef.current) {
@@ -186,6 +205,7 @@ useEffect(() => {
       pdi1: "PDI-1",
       pdi2: "PDI-2",
       tpi: "TPI",
+      dispatch: "Dispatch",
     };
 
     if (map[k]) return map[k];
@@ -206,6 +226,7 @@ useEffect(() => {
     pdi1: "violet",
     pdi2: "violet",
     tpi: "rose",
+    dispatch: "green",
   };
 
   const stageOrder = Object.keys(stageColor);
@@ -265,7 +286,7 @@ useEffect(() => {
             Dashboard Overview
           <button
   className="ml-4 flex items-center px-3 py-1 border rounded-md"
-  onClick={() => fetchSummary(true)}
+  onClick={() => fetchSummary(true, selectedDate || undefined)}
 >
               <RefreshCw className="h-4 w-4 mr-1" />
               Refresh
@@ -333,27 +354,27 @@ useEffect(() => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             { stageOrder.map((k) => {
-                  const c = stageColor[k];
-                  return (
-                    <Card
-                      key={k}
-                      className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
-                      onClick={() => setCurrentPage(stageToPageKey(k))}
-                    >
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <div className={`p-2 rounded-lg bg-${c}-100`}>
-                            <Package className={`h-4 w-4 text-${c}-600`} />
-                          </div>
-                          <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>Pending</Badge>
+                const c = stageColor[k];
+                return (
+                  <Card
+                    key={k}
+                    className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
+                    onClick={() => setCurrentPage(stageToPageKey(k))}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className={`p-2 rounded-lg bg-${c}-100`}>
+                          <Package className={`h-4 w-4 text-${c}-600`} />
                         </div>
-
-                        <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                        <p className={`text-xl font-semibold text-${c}-900`}>{summary[k] ?? 0}</p>
+                        <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>Pending</Badge>
                       </div>
-                    </Card>
-                  );
-                })}
+
+                      <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+                      <p className={`text-xl font-semibold text-${c}-900`}>{summary[k] ?? 0}</p>
+                    </div>
+                  </Card>
+                );
+              })}
           </div>
         </div>
 
@@ -363,6 +384,22 @@ useEffect(() => {
             <Clock className="text-[#174a9f] pt-5 mt-5" />
             Assembly Line-wise Pending Quantity
           </h2>
+
+          {isAdmin && (
+            <div className="mt-4 pb-4 flex gap-3 items-center">
+              <label className="text-sm font-medium text-gray-700">Select Date:</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSelectedDate(v);
+                  fetchSummary(false, v);
+                }}
+                className="border px-3 py-1 rounded-md shadow-sm"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {assemblyOrder.map((k) => (
