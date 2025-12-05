@@ -1300,14 +1300,14 @@ const v =
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                     <Button
+                     {/* <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleViewHistory(order)}
                       className="hover:bg-[#174a9f]/10 hover:text-[#174a9f]"
                     >
                       <History className="h-4 w-4" />
-                    </Button>
+                    </Button> */}
                     </td>
                   </tr>
                 ))
