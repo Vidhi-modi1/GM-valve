@@ -628,6 +628,124 @@ export function PlanningPage() {
     }, 200);
   };
 
+//   const handlePrintBinCard = () => {
+//   const CARD_WIDTH = 491; // px
+//   const CARD_HEIGHT = 322; // px
+
+//   const cards = selectedOrdersData
+//     .map(
+//       (order) => `
+//       <div class="card">
+//         <h2>Assembly Line: ${order.assemblyLine}</h2>
+        
+//         <div class="row">
+//           <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
+//           <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
+//         </div>
+
+//         <div class="desc">
+//           <strong>Item Description:</strong>
+//           <span>${order.product}</span>
+//         </div>
+
+//         <div class="row">
+//           <div><strong>QTY:</strong> ${order.qty}</div>
+//           <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
+//         </div>
+
+//         <div class="inspect">
+//           <strong>Inspected by:</strong>
+//           <div class="line"></div>
+//         </div>
+//       </div>`
+//     )
+//     .join("");
+
+//   const html = `
+//   <!doctype html>
+//   <html>
+//     <head>
+//       <meta charset="utf-8" />
+//       <style>
+//         @page {
+//           size: A4;
+//           margin: 10mm;
+//         }
+
+//         body {
+//           font-family: Arial, sans-serif;
+//           margin: 0;
+//           padding: 20px 152px;
+//           display: flex;
+//           justify-content: center;
+//           align-items: center;
+//           flex-direction: column;
+//           gap: 5px;
+//         }
+
+//         .card {
+//         width: 100%;
+//           // width: ${CARD_WIDTH}px;
+//           // height: ${CARD_HEIGHT}px;
+//           height: 322px;
+//           border: 1px solid #333;
+//           border-radius: 10px;
+//           padding: 10px 15px;
+//           box-sizing: border-box;
+//           display: flex;
+//           justify-content: center;
+//           // align-items: start;
+//           flex-direction: column;
+//         }
+
+//         h2 {
+//           text-align: center;
+//           margin: 0 0 20px 0;
+//           font-size: 16px;
+//         }
+
+//         .row {
+//           display: flex;
+//           justify-content: space-between;
+//           font-size: 12px;
+//         }
+
+//         .desc span {
+//           font-size: 11px;
+//           line-height: 1.3;
+//         }
+
+//         .inspect .line {
+//           margin-top: 8px;
+//           border-bottom: 1px solid #444;
+//           height: 25px;
+//         }
+//       </style>
+//     </head>
+
+//     <body>${cards}</body>
+//   </html>`;
+
+//   const iframe = document.createElement("iframe");
+//   iframe.style.position = "fixed";
+//   iframe.style.width = "0";
+//   iframe.style.height = "0";
+//   iframe.style.border = "0";
+
+//   document.body.appendChild(iframe);
+
+//   const doc = iframe.contentDocument || iframe.contentWindow.document;
+//   doc.open();
+//   doc.write(html);
+//   doc.close();
+
+//   setTimeout(() => {
+//     iframe.contentWindow.print();
+//     setTimeout(() => document.body.removeChild(iframe), 500);
+//   }, 200);
+// };
+
+
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
     setViewedOrder(order);

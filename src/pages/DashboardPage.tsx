@@ -39,7 +39,9 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const [summary, setSummary] = useState<SummaryRecord>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState(""); // yyyy-mm-dd
+const [displayDate, setDisplayDate] = useState("");   // dd-mm-yyyy
+
 
   const getCurrentUserRole = () => {
     try {
@@ -378,15 +380,30 @@ useEffect(() => {
 <input
   type="date"
   value={selectedDate}   // blank by default
-  onChange={(e) => {
-    const v = e.target.value;
+  // onChange={(e) => {
+  //   const v = e.target.value;
 
-    // Only update when full date is selected
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-      setSelectedDate(v);
-      fetchSummary(false, v);
-    }
-  }}
+  //   // Only update when full date is selected
+  //   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+  //     setSelectedDate(v);
+  //     fetchSummary(false, v);
+  //   }
+  // }}
+onChange={(e) => {
+  const v = e.target.value; // yyyy-mm-dd
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const [y, m, d] = v.split("-");
+    const formatted = `${d}-${m}-${y}`; // dd-mm-yyyy
+
+    setSelectedDate(v);
+    setDisplayDate(formatted);
+
+    fetchSummary(false, formatted);
+  }
+}}
+
+
   className="border px-3 py-1 rounded-md shadow-sm"
 />
 

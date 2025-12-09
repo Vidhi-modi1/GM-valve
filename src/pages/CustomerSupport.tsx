@@ -379,38 +379,87 @@ const reloadData = async () => {
   inFlightRef.current = false;
 };
 
-  const saveDeliveryDate = async (order: OrderData, date: string) => {
-    try {
-      const form = new FormData();
-      form.append('orderId', String(order.id));
-      form.append('unique_code', String(order.uniqueCode));
-      form.append('date', date);
-      const res = await axios.post(
-        `${API_URL}/add-delivery-date`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const ok =
-        res?.data?.Resp_code === 'true' ||
-        res?.data?.Resp_code === true ||
-        res?.data?.status === true;
-      if (ok) {
-        setDataByStage(prev => {
-          const cur = prev['planning'] || [];
-          const updated = cur.map(o =>
-            o.uniqueCode === order.uniqueCode ? { ...o, expectedDeliveryDate: date } : o
+//   const saveDeliveryDate = async (order: OrderData, date: string) => {
+
+//     try {
+//       const form = new FormData();
+//       form.append('orderId', String(order.id));
+//       form.append('unique_code', String(order.uniqueCode));
+//       form.append('date', date);
+//       const res = await axios.post(
+//         `${API_URL}/add-delivery-date`,
+//         form,
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+//       const ok =
+//         res?.data?.Resp_code === 'true' ||
+//         res?.data?.Resp_code === true ||
+//         res?.data?.status === true;
+//       if (ok) {
+//         // setDataByStage(prev => {
+//         //   const cur = prev['planning'] || [];
+//         //   const updated = cur.map(o =>
+//         //     o.uniqueCode === order.uniqueCode ? { ...o, expectedDeliveryDate: date } : o
+//         //   );
+//         //   return { ...prev, planning: updated };
+//         // });
+//         setDataByStage(prev => {
+//   const cur = prev['planning'] || [];
+//   const updated = cur.map(o =>
+//     o.uniqueCode === order.uniqueCode ? { ...o, expectedDeliveryDate: date } : o
+//   );
+//   return { ...prev, planning: updated };
+// });
+//         setEditingDeliveryDate(prev => {
+//           const next = { ...prev };
+//           delete next[order.uniqueCode];
+//           return next;
+//         });
+//       }
+//     } catch (e) {
+//     }
+//   };
+const saveDeliveryDate = async (order: OrderData, date: string) => {
+  try {
+    const form = new FormData();
+    form.append("orderId", String(order.id));
+    form.append("unique_code", order.uniqueCode);
+    form.append("date", date);
+
+    const res = await axios.post(
+      `${API_URL}/add-delivery-date`,
+      form,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (res?.data?.Resp_code) {
+
+      // Update ONLY that order in the cached table
+      setDataByStage(prev => {
+        const next = { ...prev };
+
+        Object.keys(next).forEach(stageKey => {
+          next[stageKey] = next[stageKey].map(o =>
+            o.uniqueCode === order.uniqueCode
+              ? { ...o, expectedDeliveryDate: date }
+              : o
           );
-          return { ...prev, planning: updated };
         });
-        setEditingDeliveryDate(prev => {
-          const next = { ...prev };
-          delete next[order.uniqueCode];
-          return next;
-        });
-      }
-    } catch (e) {
+
+        return next;
+      });
+
+      // Keep the value in UI
+      setEditingDeliveryDate(prev => ({
+        ...prev,
+        [order.uniqueCode]: date
+      }));
     }
-  };
+  } catch (err) {
+    console.error("Date save failed:", err);
+  }
+};
+
 useEffect(() => {
   reloadData();
 }, [selectedStage, selectedAssemblyLine, page, perPage]);
@@ -1176,7 +1225,7 @@ const v =
                     <td className="px-4 py-3 text-center">
                         {order.poQty}
                     </td>
-                    <td className="px-4 py-3 bg-sky-50/30 text-center">
+                    {/* <td className="px-4 py-3 bg-sky-50/30 text-center">
                       <Input
                         type="date"
                         value={editingDeliveryDate[order.uniqueCode] ?? order.expectedDeliveryDate ?? ''}
@@ -1191,7 +1240,30 @@ const v =
                         min={new Date().toISOString().split('T')[0]}
                         className="w-40 mx-auto text-sm border-gray-300 focus:border-[#174a9f] focus:ring-[#174a9f]"
                       />
-                    </td>
+                    </td> */}
+                    <td className="px-4 py-3 bg-sky-50/30 text-center">
+
+  <Input
+    type="date"
+    value={editingDeliveryDate[order.uniqueCode] ?? order.expectedDeliveryDate ?? ""}
+    onChange={(e) => {
+      const val = e.target.value;
+
+      // Instantly update UI so it shows without flicker
+      setEditingDeliveryDate(prev => ({
+        ...prev,
+        [order.uniqueCode]: val
+      }));
+
+      // Auto-save the date
+      saveDeliveryDate(order, val);
+    }}
+    min={new Date().toISOString().split("T")[0]}
+    className="w-40 mx-auto text-sm border-gray-300 focus:border-[#174a9f] focus:ring-[#174a9f]"
+  />
+
+</td>
+
                     <td className="px-4 py-3 text-center">
                       <Badge className="bg-blue-100 text-blue-700 border-blue-200">
                         {order.totalQty}
