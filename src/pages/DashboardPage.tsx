@@ -167,7 +167,7 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
     // ❌ REMOVE THIS LINE
     // setSummary({});
 
-    const payload = dateArg ? { assembly_date: dateArg } : {};
+    const payload = dateArg ? { assemblyDate: dateArg } : {};
     const res = await axios.post(ORDER_COUNTS_ENDPOINT, payload, { headers });
     setSummary(normalizeResponse(res.data));
 
