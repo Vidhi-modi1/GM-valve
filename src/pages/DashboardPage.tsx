@@ -43,6 +43,8 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
 const [displayDate, setDisplayDate] = useState("");   // dd-mm-yyyy
 
 
+
+
   const getCurrentUserRole = () => {
     try {
       const s = localStorage.getItem("user") || localStorage.getItem("userData");
@@ -58,9 +60,6 @@ const [displayDate, setDisplayDate] = useState("");   // dd-mm-yyyy
 
   const didFetchOnce = useRef(false);
   const pollRef = useRef<number | null>(null);
-
-  
-  
 
   /* ---------- KEY NORMALIZATION ---------- */
   const normalizeKey = (r: string) => {
@@ -179,23 +178,20 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
   }
 }
 
-
-
-
   /* ---------- POLLING & INITIAL LOAD ---------- */
-useEffect(() => {
-  if (didFetchOnce.current) return;  // avoid double fetch
-  didFetchOnce.current = true;
+  useEffect(() => {
+    if (didFetchOnce.current) return;  // avoid double fetch
+    didFetchOnce.current = true;
 
-  fetchSummary(false, selectedDate || undefined);
+    fetchSummary(false, selectedDate || undefined);
 
-  return () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
-}, []);
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, []);
 
 
   /* ---------- PRETTY NAMES ---------- */
