@@ -913,13 +913,14 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
 
       setAssignStatus({ type: "success", message: successMessage });
 
-      const selectedKey = rowKey(selectedOrder);
-      setOrders((prev) => prev.filter((o) => rowKey(o) !== selectedKey));
-      setSelectedRows((prev) => {
-        const copy = new Set(prev);
-        copy.delete(selectedKey);
-        return copy;
-      });
+      // const selectedKey = rowKey(selectedOrder);
+      // setOrders((prev) => prev.filter((o) => rowKey(o) !== selectedKey));
+      // setSelectedRows((prev) => {
+      //   const copy = new Set(prev);
+      //   copy.delete(selectedKey);
+      //   return copy;
+      // });
+       await fetchOrders();
 
       setQuickAssignOpen(false);
 

@@ -56,6 +56,17 @@ interface OrderData {
 const CUSTOMER_SUPPORT_ENDPOINT = `${API_URL}/customer-support`;
 
 function CustomerSupport() {
+  const toDisplayDate = (apiDate: string | undefined) => {
+  if (!apiDate) return "";
+  const [y, m, d] = apiDate.split("-");
+  return `${d}-${m}-${y}`;
+};
+
+const toApiDate = (displayDate: string) => {
+  const [d, m, y] = displayDate.split("-");
+  return `${y}-${m}-${d}`;
+};
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [selectedAssemblyLine, setSelectedAssemblyLine] = useState<string>('all');
@@ -374,6 +385,7 @@ const reloadData = async () => {
   }
 
   setDataByStage(next);
+  setEditingDeliveryDate({});
   setLoading(false);
   setIsRefreshing(false);
   inFlightRef.current = false;
@@ -945,7 +957,7 @@ const allOrders = useMemo(() => {
   .replace(/-/g, " ")
   .replace(/\s+/g, " ")
   .trim();
-  console.log("ACTUAL PROGRESS KEYS:", Object.keys(order.stageProgress));
+  // console.log("ACTUAL PROGRESS KEYS:", Object.keys(order.stageProgress));
 
 
 const v =
@@ -1241,28 +1253,45 @@ const v =
                         className="w-40 mx-auto text-sm border-gray-300 focus:border-[#174a9f] focus:ring-[#174a9f]"
                       />
                     </td> */}
-                    <td className="px-4 py-3 bg-sky-50/30 text-center">
+                   <td className="px-4 py-3 bg-sky-50/30 text-center">
 
+  {/* Browser date picker */}
   <Input
     type="date"
-    value={editingDeliveryDate[order.uniqueCode] ?? order.expectedDeliveryDate ?? ""}
+    value={
+      editingDeliveryDate[order.uniqueCode]
+        ? editingDeliveryDate[order.uniqueCode]
+        : order.expectedDeliveryDate || ""
+    }
     onChange={(e) => {
-      const val = e.target.value;
+      const apiDate = e.target.value; // YYYY-MM-DD
 
-      // Instantly update UI so it shows without flicker
+      saveDeliveryDate(order, apiDate);
+
       setEditingDeliveryDate(prev => ({
         ...prev,
-        [order.uniqueCode]: val
+        [order.uniqueCode]: apiDate
       }));
-
-      // Auto-save the date
-      saveDeliveryDate(order, val);
     }}
-    min={new Date().toISOString().split("T")[0]}
-    className="w-40 mx-auto text-sm border-gray-300 focus:border-[#174a9f] focus:ring-[#174a9f]"
+    className="w-40 mx-auto text-sm border-gray-300"
   />
 
+  {/* Pretty display */}
+  {(editingDeliveryDate[order.uniqueCode] || order.expectedDeliveryDate) && (
+    <div className="text-xs text-gray-600 mt-1">
+      {(() => {
+        const raw = editingDeliveryDate[order.uniqueCode] || order.expectedDeliveryDate;
+        if (!raw) return "";
+        const [y, m, d] = raw.split("-");
+        return `${d}-${m}-${y}`;
+      })()}
+    </div>
+  )}
+
 </td>
+
+
+
 
                     <td className="px-4 py-3 text-center">
                       <Badge className="bg-blue-100 text-blue-700 border-blue-200">
