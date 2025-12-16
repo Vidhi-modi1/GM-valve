@@ -576,9 +576,25 @@ const handlePrintBinCard = () => {
       <div class="bin-card">
         <div class="content">
 
+          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+
+          <h6 class="company-address">
+            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+            Village Metoda, Dist. Rajkot-360 021
+          </h6>
+
+          <h3 class="tag-title">In Process Material Tag</h3>
+
+          <div class="doc-row">
+            <p>GMV-L4-F-PRD 01 A</p>
+            <p>(02/10.09.2020)</p>
+          </div>
+
           <div class="title">
             Assembly Line: ${order.assemblyLine}
           </div>
+
+          <div class="title-line"></div>
 
           <div class="meta">
             <div><span class="label">Date:</span> ${order.assemblyDate}</div>
@@ -586,11 +602,12 @@ const handlePrintBinCard = () => {
           </div>
 
           <div class="desc">
+            <div><span class="label">Party:</span> ${order.party}</div>
             <span class="label">Item:</span>
             <div class="text">${order.product}</div>
           </div>
 
-          <div class="qty-logo">
+          <div class="qty-logo meta">
             <div><span class="label">QTY:</span> ${order.qty}</div>
             <div><span class="label">Logo:</span> ${order.gmLogo}</div>
           </div>
@@ -625,7 +642,6 @@ const handlePrintBinCard = () => {
           font-family: Arial, Helvetica, sans-serif;
         }
 
-        /* OUTER SAFE AREA */
         .bin-card {
           width: 130mm;
           height: 85mm;
@@ -634,7 +650,6 @@ const handlePrintBinCard = () => {
           page-break-after: always;
         }
 
-        /* BORDER + INNER PADDING */
         .content {
           width: 100%;
           height: 100%;
@@ -642,24 +657,67 @@ const handlePrintBinCard = () => {
           border-radius: 10px;
           padding: 6mm;
           box-sizing: border-box;
-
           display: flex;
           flex-direction: column;
         }
 
-        /* HEADER */
-        .title {
-          text-align: center;
-          font-size: 12px;
-          font-weight: 700;
-          margin-bottom: 2mm;
+        /* RESET DEFAULT P TAG SPACE */
+        p {
+          margin: 0;
         }
 
-        /* DATE + SOA */
+        /* HEADER */
+        .company-name {
+          font-size: 11.5px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1mm;
+        }
+
+        .company-address {
+          font-size: 7.5px;
+          font-weight: 400;
+          text-align: center;
+          line-height: 1.2;
+          margin: 0 0 1.2mm;
+        }
+
+        .tag-title {
+          font-size: 10px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1.5mm;
+        }
+
+        .doc-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 8.5px;
+          margin-bottom: 0.5mm; /* 🔥 reduced */
+        }
+
+        /* ASSEMBLY LINE */
+        .title {
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 0;       /* 🔥 no top gap */
+          margin-bottom: 0.5mm;
+        }
+
+        .title-line {
+          border-bottom: 1px solid #000;
+          margin-bottom: 1.5mm;
+        }
+
+        /* META */
         .meta {
-          font-size: 9.5px;
+          font-size: 9px;
           line-height: 1.25;
-          margin-bottom: 2mm;
+          margin-bottom: 1.5mm;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
 
         .meta div {
@@ -668,41 +726,32 @@ const handlePrintBinCard = () => {
 
         /* ITEM */
         .desc {
-          font-size: 9px;
+          font-size: 8.8px;
           line-height: 1.25;
-          margin-bottom: 2.5mm;
+          margin-bottom: 2mm;
         }
 
         .desc .label {
           display: block;
-          font-size: 9.5px;
-          margin-bottom: 0.5mm;
+          font-size: 9px;
+          margin-bottom: 0.3mm;
         }
 
         .desc .text {
           word-break: break-word;
         }
 
-        /* QTY + LOGO */
+        /* QTY */
         .qty-logo {
-          font-size: 9.5px;
+          font-size: 9px;
           line-height: 1.3;
-          margin-bottom: 4mm;
+          margin-bottom: 2mm;
         }
 
-        .qty-logo div {
-          margin-bottom: 0.5mm;
-        }
-
-        /* INSPECTED BY */
+        /* INSPECTION */
         .inspect {
           margin-top: auto;
-          font-size: 9.5px;
-        }
-
-        .inspect .label {
-          display: block;
-          margin-bottom: 1.5mm;
+          font-size: 9px;
         }
 
         .inspect-line {
@@ -739,11 +788,12 @@ const handlePrintBinCard = () => {
   setTimeout(() => {
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-    }, 500);
+    setTimeout(() => document.body.removeChild(iframe), 500);
   }, 300);
 };
+
+
+
 
 //   const handlePrintBinCard = () => {
 //   const CARD_WIDTH = 491; // px
