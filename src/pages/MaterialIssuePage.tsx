@@ -1821,7 +1821,7 @@ const handlePrintBinCard = () => {
               </Button>
               <Button
                 onClick={handlePrintBinCard}
-                className="bg-blue-600 text-white"
+                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
               >
                 <Printer className="h-4 w-4" />
                 Print

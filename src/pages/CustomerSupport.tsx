@@ -49,6 +49,8 @@ interface OrderData {
   alertStatus: boolean;
   expectedDeliveryDate?: string;
   stage?: string;
+  stageKey?: string;
+  originalIndex?: number;
   workflowHistory?: Array<{ stage: string; enteredAt: string; exitedAt?: string; qtyProcessed: number }>;
   stageProgress?: Record<string, string>;
 }
@@ -103,77 +105,8 @@ const [orderHistory, setOrderHistory] = useState<any[]>([]);
     return keys.map((key) => ({ key, display: getStepLabel(key) }));
   }, []);
 
-// const mapApiItemToOrder = (item: any): OrderData => {
-  
-//   // Backend sends stage only in 'status'
-//   const rawStage =
-//     item.status ||
-//     item.stage ||
-//     item.stage_name ||
-//     item.current_stage ||
-//     item.menu_name ||
-//     "";
-
-//   // Normalize → material-issue, semi-qc, svs, etc.
-//   const stageKey = rawStage
-//     .trim()
-//     .toLowerCase()
-//     .replace(/\s+/g, "-");
-
-//   return {
-//     id: String(item.id),
-//     assemblyLine: item.assembly_no || '',
-//     gmsoaNo: item.soa_no || '',
-//     soaSrNo: item.soa_sr_no || '',
-//     assemblyDate: item.assembly_date || '',
-
-//     uniqueCode: item.unique_code || item.order_no || '',
-
-//     splittedCode: item.splitted_code || '',
-//     party: item.party_name || item.party || '',
-//     customerPoNo: item.customer_po_no || '',
-//     codeNo: item.code_no || '',
-//     product: item.product || '',
-//     totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
-//     qty: Number(item.qty || 0),
-//     qtyExe: Number(item.qty_executed || 0),
-//     qtyPending: Number(item.qty_pending || 0),
-//     poQty: Number(item.po_qty || 0),
-
-//     finishedValve: item.finished_valve || '',
-//     gmLogo: item.gm_logo || '',
-//     namePlate: item.name_plate || '',
-//     productSpcl1: item.product_spc1 || '',
-//     productSpcl2: item.product_spc2 || '',
-//     productSpcl3: item.product_spc3 || '',
-//     inspection: item.inspection || '',
-//     painting: item.painting || '',
-//     remarks: item.remarks || '',
-
-//     alertStatus:
-//       item.is_urgent === true ||
-//       item.is_urgent === 'true' ||
-//       item.alert_status === true ||
-//       item.alert_status === 'true' ||
-//       item.urgent === 1 ||
-//       item.urgent === '1',
-
-//     expectedDeliveryDate:
-//       item.expected_delivery_date ||
-//       item.expectedDeliveryDate ||
-//       item.delivery_date ||
-//       '',
-
-//     stage: rawStage,     // Human readable (ex: "Material Issue")
-//     stageKey: stageKey,  // Normalized (ex: "material-issue")
-
-//     workflowHistory: item.workflowHistory || [],
-//     stageProgress: item.stage_progress || {},
-//   };
-// };
-
 const mapApiItemToOrder = (item: any): OrderData => {
-  // Backend sends stage only in 'status'
+ 
   const rawStage =
     item.status ||
     item.stage ||
@@ -182,7 +115,6 @@ const mapApiItemToOrder = (item: any): OrderData => {
     item.menu_name ||
     "";
 
-  // ⭐ Strong normalization → material-issue, assembly-a, semi-qc, etc.
 const stageKey = rawStage
   .replace(/-/g, " ")          // Assembly-A → Assembly A
   .replace(/\s+/g, " ")        // remove extra spaces
@@ -239,14 +171,20 @@ const stageKey = rawStage
       item.urgent === 1 ||
       item.urgent === '1',
 
-    expectedDeliveryDate:
-      item.expected_delivery_date ||
-      item.expectedDeliveryDate ||
-      item.delivery_date ||
-      '',
+    expectedDeliveryDate: (() => {
+      const raw =
+        item.expected_delivery_date ||
+        item.expectedDeliveryDate ||
+        item.delivery_date ||
+        '';
+      if (typeof raw === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(raw)) {
+        return toApiDate(raw);
+      }
+      return raw;
+    })(),
 
-    stage: rawStage,         // Human readable (ex: "Material Issue")
-    stageKey: stageKey,      // Normalized (ex: "material-issue")
+    stage: rawStage,    
+    stageKey: stageKey, 
 
     workflowHistory: item.workflowHistory || [],
     stageProgress: cleanedProgress,   // ⭐ FINAL FIX
@@ -314,8 +252,6 @@ const fetchOrderHistory = async (order: OrderData) => {
 
 
 
-  // Temporary frontend fallback: if all stage-specific calls return empty (often due to role restrictions),
-  // try a single aggregated GET /order-list so Customer Support can still see data.
   const fetchAllOrdersFallback = async (): Promise<OrderData[]> => {
     try {
       // Backend does not allow GET /order-list (405). Use POST with a benign menu_name (Planning)
@@ -371,7 +307,18 @@ const reloadData = async () => {
       ? res.data.data
       : [];
 
-    const orders = (raw as any[]).map(mapApiItemToOrder);
+    const saved = localStorage.getItem("cs_expected_delivery_dates");
+    const savedMap: Record<string, string> = saved ? JSON.parse(saved) : {};
+    const orders = (raw as any[]).map((item: any, idx: number) => {
+      const mapped = mapApiItemToOrder(item);
+      const key = mapped.uniqueCode;
+      const override = key ? savedMap[key] : undefined;
+      return {
+        ...mapped,
+        expectedDeliveryDate: override || mapped.expectedDeliveryDate || "",
+        originalIndex: idx,
+      };
+    });
     setApiCounts(res?.data?.counts || null);
 
     // ⭐ FIX: store orders by REAL stage
@@ -436,7 +383,7 @@ const saveDeliveryDate = async (order: OrderData, date: string) => {
     const form = new FormData();
     form.append("orderId", String(order.id));
     form.append("unique_code", order.uniqueCode);
-    form.append("date", date);
+    form.append("date", toDisplayDate(date));
 
     const res = await axios.post(
       `${API_URL}/add-delivery-date`,
@@ -466,6 +413,10 @@ const saveDeliveryDate = async (order: OrderData, date: string) => {
         ...prev,
         [order.uniqueCode]: date
       }));
+      const saved = localStorage.getItem("cs_expected_delivery_dates");
+      const savedMap: Record<string, string> = saved ? JSON.parse(saved) : {};
+      savedMap[order.uniqueCode] = date;
+      localStorage.setItem("cs_expected_delivery_dates", JSON.stringify(savedMap));
     }
   } catch (err) {
     console.error("Date save failed:", err);
@@ -520,13 +471,20 @@ const allOrders = useMemo(() => {
     .flat()
     .map(order => ({
       ...order,
-      stageKey: order.stageKey,                    // already computed
-      currentStage: getStepLabel(order.stageKey),  // Human display
-    }));
+      stageKey: order.stageKey,
+      currentStage: getStepLabel(order.stageKey),
+    }))
+    .sort((a, b) => (a.originalIndex ?? 0) - (b.originalIndex ?? 0));
 }, [dataByStage]);
 
 
 
+const groupedHistory = orderHistory.reduce((acc: any, item: any) => {
+  const key = item.split_code || "UNKNOWN";
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(item);
+  return acc;
+}, {});
 
 
 
@@ -1278,7 +1236,7 @@ const v =
 
   {/* Pretty display */}
   {(editingDeliveryDate[order.uniqueCode] || order.expectedDeliveryDate) && (
-    <div className="text-xs text-gray-600 mt-1">
+    <div className="text-xs text-gray-600 mt-1 hidden">
       {(() => {
         const raw = editingDeliveryDate[order.uniqueCode] || order.expectedDeliveryDate;
         if (!raw) return "";
@@ -1674,76 +1632,89 @@ const v =
            {/* TABLE HEAD */}
           <thead className="bg-gray-100 text-gray-700 text-sm border-b">
             <tr>
+               <th className="px-4 py-3 text-left w-[25%]">Split Code</th>
               <th className="px-4 py-3 text-left w-[40%]">Stage / Time</th>
               <th className="px-4 py-3 text-center w-[20%]">Qty</th>
               <th className="px-4 py-3 text-center w-[20%]">Assigned</th>
               <th className="px-4 py-3 text-center w-[20%]">Duration</th>
             </tr>
           </thead>
-          <tbody className="text-sm">
+         <tbody className="text-sm">
+  {Object.keys(groupedHistory).length === 0 ? (
+    <tr>
+      <td colSpan={5} className="text-center text-gray-500 py-4">
+        No history found
+      </td>
+    </tr>
+  ) : (
+    Object.entries(groupedHistory).flatMap(
+      ([splitCode, rows]: any) =>
+        rows.map((h: any, i: number) => (
+          <tr
+            key={`${splitCode}-${i}`}
+            className="border-b hover:bg-blue-50/40 transition"
+          >
+            {/* ✅ SPLIT CODE – EVERY ROW */}
+            <td className="px-4 py-4 font-semibold text-blue-700">
+              {splitCode}
+            </td>
 
-            {orderHistory.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center text-gray-500 py-4">
-                  No history found
-                </td>
-              </tr>
-            ) : (
-              orderHistory.map((h, i) => (
-                <tr
-                  key={i}
-                  className="border-b hover:bg-blue-50/40 transition"
-                >
-                  {/* Stage + Time */}
-                  <td className="px-4 py-4 align-top">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium border ${getStageColor(
-                        h.currentStage
-                      )}`}
-                    >
-                      {h.currentStage}
-                    </span>
+            {/* Stage + Time */}
+            <td className="px-4 py-4 align-top">
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium border ${getStageColor(
+                  h.currentStage
+                )}`}
+              >
+                {h.currentStage}
+              </span>
 
-                    <div className="text-xs text-gray-700 mt-1">
-                      <div>{h.entered}</div>
-                      {h.exited && <div>{h.exited}</div>}
-                    </div>
-                  </td>
+              <div className="text-xs text-gray-700 mt-1">
+                <div>{h.entered}</div>
+                {h.exited && <div>{h.exited}</div>}
+              </div>
+            </td>
 
-                  {/* Qty */}
-                  <td className="px-4 py-4 text-center">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
-                      {h.qty}
-                    </span>
-                  </td>
+            {/* Qty */}
+            <td className="px-4 py-4 text-center">
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
+                {h.qty}
+              </span>
+            </td>
 
-                  {/* Assigned Qty */}
-                  <td className="px-4 py-4 text-center">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
-                      {h.assigned_qty}
-                    </span>
-                  </td>
+            {/* Assigned Qty */}
+            <td className="px-4 py-4 text-center">
+              {h.assigned_qty === "-" || h.assigned_qty === "0" || h.assigned_qty === 0 ? (
+                <span className="text-gray-400 font-medium">-</span>
+              ) : (
+                <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
+                  {h.assigned_qty}
+                </span>
+              )}
+            </td>
 
-                  {/* Duration */}
-                  <td className="px-4 py-4 text-center">
-                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-medium">
-                      {h.duration}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
+            {/* Duration */}
+            <td className="px-4 py-4 text-center">
+              <span className="px-2 py-1 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-medium">
+                {h.duration || "-"}
+              </span>
+            </td>
+          </tr>
+        ))
+    )
+  )}
+</tbody>
 
-          </tbody>
+
+
+
+          
         </table>
       </div>
 
     </div>
   </DialogContent>
 </Dialog>
-
-
-
 
     </div>
   );
