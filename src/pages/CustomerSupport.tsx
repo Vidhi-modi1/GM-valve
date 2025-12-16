@@ -1667,23 +1667,19 @@ const v =
     {/* Table Container */}
     <div className="border rounded-lg bg-white">
 
-      {/* TABLE */}
-      <table className="w-full border-collapse">
-        {/* TABLE HEAD */}
-        <thead className="bg-gray-100 text-gray-700 text-sm border-b">
-          <tr>
-            <th className="px-4 py-3 text-left w-[40%]">Stage / Time</th>
-            <th className="px-4 py-3 text-center w-[20%]">Qty</th>
-            <th className="px-4 py-3 text-center w-[20%]">Assigned</th>
-            <th className="px-4 py-3 text-center w-[20%]">Duration</th>
-          </tr>
-        </thead>
-
-        {/* TABLE BODY SCROLL AREA */}
-      </table>
+     
 
       <div className="max-h-[60vh] overflow-y-auto">
         <table className="w-full border-collapse">
+           {/* TABLE HEAD */}
+          <thead className="bg-gray-100 text-gray-700 text-sm border-b">
+            <tr>
+              <th className="px-4 py-3 text-left w-[40%]">Stage / Time</th>
+              <th className="px-4 py-3 text-center w-[20%]">Qty</th>
+              <th className="px-4 py-3 text-center w-[20%]">Assigned</th>
+              <th className="px-4 py-3 text-center w-[20%]">Duration</th>
+            </tr>
+          </thead>
           <tbody className="text-sm">
 
             {orderHistory.length === 0 ? (
