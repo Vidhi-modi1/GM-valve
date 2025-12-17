@@ -113,14 +113,14 @@ const mapApiItemToOrder = (item: any): OrderData => {
     item.stage_name ||
     item.current_stage ||
     item.menu_name ||
-    "";
+   "Planning";
 
 const stageKey = rawStage
   .replace(/-/g, " ")          // Assembly-A → Assembly A
   .replace(/\s+/g, " ")        // remove extra spaces
   .trim()
   .toLowerCase()
-  .replace(/ /g, "-");         // Assembly A → assembly-a
+    .replace(/ /g, "-") || "planning";         // Assembly A → assembly-a
 
   // ⭐ Normalize backend stage_progress keys
   const cleanedProgress: Record<string, string> = {};
@@ -322,10 +322,12 @@ const reloadData = async () => {
     setApiCounts(res?.data?.counts || null);
 
     // ⭐ FIX: store orders by REAL stage
-    orders.forEach(order => {
-      if (!next[order.stageKey]) next[order.stageKey] = [];
-  next[order.stageKey].push(order);
-    });
+  orders.forEach(order => {
+  const key = order.stageKey || "planning"; // ✅ fallback
+  if (!next[key]) next[key] = [];
+  next[key].push(order);
+});
+
 
   } catch (e) {
     console.warn("GET /customer-support failed", e);
@@ -915,13 +917,12 @@ const groupedHistory = orderHistory.reduce((acc: any, item: any) => {
   .replace(/-/g, " ")
   .replace(/\s+/g, " ")
   .trim();
-  // console.log("ACTUAL PROGRESS KEYS:", Object.keys(order.stageProgress));
 
 
-const v =
-  sp[normalizedStage] ||                 // Assembly D
-  sp[normalizedStage.toUpperCase()] ||   // ASSEMBLY D
-  sp[normalizedStage.toLowerCase()] ||   // assembly d
+  const v =
+  sp[normalizedStage] ||                
+  sp[normalizedStage.toUpperCase()] ||  
+  sp[normalizedStage.toLowerCase()] || 
   sp[key];
 
     if (v != null) {

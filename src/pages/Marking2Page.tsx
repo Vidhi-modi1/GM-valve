@@ -456,6 +456,9 @@ export function Marking2Page() {
     setQuickAssignStep(nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
+    setAssignStatus(null);
+  setIsAssigning(false);
+
     // Reset split state
     setSplitOrder(false);
     setSplitAssignStep("");
@@ -1479,9 +1482,13 @@ const handleSaveRemarks = () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={handleQuickAssignCancel}>
-                Cancel
-              </Button>
+             <Button
+               variant="outline"
+               onClick={handleQuickAssignCancel}
+               disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+             >
+               Cancel
+             </Button>
               <Button
                 onClick={handleAssignOrder}
                 disabled={isAssigning}

@@ -175,6 +175,16 @@ export function SvsPage() {
             item.urgent === '1',
         }));
 
+        // 🔍 DEBUG: check finished valve coming from backend
+console.log(
+  "SVS orders raw:",
+  apiOrders.map(o => ({
+    id: o.id,
+    finishedValve: o.finishedValve
+  }))
+);
+
+
         const finishedValveOrders = apiOrders.filter(
           (o) => String(o.finishedValve).trim().toLowerCase() === 'yes'
         );
@@ -1101,7 +1111,11 @@ const handleAssignOrder = async () => {
           )}
 
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-            <Button variant="outline" onClick={handleQuickAssignCancel}>
+            <Button
+              variant="outline"
+              onClick={handleQuickAssignCancel}
+              disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+            >
               Cancel
             </Button>
             <Button

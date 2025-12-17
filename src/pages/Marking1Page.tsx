@@ -418,6 +418,9 @@ export function Marking1Page() {
     setQuickAssignStep(nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
+    setAssignStatus(null);
+  setIsAssigning(false);
+
     // Reset split state
     setSplitOrder(false);
     setSplitAssignStep("");
@@ -1875,12 +1878,13 @@ export function Marking1Page() {
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button
-                variant="outline"
-                onClick={() => setRemarksDialogOpen(false)}
-              >
-                Cancel
-              </Button>
+             <Button
+               variant="outline"
+               onClick={handleQuickAssignCancel}
+               disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+             >
+               Cancel
+             </Button>
               <Button
                 onClick={handleSaveRemarks}
                 className="bg-blue-600 text-white"

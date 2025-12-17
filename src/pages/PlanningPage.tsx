@@ -583,34 +583,43 @@ const handlePrintBinCard = () => {
             Village Metoda, Dist. Rajkot-360 021
           </h6>
 
-          <h3 class="tag-title">In Process Material Tag</h3>
-
-          <div class="doc-row">
-            <p>GMV-L4-F-PRD 01 A</p>
-            <p>(02/10.09.2020)</p>
-          </div>
-
-          <div class="title">
-            Assembly Line: ${order.assemblyLine}
-          </div>
-
-          <div class="title-line"></div>
-
+          <h3 class="tag-title process-border">In Process Material Tag</h3>
           <div class="meta">
-            <div><span class="label">Date:</span> ${order.assemblyDate}</div>
-            <div><span class="label">SOA:</span> ${order.gmsoaNo}-${order.soaSrNo}</div>
-          </div>
+            <div class="meta-item">
+              <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+              <div>
+                <span class="label">SOA:</span>
+                ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+              </div>
+
+            </div>
+              <div class="title assembly-title">
+                <p>Assembly Line: ${order.assemblyLine}</p>
+              </div>
+              <div class="meta-item">
+                <p>GMV-L4-F-PRD 01 A</p>
+                <p>(02/10.09.2020)</p>
+              </div>
+         </div>
+
+           
 
           <div class="desc">
-            <div><span class="label">Party:</span> ${order.party}</div>
-            <span class="label">Item:</span>
-            <div class="text">${order.product}</div>
+            <div clas="description party-desc">
+              <span class="label">Party:</span><p>${order.party}</p>
+            </div>
+            <div clas="description item-label-description">
+              <span class="label item-label">Item:</span><p>${order.product}</p>
+            </div>
           </div>
 
-          <div class="qty-logo meta">
-            <div><span class="label">QTY:</span> ${order.qty}</div>
-            <div><span class="label">Logo:</span> ${order.gmLogo}</div>
-          </div>
+          <div class="qty-logo">
+           <div class="meta meta-logo">
+            <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
+            <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+             </div>
+            <div class="detail-items"><span class="label ">Special Note:</span> </div>
+            </div>
 
           <div class="inspect">
             <span class="label">Inspected by:</span>
@@ -642,6 +651,13 @@ const handlePrintBinCard = () => {
           font-family: Arial, Helvetica, sans-serif;
         }
 
+        .item-label,
+        .party-desc {
+        padding-bottom: 2mm;}
+
+        .item-label {
+        line-height: 1.8em;}
+
         .bin-card {
           width: 130mm;
           height: 85mm;
@@ -650,15 +666,43 @@ const handlePrintBinCard = () => {
           page-break-after: always;
         }
 
+      .item-label-description {
+      padding-top: 50px;}
+
+        .meta-qty {
+        width: 50%;}
+
+        .process-border {
+        border-top:1px solid #000;
+        border-bottom:1px solid #000;
+        padding-top: 1.5mm;
+        padding-bottom: 1.5mm;
+        }
+
+        .detail-logo {
+          padding-bottom: 0.9mm;
+        }
+
+        .description {
+          padding-bottom: 2mm;
+        }
+
         .content {
           width: 100%;
           height: 100%;
           border: 1.5px solid #000;
           border-radius: 10px;
-          padding: 6mm;
+          padding-top: 2mm;
+          padding-bottom: 4mm;
+             padding-left: 6mm;
+                padding-right: 6mm;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
+        }
+
+        .meta-item {
+          padding-top: 2mm;
         }
 
         /* RESET DEFAULT P TAG SPACE */
@@ -668,14 +712,24 @@ const handlePrintBinCard = () => {
 
         /* HEADER */
         .company-name {
-          font-size: 11.5px;
+          font-size: 12px;
           font-weight: 700;
           text-align: center;
           margin: 0 0 1mm;
+          
+        }
+
+        .assembly-title p {
+        border: 1px solid #000;
+          display: inline-block;
+          padding-top: 1mm;
+          padding-bottom: 0.9mm;
+          padding-left: 1mm;
+          padding-right: 1mm;
         }
 
         .company-address {
-          font-size: 7.5px;
+          font-size: 8px;
           font-weight: 400;
           text-align: center;
           line-height: 1.2;
@@ -683,7 +737,7 @@ const handlePrintBinCard = () => {
         }
 
         .tag-title {
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 700;
           text-align: center;
           margin: 0 0 1.5mm;
@@ -692,7 +746,7 @@ const handlePrintBinCard = () => {
         .doc-row {
           display: flex;
           justify-content: space-between;
-          font-size: 8.5px;
+          font-size: 9px;
           margin-bottom: 0.5mm; /* 🔥 reduced */
         }
 
@@ -703,18 +757,21 @@ const handlePrintBinCard = () => {
           font-weight: 700;
           margin-top: 0;       /* 🔥 no top gap */
           margin-bottom: 0.5mm;
+          //  border: 1px solid #000;
+          // display: inline-block;
         }
 
         .title-line {
           border-bottom: 1px solid #000;
           margin-bottom: 1.5mm;
+          margin-top: 0.5mm;
         }
 
         /* META */
         .meta {
-          font-size: 9px;
+          font-size: 10px;
           line-height: 1.25;
-          margin-bottom: 1.5mm;
+          margin-bottom: 0.8mm;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -726,36 +783,46 @@ const handlePrintBinCard = () => {
 
         /* ITEM */
         .desc {
-          font-size: 8.8px;
-          line-height: 1.25;
-          margin-bottom: 2mm;
+          font-size: 9px;
+          margin-bottom: 0.8mm;
+        }
+
+        .desc p {
+        padding-bottom: 0.6mm;}
+
+        .desc span {
+          display: block;
+          padding-bottom: 0.1mm;
         }
 
         .desc .label {
           display: block;
-          font-size: 9px;
-          margin-bottom: 0.3mm;
+          font-size: 10px;
+          margin-bottom: 0.8mm;
+          margin-top: 0.8mm;
         }
 
         .desc .text {
           word-break: break-word;
+          
         }
 
         /* QTY */
         .qty-logo {
-          font-size: 9px;
+          font-size: 10px;
           line-height: 1.3;
-          margin-bottom: 2mm;
+          margin-bottom: 0.4mm;
+           margin-top: 0.8mm;
         }
 
         /* INSPECTION */
         .inspect {
           margin-top: auto;
-          font-size: 9px;
+          font-size: 10px;
         }
 
         .inspect-line {
-          height: 6mm;
+          height: 3mm;
           border-bottom: 1px solid #000;
         }
 
@@ -1388,21 +1455,20 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
       </form> */}
 
         {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
             style={{ scrollbarGutter: "stable" }}
           >
-            <div className="inline-block min-w-full align-middle">
+            <div className="inline-block min-w-full align-middle table-sticky">
               {loading && orders.length === 0 ? (
                 <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
               ) : (
                 <>
-              <table className="min-w-full border-collapse">
-                <thead>
+              <table className="min-w-full border-collapse ">
+                <thead className="sticky top-16 z-30 bg-white">
                   <tr>
-                    {/* Select all sticky checkbox */}
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
                       <button
                         type="button"

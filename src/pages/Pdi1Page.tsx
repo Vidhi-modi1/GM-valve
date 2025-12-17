@@ -75,7 +75,6 @@ interface AssemblyOrderData {
 }
 
 export function Pdi1Page() {
-  // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
     toggleAlertStatus: toggleAlertStatusContext,
@@ -83,14 +82,13 @@ export function Pdi1Page() {
     getAlertStatus,
   } = useOrderContext();
 
-  // API data + UI state
+  const assignAbortRef = useRef<AbortController | null>(null);
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [perPage, setPerPage] = useState<number>(20);
 
-  // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
@@ -153,7 +151,10 @@ export function Pdi1Page() {
   };
   const isAdmin = getCurrentUserRole().includes("admin");
 
-  // Fetch orders from API (POST)
+  const rowKey = (o: AssemblyOrderData) =>
+  o.splittedCode || o.split_id || o.uniqueCode || o.id;
+
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -173,10 +174,9 @@ export function Pdi1Page() {
         }
       );
 
-      // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
       const ok =
         res?.data?.Resp_code === "true" ||
-        res?.data?.Resp_code === true || // ✅ handle boolean true
+        res?.data?.Resp_code === true ||
         res?.data?.Resp_code === "RCS";
 
       if (ok && Array.isArray(res.data.data)) {
@@ -189,7 +189,8 @@ export function Pdi1Page() {
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
             splittedCode: item.splitted_code || "",
-            split_id: item.split_id || item.split_id || "",
+            // split_id: item.split_id || item.split_id || "",
+            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -220,7 +221,9 @@ export function Pdi1Page() {
         );
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-         setOrders(sortOrders(apiOrders));
+        //  setOrders(sortOrders(apiOrders));
+        setOrders(apiOrders);
+
         setError(null);
         setMessage(null);
       } else {
@@ -233,6 +236,7 @@ export function Pdi1Page() {
       setError("Error fetching order list. Please check your token or server.");
     } finally {
       setLoading(false);
+       assignAbortRef.current = null;
     }
   };
 
@@ -387,21 +391,25 @@ export function Pdi1Page() {
   }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
   // selection helpers
-  const toggleRowSelection = (orderId: string) => {
-    setSelectedRows((prev) => {
-      const copy = new Set(prev);
-      if (copy.has(orderId)) copy.delete(orderId);
-      else copy.add(orderId);
-      return copy;
-    });
-  };
+const toggleRowSelection = (order: AssemblyOrderData) => {
+  const key = rowKey(order);
 
-  const toggleSelectAll = () => {
-    setSelectedRows((prev) => {
-      if (prev.size === filteredOrders.length) return new Set();
-      return new Set(filteredOrders.map((o) => o.id));
-    });
-  };
+  setSelectedRows((prev) => {
+    const copy = new Set(prev);
+    if (copy.has(key)) copy.delete(key);
+    else copy.add(key);
+    return copy;
+  });
+};
+
+
+const toggleSelectAll = () => {
+  setSelectedRows((prev) => {
+    if (prev.size === filteredOrders.length) return new Set();
+    return new Set(filteredOrders.map(rowKey));
+  });
+};
+
 
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
@@ -442,6 +450,7 @@ export function Pdi1Page() {
   // const currentStep = "pdi1";
   const currentStep = "pdi1"; // or derive from login role
   const nextSteps = getNextSteps(currentStep);
+   const currentStepLabel = getStepLabel(currentStep);
 
   console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
   console.log("Is final step?", isFinalStep(currentStep)); // → false
@@ -456,6 +465,9 @@ export function Pdi1Page() {
     // Pre-select first next step if available
     setQuickAssignStep(nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+    setAssignStatus(null);
+  setIsAssigning(false);
 
     // Reset split state
     setSplitOrder(false);
@@ -499,6 +511,12 @@ export function Pdi1Page() {
   };
 
   const handleQuickAssignCancel = () => {
+
+    if (assignAbortRef.current) {
+    assignAbortRef.current.abort();
+    assignAbortRef.current = null;
+  }
+
     setIsAssigning(false);
     setAssignStatus(null);
     setQuickAssignOpen(false);
@@ -512,7 +530,10 @@ export function Pdi1Page() {
   };
 
   // Bin Card / Print
-  const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
+const selectedOrdersData = orders.filter((o) =>
+  selectedRows.has(rowKey(o))
+);
+
   const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
     const cards = selectedOrdersData
@@ -679,17 +700,12 @@ export function Pdi1Page() {
     }
   };
 
-    const sortOrders = (list: AssemblyOrderData[]) => {
-    return [...list].sort((a, b) => {
-      // urgent first
-      // const aUrg = a.alertStatus ? 1 : 0;
-      // const bUrg = b.alertStatus ? 1 : 0;
-      // if (aUrg !== bUrg) return bUrg - aUrg;
+  //   const sortOrders = (list: AssemblyOrderData[]) => {
+  //   return [...list].sort((a, b) => {
 
-      // otherwise restore original order
-      return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
-    });
-  };
+  //     return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  //   });
+  // };
 
   // 🧭 Add inside component (top with other states)
   const [assignStatus, setAssignStatus] = useState<{
@@ -702,6 +718,17 @@ export function Pdi1Page() {
   const handleAssignOrder = async () => {
     if (!selectedOrder) return;
     if (!validateQuickAssign()) return;
+
+  // 🔴 cancel any previous request
+  // if (assignAbortRef.current) {
+  //   assignAbortRef.current.abort();
+  // }
+
+  // const controller = new AbortController();
+  // assignAbortRef.current = controller;
+
+
+    setIsAssigning(true);
   
     setAssignStatus({
       type: "info",
@@ -722,18 +749,25 @@ export function Pdi1Page() {
       const splitQty = Number(splitAssignQty || 0);
   
       // ✅ Ensure current step exists — fallback safe
-      const currentStep = selectedOrder?.currentStep || selectedOrder?.stage || "PDI1";
-      const currentStepLabel = getStepLabel(currentStep);
+      // const currentStep = selectedOrder?.currentStep || selectedOrder?.stage || "PDI1";
+     
   
       // ✅ Determine next step dynamically
       const fallbackStep = (getNextSteps(currentStep)[0] || "");
       const nextMainStep = quickAssignStep || fallbackStep;
       const nextMainLabel = getStepLabel(nextMainStep);
+      const splitStep = splitAssignStep || nextMainStep;
+      const splitLabel = getStepLabel(splitStep);
+
   
       // ✅ MAIN ASSIGNMENT PAYLOAD
       const formData = new FormData();
       formData.append("orderId", String(selectedOrder.id));
-      formData.append("totalQty", String(selectedOrder.qty));
+      // formData.append("totalQty", String(selectedOrder.qty));
+      formData.append(
+  "totalQty",
+  String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+);
       formData.append("executedQty", String(mainQty));
       formData.append("nextSteps", nextMainLabel);
       formData.append("currentSteps", currentStepLabel); 
@@ -744,7 +778,9 @@ export function Pdi1Page() {
       const responseMain = await axios.post(
         `${API_URL}/assign-order`,
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` },
+         signal: controller.signal,
+      }
       );
   
       const mainSuccess =
@@ -769,7 +805,12 @@ export function Pdi1Page() {
   
         const formDataSplit = new FormData();
         formDataSplit.append("orderId", String(selectedOrder.id));
-        formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+        // formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+        formDataSplit.append(
+  "totalQty",
+  String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+);
+
         formDataSplit.append("executedQty", String(splitQty));
         formDataSplit.append("nextSteps", splitLabel);
         formDataSplit.append("currentSteps", currentStepLabel); // ✅ required
@@ -802,24 +843,26 @@ export function Pdi1Page() {
   
       setAssignStatus({ type: "success", message: successMsg });
 
-      const makeKey = (o: AssemblyOrderData) =>
-        (o.splittedCode || o.split_id)
-          ? (o.splittedCode || o.split_id)
-          : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
-              .map((v) => v ?? "")
-              .join("|");
-      const selectedKey = makeKey(selectedOrder);
+     const key = rowKey(selectedOrder);
 
-      setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
-      setSelectedRows((prev) => {
-        const copy = new Set(prev);
-        copy.delete(selectedKey);
-        return copy;
-      });
+setOrders((prev) => prev.filter((o) => rowKey(o) !== key));
+setSelectedRows((prev) => {
+  const copy = new Set(prev);
+  copy.delete(key);
+  return copy;
+});
+
 
       setQuickAssignOpen(false);
       setAssignStatus(null);
     } catch (error: any) {
+       if (
+    error?.name === "CanceledError" ||
+    error?.code === "ERR_CANCELED"
+  ) {
+    console.log("⛔ Assignment request cancelled by user");
+    return; // 🔴 STOP here – do NOT show error, do NOT update UI
+  }
       console.error("❌ Error assigning order:", error);
   
       if (error.response) {
@@ -850,6 +893,11 @@ export function Pdi1Page() {
           message: `❌ ${error.message}`,
         });
       }
+      
+    }
+    finally {
+      setIsAssigning(false);
+      assignAbortRef.current = null;
     }
   };
 
@@ -1162,13 +1210,13 @@ export function Pdi1Page() {
 
                 <tbody className="divide-y divide-gray-200">
                   {paginatedOrders.map((order) => (
-                    <tr key={order.splittedCode || order.split_id || order.uniqueCode || order.id} className="group hover:bg-gray-50">
+                    <tr key={rowKey(order)} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
-                        <Checkbox
-                          checked={selectedRows.has(order.splittedCode || order.split_id || order.uniqueCode || order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.splittedCode || order.split_id || order.uniqueCode || order.id)}
-                          aria-label={`Select row ${order.id}`}
-                        />
+                       <Checkbox
+  checked={selectedRows.has(rowKey(order))}
+  onCheckedChange={() => toggleRowSelection(order)}
+/>
+
                       </td>
 
                       <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 w-20">
@@ -1355,7 +1403,17 @@ export function Pdi1Page() {
               />
 
         {/* Quick Assign Dialog */}
-        <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
+<Dialog
+  open={quickAssignOpen}
+  onOpenChange={(open) => {
+    if (!open) {
+      handleQuickAssignCancel(); // ✅ abort + cleanup
+    } else {
+      setQuickAssignOpen(true);
+    }
+  }}
+>
+
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Quick Assign Order</DialogTitle>
@@ -1487,7 +1545,11 @@ export function Pdi1Page() {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={handleQuickAssignCancel}>
+              <Button
+                variant="outline"
+                onClick={handleQuickAssignCancel}
+                disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+              >
                 Cancel
               </Button>
               <Button

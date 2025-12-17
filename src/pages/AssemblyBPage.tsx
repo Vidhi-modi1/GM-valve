@@ -76,7 +76,9 @@ interface AssemblyOrderData {
 }
 
 export function AssemblyBPage() {
-  // context for remarks & alert status (from your existing order-context)
+
+  const assignAbortRef = useRef<AbortController | null>(null);
+
   const {
     updateRemark,
     toggleAlertStatus: toggleAlertStatusContext,
@@ -470,6 +472,9 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
   
     setQuickAssignStep(branched[0] || nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+    setAssignStatus(null);
+  setIsAssigning(false);
   
     // Reset split state
     setSplitOrder(false);
@@ -513,6 +518,10 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
   };
 
   const handleQuickAssignCancel = () => {
+    if (assignAbortRef.current) {
+    assignAbortRef.current.abort();
+    assignAbortRef.current = null;
+  }
     setIsAssigning(false);
     setAssignStatus(null);
     setQuickAssignOpen(false);
@@ -530,64 +539,288 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
     selectedRows.has(o.splittedCode || o.split_id || o.uniqueCode || o.id)
   );
   const handleShowBinCard = () => setBinCardDialogOpen(true);
+  // const handlePrintBinCard = () => {
+  //   const cards = selectedOrdersData
+  //     .map(
+  //       (order) => `
+  //     <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
+  //       <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
+  //       <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+  //         <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
+  //         <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
+  //       </div>
+  //       <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="padding-top: 3px;">${order.product}</span></div>
+  //       <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+  //         <div><strong>QTY:</strong> ${order.totalQty}</div>
+  //         <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
+  //       </div>
+  //       <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
+  //         <strong>Inspected by:</strong>
+  //         <div style="height:30px; border-bottom:1px solid #555;"></div>
+  //       </div>
+  //     </div>`
+  //     )
+  //     .join("");
+
+  //   const html = `<!doctype html>
+  //   <html>
+  //     <head>
+  //       <meta charset="utf-8" />
+  //       <title></title>
+  //       <style>
+  //         @page { margin: 12mm; }
+  //         html, body { padding: 0; margin: 0; }
+  //         body { font-family: Arial, sans-serif; }
+  //       </style>
+  //     </head>
+  //     <body>${cards}</body>
+  //   </html>`;
+
+  //   const iframe = document.createElement("iframe");
+  //   iframe.style.position = "fixed";
+  //   iframe.style.right = "0";
+  //   iframe.style.bottom = "0";
+  //   iframe.style.width = "0";
+  //   iframe.style.height = "0";
+  //   iframe.style.border = "0";
+  //   document.body.appendChild(iframe);
+  //   const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  //   if (!doc) return;
+  //   doc.open();
+  //   doc.write(html);
+  //   doc.close();
+  //   setTimeout(() => {
+  //     iframe.contentWindow?.focus();
+  //     iframe.contentWindow?.print();
+  //     setTimeout(() => {
+  //       document.body.removeChild(iframe);
+  //     }, 500);
+  //   }, 200);
+  // };
   const handlePrintBinCard = () => {
-    const cards = selectedOrdersData
-      .map(
-        (order) => `
-      <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
-        <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-          <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
-          <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
-        </div>
-        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="padding-top: 3px;">${order.product}</span></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-          <div><strong>QTY:</strong> ${order.totalQty}</div>
-          <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
-        </div>
-        <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
-          <strong>Inspected by:</strong>
-          <div style="height:30px; border-bottom:1px solid #555;"></div>
+  const cards = selectedOrdersData
+    .map(
+      (order) => `
+      <div class="bin-card">
+        <div class="content">
+
+          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+
+          <h6 class="company-address">
+            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+            Village Metoda, Dist. Rajkot-360 021
+          </h6>
+
+          <h3 class="tag-title">In Process Material Tag</h3>
+
+          <div class="doc-row">
+            <p>GMV-L4-F-PRD 01 A</p>
+            <p>(02/10.09.2020)</p>
+          </div>
+
+          <div class="title">
+            Assembly Line: ${order.assemblyLine}
+          </div>
+
+          <div class="title-line"></div>
+
+          <div class="meta">
+            <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+            <div><span class="label">SOA:</span> ${order.gmsoaNo}-${order.soaSrNo}</div>
+          </div>
+
+          <div class="desc">
+            <div><span class="label">Party:</span> ${order.party}</div>
+            <span class="label">Item:</span>
+            <div class="text">${order.product}</div>
+          </div>
+
+          <div class="qty-logo meta">
+            <div><span class="label">QTY:</span> ${order.qty}</div>
+            <div><span class="label">Logo:</span> ${order.gmLogo}</div>
+          </div>
+
+          <div class="inspect">
+            <span class="label">Inspected by:</span>
+            <div class="inspect-line"></div>
+          </div>
+
         </div>
       </div>`
-      )
-      .join("");
+    )
+    .join("");
 
-    const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title></title>
-        <style>
-          @page { margin: 12mm; }
-          html, body { padding: 0; margin: 0; }
-          body { font-family: Arial, sans-serif; }
-        </style>
-      </head>
-      <body>${cards}</body>
-    </html>`;
+  const html = `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Bin Card</title>
 
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 500);
-    }, 200);
-  };
+      <style>
+        @page {
+          size: 130mm 85mm;
+          margin: 0;
+        }
+
+        html, body {
+          width: 130mm;
+          height: 85mm;
+          margin: 0;
+          padding: 0;
+          font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .bin-card {
+          width: 130mm;
+          height: 85mm;
+          padding: 6mm;
+          box-sizing: border-box;
+          page-break-after: always;
+        }
+
+        .content {
+          width: 100%;
+          height: 100%;
+          border: 1.5px solid #000;
+          border-radius: 10px;
+          padding: 6mm;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* RESET DEFAULT P TAG SPACE */
+        p {
+          margin: 0;
+        }
+
+        /* HEADER */
+        .company-name {
+          font-size: 11.5px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1mm;
+        }
+
+        .company-address {
+          font-size: 7.5px;
+          font-weight: 400;
+          text-align: center;
+          line-height: 1.2;
+          margin: 0 0 1.2mm;
+        }
+
+        .tag-title {
+          font-size: 10px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1.5mm;
+        }
+
+        .doc-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 8.5px;
+          margin-bottom: 0.5mm; /* 🔥 reduced */
+        }
+
+        /* ASSEMBLY LINE */
+        .title {
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 0;       /* 🔥 no top gap */
+          margin-bottom: 0.5mm;
+        }
+
+        .title-line {
+          border-bottom: 1px solid #000;
+          margin-bottom: 1.5mm;
+          margin-top: 0.5mm;
+        }
+
+        /* META */
+        .meta {
+          font-size: 9px;
+          line-height: 1.25;
+          margin-bottom: 1.5mm;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .meta div {
+          margin-bottom: 0.5mm;
+        }
+
+        /* ITEM */
+        .desc {
+          font-size: 8.8px;
+          line-height: 1.25;
+          margin-bottom: 2mm;
+        }
+
+        .desc .label {
+          display: block;
+          font-size: 9px;
+          margin-bottom: 0.3mm;
+          margin-top: 0.9mm;
+        }
+
+        .desc .text {
+          word-break: break-word;
+        }
+
+        /* QTY */
+        .qty-logo {
+          font-size: 9px;
+          line-height: 1.3;
+          margin-bottom: 2mm;
+        }
+
+        /* INSPECTION */
+        .inspect {
+          margin-top: auto;
+          font-size: 9px;
+        }
+
+        .inspect-line {
+          height: 3mm;
+          border-bottom: 1px solid #000;
+        }
+
+        .label {
+          font-weight: 600;
+        }
+      </style>
+    </head>
+
+    <body>${cards}</body>
+  </html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 500);
+  }, 300);
+};
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
@@ -1064,6 +1297,25 @@ const handleSaveRemarks = async () => {
 // };
 const handleAssignOrder = async () => {
   if (isAssigning) return;
+
+     const controller = new AbortController();
+  assignAbortRef.current = controller;
+
+  setIsAssigning(true);
+
+  // 🔴 2️⃣ ONLY NOW do validations
+  if (!selectedOrder) {
+    assignAbortRef.current = null;
+    setIsAssigning(false);
+    return;
+  }
+
+  if (!validateQuickAssign()) {
+    assignAbortRef.current = null;
+    setIsAssigning(false);
+    return;
+  }
+
   setIsAssigning(true);
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
@@ -1106,10 +1358,18 @@ const handleAssignOrder = async () => {
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
+    // cancel previous request
+    // if (assignAbortRef.current) {
+    //   assignAbortRef.current.abort();
+    // }
+
+    // const controller = new AbortController();
+    // assignAbortRef.current = controller;
+
     const responseMain = await axios.post(
       `${API_URL}/assign-order`,
       formData,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` }, signal: assignAbortRef.current?.signal }
     );
 
     const mainSuccess =
@@ -1141,7 +1401,8 @@ const handleAssignOrder = async () => {
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
         formDataSplit,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {  headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal, }
       );
 
       const splitSuccess =
@@ -1196,13 +1457,23 @@ const handleAssignOrder = async () => {
     setSelectedRows(new Set());
 
   } catch (error) {
-    console.error("❌ Error assigning order:", error);
+    if (
+    error?.name === "CanceledError" ||
+    error?.code === "ERR_CANCELED"
+  ) {
+    console.log("⛔ Assign request cancelled by user");
+    return; // 🔥 VERY IMPORTANT
+  }
+
+  // ❌ REAL ERROR
+  console.error("❌ Error assigning order:", error);
     setAssignStatus({
       type: "error",
       message: "Server error while assigning.",
     });
   } finally {
     setIsAssigning(false);
+    assignAbortRef.current = null;
   }
 };
 
@@ -1731,7 +2002,17 @@ const handleAssignOrder = async () => {
               />
 
         {/* Quick Assign Dialog */}
-        <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
+        <Dialog
+  open={quickAssignOpen}
+  onOpenChange={(open) => {
+    if (!open) {
+      handleQuickAssignCancel(); // 🔥 abort API
+    } else {
+      setQuickAssignOpen(true);
+    }
+  }}
+>
+
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Quick Assign Order</DialogTitle>
@@ -1881,9 +2162,13 @@ const handleAssignOrder = async () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={handleQuickAssignCancel}>
-                Cancel
-              </Button>
+             <Button
+               variant="outline"
+               onClick={handleQuickAssignCancel}
+               disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+             >
+               Cancel
+             </Button>
               <Button
                               onClick={handleAssignOrder}
                               disabled={

@@ -26,7 +26,7 @@ import CustomerSupport from "./CustomerSupport";
 const SuperAdminTabsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem("superAdminActiveTab");
+      const saved = sessionStorage.getItem("superAdminActiveTab");
       return saved || "dashboard";
     } catch {
       return "dashboard";
@@ -66,7 +66,8 @@ const SuperAdminTabsPage: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem("superAdminActiveTab", activeTab);
+      sessionStorage.setItem("superAdminActiveTab", activeTab)
+
     } catch {}
   }, [activeTab]);
 

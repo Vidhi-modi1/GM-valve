@@ -433,10 +433,14 @@ export function TpiPage() {
 
     setSelectedOrder(order);
     setQuickAssignOpen(true);
+      setAssignStatus(null);
 
     // Pre-select first next step if available
     setQuickAssignStep(nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+    setAssignStatus(null);
+  setIsAssigning(false);
 
     // Reset split state
     setSplitOrder(false);
@@ -1530,7 +1534,7 @@ const handleAssignOrder = async () => {
               />
 
         {/* Quick Assign Dialog (Dispatch only) */}
-        <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
+        <Dialog open={quickAssignOpen} onOpenChange={(open) => {setQuickAssignOpen(open);    if (!open) setAssignStatus(null); }}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Quick Assign Order</DialogTitle>
@@ -1598,7 +1602,11 @@ const handleAssignOrder = async () => {
             )}
 
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={handleQuickAssignCancel}>
+              <Button
+                variant="outline"
+                onClick={handleQuickAssignCancel}
+                disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+              >
                 Cancel
               </Button>
               <Button

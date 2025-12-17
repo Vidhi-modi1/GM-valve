@@ -433,29 +433,71 @@ export function Testing1Page() {
   //   return Object.keys(errs).length === 0;
   // };
   // const currentStep = "testing1";
-  const currentStep = "testing1"; // or derive from login role
-  const nextSteps = getNextSteps(currentStep);
+  // const currentStep = "testing1"; 
+  // const nextSteps = getNextSteps(currentStep);
+// const nextSteps = useMemo(() => {
+//   if (!selectedOrder) return [];
+//   return getQuickAssignSteps(selectedOrder);
+// }, [selectedOrder]);
 
-  console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
-  console.log("Is final step?", isFinalStep(currentStep)); // → false
+
+  // console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
+  // console.log("Is final step?", isFinalStep(currentStep)); // → false
+
+  // const handleQuickAssign = (order: AssemblyOrderData) => {
+  //   const currentStep = "testing1"; // 👈 set dynamically based on page
+  //   const nextSteps = getNextSteps(currentStep);
+
+  //   setSelectedOrder(order);
+  //   setQuickAssignOpen(true);
+
+  //   // Pre-select first next step if available
+  //   setQuickAssignStep(nextSteps[0] || "");
+  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+  //   // Reset split state
+  //   setSplitOrder(false);
+  //   setSplitAssignStep("");
+  //   setSplitAssignQty("");
+  //   setQuickAssignErrors({});
+  // };
+
+
+const currentStep = "testing1";
+
+const getQuickAssignSteps = (order: AssemblyOrderData): string[] => {
+  const line = order.assemblyLine?.toLowerCase();
+
+  if (line === "c" || line === "assembly c" || line === "assembly-c") {
+    return ["svs", "marking1"];
+  }
+
+  return getNextSteps("testing1");
+};
+
+const nextSteps = useMemo(() => {
+  if (!selectedOrder) return [];
+  return getQuickAssignSteps(selectedOrder);
+}, [selectedOrder]);
+
+
 
   const handleQuickAssign = (order: AssemblyOrderData) => {
-    const currentStep = "testing1"; // 👈 set dynamically based on page
-    const nextSteps = getNextSteps(currentStep);
+  const steps = getQuickAssignSteps(order);
 
-    setSelectedOrder(order);
-    setQuickAssignOpen(true);
+  setSelectedOrder(order);
+  setQuickAssignOpen(true);
 
-    // Pre-select first next step if available
-    setQuickAssignStep(nextSteps[0] || "");
-    setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+  // 👇 auto-select first option
+  setQuickAssignStep(steps[0] || "");
+  setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
-    // Reset split state
-    setSplitOrder(false);
-    setSplitAssignStep("");
-    setSplitAssignQty("");
-    setQuickAssignErrors({});
-  };
+  setSplitOrder(false);
+  setSplitAssignStep("");
+  setSplitAssignQty("");
+  setQuickAssignErrors({});
+};
+
 
   const validateQuickAssign = () => {
     const errs: { [k: string]: string } = {};
@@ -1402,21 +1444,19 @@ const handleAssignOrder = async () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="assignStep">Assign to Workflow Step</Label>
-                    <Select
-                      value={quickAssignStep}
-                      onValueChange={setQuickAssignStep}
-                    >
-                      <SelectTrigger id="assignStep" disabled>
-                        <SelectValue placeholder="Select next step" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {nextSteps.map((step) => (
-                          <SelectItem key={step} value={step}>
-                            {getStepLabel(step)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Select value={quickAssignStep} onValueChange={setQuickAssignStep}>
+  <SelectTrigger id="assignStep">
+    <SelectValue placeholder="Select next step" />
+  </SelectTrigger>
+  <SelectContent>
+    {nextSteps.map((step) => (
+      <SelectItem key={step} value={step}>
+        {getStepLabel(step)}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
                   </div>
 
                   <div className="space-y-2">
@@ -1519,7 +1559,11 @@ const handleAssignOrder = async () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={handleQuickAssignCancel}>
+              <Button
+                variant="outline"
+                onClick={handleQuickAssignCancel}
+                disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+              >
                 Cancel
               </Button>
               <Button

@@ -539,6 +539,9 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     setQuickAssignStep(nextSteps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
+    setAssignStatus(null);
+  setIsAssigning(false);
+
     // Reset split state
     setSplitOrder(false);
     setSplitAssignStep("");
@@ -602,74 +605,6 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
   // Bin Card / Print
   const selectedOrdersData = orders.filter((o) => selectedRows.has(rowKey(o)));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
-  //   const handlePrintBinCard = () => {
-  //   const cards = selectedOrdersData
-  //     .map(
-  //       (order) => `
-  //     <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
-  //       <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
-  //       <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-  //         <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
-  //         <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
-  //       </div>
-  //       <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
-  //       <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-  //         <div><strong>QTY:</strong> ${order.totalQty}</div>
-  //         <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
-  //       </div>
-
-  //       <TablePagination
-  //         page={page}
-  //         perPage={perPage}
-  //         total={total}
-  //         lastPage={lastPage}
-  //         onChangePage={setPage}
-  //         onChangePerPage={setPerPage}
-  //         disabled={loading}
-  //       />
-  //       <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
-  //         <strong>Inspected by:</strong>
-  //         <div style="height:30px; border-bottom:1px solid #555;"></div>
-  //       </div>
-  //     </div>`
-  //     )
-  //     .join("");
-
-  //   const html = `<!doctype html>
-  //   <html>
-  //     <head>
-  //       <meta charset="utf-8" />
-  //       <title></title>
-  //       <style>
-  //         @page { margin: 12mm; }
-  //         html, body { padding: 0; margin: 0; }
-  //         body { font-family: Arial, sans-serif; }
-  //       </style>
-  //     </head>
-  //     <body>${cards}</body>
-  //   </html>`;
-
-  //   const iframe = document.createElement("iframe");
-  //   iframe.style.position = "fixed";
-  //   iframe.style.right = "0";
-  //   iframe.style.bottom = "0";
-  //   iframe.style.width = "0";
-  //   iframe.style.height = "0";
-  //   iframe.style.border = "0";
-  //   document.body.appendChild(iframe);
-  //   const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  //   if (!doc) return;
-  //   doc.open();
-  //   doc.write(html);
-  //   doc.close();
-  //   setTimeout(() => {
-  //     iframe.contentWindow?.focus();
-  //     iframe.contentWindow?.print();
-  //     setTimeout(() => {
-  //       document.body.removeChild(iframe);
-  //     }, 500);
-  //   }, 200);
-  // };
 
 const handlePrintBinCard = () => {
   const cards = selectedOrdersData
@@ -1723,9 +1658,14 @@ const handlePrintBinCard = () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={handleQuickAssignCancel}>
-                             Cancel
-                           </Button>
+              <Button
+  variant="outline"
+  onClick={handleQuickAssignCancel}
+  disabled={isAssigning}   // 🔒 DISABLE WHILE ASSIGNING
+>
+  Cancel
+</Button>
+
               <Button
                 onClick={handleAssignOrder}
                 disabled={

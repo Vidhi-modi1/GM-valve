@@ -6413,3 +6413,40 @@ height: 80vh;}
 .purple {
   background-color: color-mix(in srgb, oklch(.97 .017 294.6) 30%, transparent);
 }
+
+/* Sticky Table Header Styles */
+/* .table-container-wrapper {
+  position: relative;
+  max-height: calc(100vh - 350px);
+  overflow: auto;
+}
+
+.sticky-header-table thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 30 !important;
+  background: white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.sticky-header-table thead th {
+  background: white !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.sticky-header-table thead th.sticky-left-col {
+  z-index: 40 !important;
+}
+
+.sticky-header-table thead th.sticky-right-col {
+  z-index: 40 !important;
+} */
+
+/* .table-sticky thead {
+  position: static !important;
+  top: 0 !important;
+  z-index: 30 !important;
+  background: white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+} */
+
