@@ -86,6 +86,7 @@ export function Marking1Page() {
 
   // API data + UI state
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+  const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -379,6 +380,12 @@ export function Marking1Page() {
   useEffect(() => {
     setPage(1);
   }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+
+    const truncateWords = (text = "", wordLimit = 4) => {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= wordLimit) return text;
+  return words.slice(0, wordLimit).join(" ") + "...";
+};
 
   // selection helpers
   const toggleRowSelection = (orderId: string) => {
@@ -1476,11 +1483,15 @@ const handlePrintBinCard = () => {
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.splittedCode}
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 w-20">
-                        <div  style={{ width: "120px" }}>
-                          {order.party}
-                        </div>
-                      </td>
+                     <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
+                           <div  style={{ width: "120px" }}
+ 
+                                title={order.party} 
+                          >
+                            {truncateWords(order.party, 4)}
+                          </div>
+
+                        </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.customerPoNo}
                       </td>

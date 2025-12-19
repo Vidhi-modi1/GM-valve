@@ -36,6 +36,7 @@
             "date-fns": "*",
             "embla-carousel-react": "^8.6.0",
             "exceljs": "^4.4.0",
+            "file-saver": "^2.0.5",
             "input-otp": "^1.4.2",
             "jspdf": "*",
             "lucide-react": "^0.487.0",

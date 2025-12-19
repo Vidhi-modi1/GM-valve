@@ -10,6 +10,7 @@ import {
   Siren,
   Eye,
   MessageSquarePlus,
+  Download,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -34,6 +35,9 @@ import { Checkbox } from "../components/ui/checkbox";
 import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
+
+  import * as XLSX from "xlsx";
+  import { saveAs } from "file-saver";
 
 import {
   getNextSteps,
@@ -85,6 +89,7 @@ export function Testing1Page() {
 
   // API data + UI state
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+    const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -218,6 +223,7 @@ export function Testing1Page() {
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
         setOrders(sortOrders(apiOrders));
+         setFullOrders(null);
         setError(null);
         setMessage(null);
       } else {
@@ -379,23 +385,29 @@ export function Testing1Page() {
     setPage(1);
   }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
+  
+  const truncateWords = (text = "", wordLimit = 4) => {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= wordLimit) return text;
+  return words.slice(0, wordLimit).join(" ") + "...";
+};
+
   // selection helpers
-  const toggleRowSelection = (orderId: string) => {
-    setSelectedRows((prev) => {
-      const copy = new Set(prev);
-      if (copy.has(orderId)) copy.delete(orderId);
-      else copy.add(orderId);
-      return copy;
-    });
-  };
+const toggleRowSelection = (key: string) => {
+  setSelectedRows(prev => {
+    const copy = new Set(prev);
+    copy.has(key) ? copy.delete(key) : copy.add(key);
+    return copy;
+  });
+};
 
-  const toggleSelectAll = () => {
-    setSelectedRows((prev) => {
-      if (prev.size === filteredOrders.length) return new Set();
-      return new Set(filteredOrders.map((o) => o.id));
-    });
-  };
 
+const toggleSelectAll = () => {
+  setSelectedRows(prev => {
+    if (prev.size === filteredOrders.length) return new Set();
+    return new Set(filteredOrders.map(getRowKey));
+  });
+};
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
@@ -480,7 +492,8 @@ const nextSteps = useMemo(() => {
   return getQuickAssignSteps(selectedOrder);
 }, [selectedOrder]);
 
-
+const getRowKey = (o: AssemblyOrderData) =>
+  o.splittedCode || o.split_id || o.uniqueCode || o.id;
 
   const handleQuickAssign = (order: AssemblyOrderData) => {
   const steps = getQuickAssignSteps(order);
@@ -843,6 +856,62 @@ const handlePrintBinCard = () => {
   const handleViewDetails = (order: AssemblyOrderData) => {
     setViewedOrder(order);
     setViewDetailsDialogOpen(true);
+  };
+
+   const handleExport = () => {
+    // 🔥 Use ALL data (not paginated)
+    const dataToExport =
+      fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+  
+    if (!dataToExport || dataToExport.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+  
+    const exportData = dataToExport.map((order, index) => ({
+      "No": index + 1,
+      "Assembly Line": order.assemblyLine,
+      "GMSOA No": order.gmsoaNo,
+      "SOA Sr No": order.soaSrNo,
+      "Assembly Date": order.assemblyDate,
+      "Unique Code": order.uniqueCode,
+      "Splitted Code": order.splittedCode || "-",
+      "Party": order.party,
+      "Customer PO No": order.customerPoNo,
+      "Code No": order.codeNo,
+      "Product": order.product,
+      "PO Qty": order.poQty,
+      "Qty": order.qty,
+      "Qty Executed": order.qtyExe,
+      "Qty Pending": order.qtyPending,
+      "Finished Valve": order.finishedValve,
+      "GM Logo": order.gmLogo,
+      "Name Plate": order.namePlate,
+      "Product Special 1": order.productSpcl1,
+      "Product Special 2": order.productSpcl2,
+      "Product Special 3": order.productSpcl3,
+      "Inspection": order.inspection,
+      "Painting": order.painting,
+      "Remarks": order.remarks || "",
+    }));
+  
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+  
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+  
+    const fileData = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+  
+    saveAs(
+      fileData,
+      `Planning_Orders_All_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
   };
 
   // Remarks dialog
@@ -1291,6 +1360,14 @@ const handleAssignOrder = async () => {
                       : "Urgent Projects Only"}
                   </Button>
                 </div>
+
+                 <Button
+                            onClick={handleExport}
+                            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export Data
+                          </Button>
               </div>
               {/* Option row - could include more buttons */}
             </div>
@@ -1469,10 +1546,10 @@ const handleAssignOrder = async () => {
                     <tr key={order.splittedCode || order.split_id || order.uniqueCode || order.id} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has(order.splittedCode || order.split_id || order.uniqueCode || order.id)}
-                          onCheckedChange={() => toggleRowSelection(order.splittedCode || order.split_id || order.uniqueCode || order.id)}
-                          aria-label={`Select row ${order.id}`}
-                        />
+  checked={selectedRows.has(getRowKey(order))}
+  onCheckedChange={() => toggleRowSelection(getRowKey(order))}
+/>
+
                       </td>
 
                       <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 w-20">
@@ -1500,11 +1577,15 @@ const handleAssignOrder = async () => {
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.splittedCode}
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 w-20">
-                         <div  style={{ width: "120px" }}>
-                        {order.party}
-                         </div>
-                      </td>
+                     <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
+                           <div  style={{ width: "120px" }}
+ 
+                                title={order.party} 
+                          >
+                            {truncateWords(order.party, 4)}
+                          </div>
+
+                        </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.customerPoNo}
                       </td>
@@ -1557,29 +1638,43 @@ const handleAssignOrder = async () => {
                         {order.painting}
                       </td>
 
-                      <td className="px-3 py-2 text-center text-sm text-gray-900">
-                  <Button
-  size="sm"
-  variant="ghost"
-  className={`h-7 w-7 p-0 ${
-    (order.remarks && order.remarks.trim() !== "") // backend value
-      ? "bg-[#174a9f] hover:bg-[#123a7f]"
-      : "hover:bg-[#d1e2f3]"
-  }`}
-  title="Add/Edit Remarks"
-  onClick={() => handleOpenRemarks(order)}
->
-  <MessageSquarePlus
-    className={`h-4 w-4 ${
-      (order.remarks && order.remarks.trim() !== "")
-        ? "text-white"
-        : "text-blue-600"
-    }`}
-  />
-</Button>
-
-
-                      </td>
+                       <td className="px-3 py-2 text-center text-sm text-gray-900">
+                          <div className="relative inline-block group">
+                            <Button
+                          size="sm"
+                          variant="ghost"
+                          title={order.remarks || "Add / Edit Remarks"}
+                          className={`h-7 w-7 p-0 ${
+                            order.remarks?.trim()
+                              ? "bg-[#174a9f] hover:bg-[#123a7f]"
+                              : "hover:bg-[#d1e2f3]"
+                          }`}
+                          onClick={() => handleOpenRemarks(order)}
+                        >
+                          <MessageSquarePlus
+                            className={`h-4 w-4 ${
+                              order.remarks?.trim() ? "text-white" : "text-blue-600"
+                            }`}
+                          />
+                        </Button>
+                        
+                        
+                            {/* ✅ SHOW REMARK TEXT ON HOVER */}
+                            {order.remarks?.trim() && (
+                              <div
+                                className="
+                                  absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                                  hidden group-hover:block
+                                  bg-gray-900 text-white text-xs
+                                  px-3 py-2 rounded-md shadow-lg
+                                  max-w-[260px] break-words z-[999]
+                                "
+                              >
+                                {order.remarks}
+                              </div>
+                            )}
+                          </div>
+                        </td>
 
                       <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
                         <div className="flex items-center space-x-1">
