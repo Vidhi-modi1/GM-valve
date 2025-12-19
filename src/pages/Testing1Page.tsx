@@ -549,64 +549,295 @@ const nextSteps = useMemo(() => {
   // Bin Card / Print
   const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
   const handleShowBinCard = () => setBinCardDialogOpen(true);
-  const handlePrintBinCard = () => {
-    const cards = selectedOrdersData
-      .map(
-        (order) => `
-      <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
-        <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-          <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
-          <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
-        </div>
-        <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="font-size:12px; line-height:1.4;">${order.product}</span></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-          <div><strong>QTY:</strong> ${order.totalQty}</div>
-          <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
-        </div>
-        <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
-          <strong>Inspected by:</strong>
-          <div style="height:30px; border-bottom:1px solid #555;"></div>
+const handlePrintBinCard = () => {
+  const cards = selectedOrdersData
+    .map(
+      (order) => `
+      <div class="bin-card">
+        <div class="content">
+
+          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+
+          <h6 class="company-address">
+            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+            Village Metoda, Dist. Rajkot-360 021
+          </h6>
+
+          <h3 class="tag-title process-border">In Process Material Tag</h3>
+          <div class="meta">
+            <div class="meta-item">
+              <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+              <div>
+                <span class="label">SOA:</span>
+                ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+              </div>
+
+            </div>
+              <div class="title assembly-title">
+                <p>Assembly Line: ${order.assemblyLine}</p>
+              </div>
+              <div class="meta-item">
+                <p>GMV-L4-F-PRD 01 A</p>
+                <p>(02/10.09.2020)</p>
+              </div>
+         </div>
+
+           
+
+          <div class="desc">
+            <div clas="description party-desc">
+              <span class="label">Party:</span><p>${order.party}</p>
+            </div>
+            <div clas="description item-label-description">
+              <span class="label item-label">Item:</span><p>${order.product}</p>
+            </div>
+          </div>
+
+          <div class="qty-logo">
+           <div class="meta meta-logo">
+            <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
+            <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+             </div>
+            <div class="detail-items"><span class="label ">Special Note:</span> </div>
+            </div>
+
+          <div class="inspect">
+            <span class="label">Inspected by:</span>
+            <div class="inspect-line"></div>
+          </div>
+
         </div>
       </div>`
-      )
-      .join("");
+    )
+    .join("");
 
-    const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title></title>
-        <style>
-          @page { margin: 12mm; }
-          html, body { padding: 0; margin: 0; }
-          body { font-family: Arial, sans-serif; }
-        </style>
-      </head>
-      <body>${cards}</body>
-    </html>`;
+  const html = `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Bin Card</title>
 
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 500);
-    }, 200);
-  };
+      <style>
+        @page {
+          size: 130mm 85mm;
+          margin: 0;
+        }
+
+        html, body {
+          width: 130mm;
+          height: 85mm;
+          margin: 0;
+          padding: 0;
+          font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .item-label,
+        .party-desc {
+        padding-bottom: 2mm;}
+
+        .item-label {
+        line-height: 1.8em;}
+
+        .bin-card {
+          width: 130mm;
+          height: 85mm;
+          padding: 6mm;
+          box-sizing: border-box;
+          page-break-after: always;
+        }
+
+      .item-label-description {
+      padding-top: 50px;}
+
+        .meta-qty {
+        width: 50%;}
+
+        .process-border {
+        border-top:1px solid #000;
+        border-bottom:1px solid #000;
+        padding-top: 1.5mm;
+        padding-bottom: 1.5mm;
+        }
+
+        .detail-logo {
+          padding-bottom: 0.9mm;
+        }
+
+        .description {
+          padding-bottom: 2mm;
+        }
+
+        .content {
+          width: 100%;
+          height: 100%;
+          border: 1.5px solid #000;
+          border-radius: 10px;
+          padding-top: 2mm;
+          padding-bottom: 4mm;
+             padding-left: 6mm;
+                padding-right: 6mm;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .meta-item {
+          padding-top: 2mm;
+        }
+
+        /* RESET DEFAULT P TAG SPACE */
+        p {
+          margin: 0;
+        }
+
+        /* HEADER */
+        .company-name {
+          font-size: 12px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1mm;
+          
+        }
+
+        .assembly-title p {
+        border: 1px solid #000;
+          display: inline-block;
+          padding-top: 1mm;
+          padding-bottom: 0.9mm;
+          padding-left: 1mm;
+          padding-right: 1mm;
+        }
+
+        .company-address {
+          font-size: 8px;
+          font-weight: 400;
+          text-align: center;
+          line-height: 1.2;
+          margin: 0 0 1.2mm;
+        }
+
+        .tag-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1.5mm;
+        }
+
+        .doc-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 9px;
+          margin-bottom: 0.5mm; /* 🔥 reduced */
+        }
+
+        /* ASSEMBLY LINE */
+        .title {
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 0;       /* 🔥 no top gap */
+          margin-bottom: 0.5mm;
+          //  border: 1px solid #000;
+          // display: inline-block;
+        }
+
+        .title-line {
+          border-bottom: 1px solid #000;
+          margin-bottom: 1.5mm;
+          margin-top: 0.5mm;
+        }
+
+        /* META */
+        .meta {
+          font-size: 10px;
+          line-height: 1.25;
+          margin-bottom: 0.8mm;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .meta div {
+          margin-bottom: 0.5mm;
+        }
+
+        /* ITEM */
+        .desc {
+          font-size: 9px;
+          margin-bottom: 0.8mm;
+        }
+
+        .desc p {
+        padding-bottom: 0.6mm;}
+
+        .desc span {
+          display: block;
+          padding-bottom: 0.1mm;
+        }
+
+        .desc .label {
+          display: block;
+          font-size: 10px;
+          margin-bottom: 0.8mm;
+          margin-top: 0.8mm;
+        }
+
+        .desc .text {
+          word-break: break-word;
+          
+        }
+
+        /* QTY */
+        .qty-logo {
+          font-size: 10px;
+          line-height: 1.3;
+          margin-bottom: 0.4mm;
+           margin-top: 0.8mm;
+        }
+
+        /* INSPECTION */
+        .inspect {
+          margin-top: auto;
+          font-size: 10px;
+        }
+
+        .inspect-line {
+          height: 3mm;
+          border-bottom: 1px solid #000;
+        }
+
+        .label {
+          font-weight: 600;
+        }
+      </style>
+    </head>
+
+    <body>${cards}</body>
+  </html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 500);
+  }, 300);
+};
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
@@ -1658,7 +1889,7 @@ const handleAssignOrder = async () => {
               </Button>
               <Button
                 onClick={handlePrintBinCard}
-                className="bg-blue-600 text-white"
+                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
               >
                 <Printer className="h-4 w-4" />
                 Print

@@ -98,7 +98,7 @@ const SuperAdminTabsPage: React.FC = () => {
       </div>
 
       {/* Active Tab Content */}
-      <div className="flex-1 inner-header-main">
+      <div className="flex-1 inner-header-main overflow-y-auto overflow-x-hidden">
         {current.component}
       </div>
 

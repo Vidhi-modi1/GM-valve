@@ -351,6 +351,69 @@ export function PlanningPage() {
     }
   };
 
+// useEffect(() => {
+//   const header = document.querySelector(".glass-header") as HTMLElement;
+//   const tableWrapper = tableScrollRef.current;
+//   const thead = document.querySelector(".table-head") as HTMLTableSectionElement;
+
+//   if (!header || !tableWrapper || !thead) return;
+
+//   const headerHeight = header.offsetHeight;
+//   document.documentElement.style.setProperty(
+//     "--header-height",
+//     `${headerHeight}px`
+//   );
+
+//   // Clone THEAD
+//   const fixedThead = thead.cloneNode(true) as HTMLTableSectionElement;
+//   fixedThead.classList.add("fixed-thead");
+//   fixedThead.style.display = "none";
+
+//   document.body.appendChild(fixedThead);
+
+//   const syncWidths = () => {
+//     const origThs = thead.querySelectorAll("th");
+//     const fixedThs = fixedThead.querySelectorAll("th");
+
+//     origThs.forEach((th, i) => {
+//       const width = (th as HTMLElement).offsetWidth;
+//       (fixedThs[i] as HTMLElement).style.width = `${width}px`;
+//     });
+
+//     fixedThead.style.width = `${thead.offsetWidth}px`;
+//     fixedThead.style.left =
+//       `${thead.getBoundingClientRect().left}px`;
+//   };
+
+//   const onScroll = () => {
+//     const rect = thead.getBoundingClientRect();
+
+//     if (rect.top <= headerHeight) {
+//       fixedThead.style.display = "table-header-group";
+//       syncWidths();
+//     } else {
+//       fixedThead.style.display = "none";
+//     }
+//   };
+
+//   const onHorizontalScroll = () => {
+//     fixedThead.style.transform =
+//       `translateX(-${tableWrapper.scrollLeft}px)`;
+//   };
+
+//   window.addEventListener("scroll", onScroll);
+//   tableWrapper.addEventListener("scroll", onHorizontalScroll);
+
+//   return () => {
+//     window.removeEventListener("scroll", onScroll);
+//     tableWrapper.removeEventListener("scroll", onHorizontalScroll);
+//     document.body.removeChild(fixedThead);
+//   };
+// }, []);
+
+
+
+
   useEffect(() => {
     if (useGlobalSearch) {
       if (!fullOrders) fetchAllPages();
@@ -1467,7 +1530,7 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
               ) : (
                 <>
               <table className="min-w-full border-collapse ">
-                <thead className="sticky top-16 z-30 bg-white">
+                <thead className="table-head sticky top-16 z-30 bg-white">
                   <tr>
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
                       <button
@@ -1791,208 +1854,6 @@ ${mainQty} units moved from ${fromStage} → ${toStage}`,
           onChangePerPage={setPerPage}
           disabled={loading}
         />
-
-        {/* Quick Assign Dialog */}
-        {/* <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Quick Assign Order</DialogTitle>
-            <DialogDescription>
-              Assign {selectedOrder?.uniqueCode} to the next workflow step
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="assignStep">Assign to Workflow Step</Label>
-                  <Select value={quickAssignStep} onValueChange={setQuickAssignStep}>
-                    <SelectTrigger id="assignStep">
-                      <SelectValue placeholder="Select step" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="material-issue">Material Issue</SelectItem>
-                      <SelectItem value="semi-qc">Semi QC</SelectItem>
-                      <SelectItem value="after-phosphating">After Phosphating QC</SelectItem>
-                      <SelectItem value="assembly">Assembly</SelectItem>
-                      <SelectItem value="testing">Testing</SelectItem>
-                      <SelectItem value="marking">Marking</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="assignQty">Quantity</Label>
-                  <Input
-                    id="assignQty"
-                    type="number"
-                    value={quickAssignQty}
-                    onChange={(e) => setQuickAssignQty(e.target.value)}
-                    max={selectedOrder?.qtyPending}
-                  />
-                </div>
-              </div>
-
-              <div className="text-sm text-gray-500">
-                Available Quantity:{" "}
-                <span className="font-medium text-gray-900">{selectedOrder?.qtyPending}</span>
-              </div>
-            </div>
-
-            <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="splitOrder"
-                  checked={splitOrder}
-                  onCheckedChange={(val) => setSplitOrder(Boolean(val))}
-                />
-                <Label htmlFor="splitOrder" className="cursor-pointer">
-                  Split order to multiple workflow steps
-                </Label>
-              </div>
-
-              {splitOrder && (
-                <div className="space-y-4 pl-6 border-l-2 border-blue-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Second Workflow Step</Label>
-                      <Select value={splitAssignStep} onValueChange={setSplitAssignStep}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select step" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="material-issue">Material Issue</SelectItem>
-                          <SelectItem value="semi-qc">Semi QC</SelectItem>
-                          <SelectItem value="after-phosphating">After Phosphating QC</SelectItem>
-                          <SelectItem value="assembly">Assembly</SelectItem>
-                          <SelectItem value="testing">Testing</SelectItem>
-                          <SelectItem value="marking">Marking</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Split Quantity</Label>
-                      <Input
-                        type="number"
-                        value={splitAssignQty}
-                        onChange={(e) => setSplitAssignQty(e.target.value)}
-                        max={selectedOrder?.qtyPending}
-                      />
-                    </div>
-                  </div>
-
-                  {quickAssignErrors.sameEngineer && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{quickAssignErrors.sameEngineer}</p>
-                    </div>
-                  )}
-
-                  {quickAssignErrors.totalQtyMismatch && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm text-amber-700">{quickAssignErrors.totalQtyMismatch}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {assignStatus && (
-            <div
-              className={`p-3 mt-3 rounded-md text-sm ${assignStatus.type === "success"
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : assignStatus.type === "error"
-                    ? "bg-red-50 text-red-700 border border-red-200"
-                    : "bg-blue-50 text-blue-700 border border-blue-200"
-                }`}
-            >
-              {assignStatus.message.split("\n").map((line, i) => (
-                <div key={i}>{line}</div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-            <Button variant="outline" onClick={handleQuickAssignCancel}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() =>
-                handleAssignOrder(
-                  Number(selectedOrder.id),
-                  Number(selectedOrder.qty),
-                  Number(quickAssignQty),
-                  Number(splitAssignQty),
-                  splitOrder
-                )
-              }
-              className="bg-black hover:bg-gray-800 text-white"
-            >
-              Assign
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog> */}
-
-        {/* Bin Card Dialog */}
-        {/* <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-
-          <div className="space-y-6 py-4">
-            {selectedOrdersData.map((order) => (
-              <div key={order.id} className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white">
-                <div className="text-center pb-2 border-b border-gray-200">
-                  <p className="text-lg"><span className="text-gray-600">Assembly Line:</span> <span className="text-gray-900 font-bold text-xl">{order.assemblyLine}</span></p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">Assembly Date</Label>
-                    <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">GMSOA No - SR. NO.</Label>
-                    <p className="text-gray-900 mt-1">{order.gmsoaNo} - {order.soaSrNo}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-gray-500 text-sm">Item Description</Label>
-                  <p className="text-gray-900 mt-1">{order.product}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">QTY</Label>
-                    <p className="text-gray-900 mt-1">{order.qty}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">GM Logo</Label>
-                    <p className="text-gray-900 mt-1">{order.gmLogo}</p>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <Label className="text-gray-500 text-sm whitespace-nowrap">Inspected by:</Label>
-                    <div className="border-b border-gray-400 flex-1 h-8"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-            <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handlePrintBinCard} className="bg-blue-600 text-white">
-              <Printer className="h-4 w-4" />
-              Print
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog> */}
 
         {/* Bin Card Preview Dialog */}
         <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>

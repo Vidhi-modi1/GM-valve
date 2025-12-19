@@ -6450,3 +6450,36 @@ height: 80vh;}
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 } */
 
+/* .glass-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.table-sticky thead {
+  position: sticky;
+  top: var(--table-header-offset, 64px);
+  z-index: 30;
+  background: white;
+} */
+
+
+
+/* keep borders + shadow visible */
+/* .table-sticky thead th {
+  background: white;
+}
+
+.table-head {
+  transition: top 0.1s ease;
+}
+
+.table-main {
+  top: 20px;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}  */
+
+

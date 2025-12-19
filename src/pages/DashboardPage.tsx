@@ -362,17 +362,6 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
       Stage-wise Pending Quantity
     </h2>
 
-    {/* ✅ Date Input ALWAYS visible */}
-    {/* <input
-      type="date"
-      value={selectedDate}
-      onChange={(e) => {
-        const v = e.target.value;
-        setSelectedDate(v);
-        fetchSummary(false, v);
-      }}
-      className="border px-3 py-1 rounded-md shadow-sm"
-    /> */}
 <input
   type="date"
   value={selectedDate}   // blank by default

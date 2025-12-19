@@ -43,8 +43,6 @@ import {
 import { DashboardHeader } from "../components/dashboard-header.tsx";
 import TablePagination from "../components/table-pagination";
 
-// const API_URL = 'http://192.168.1.17:2010/api';
-
 interface AssemblyOrderData {
   id: string;
   assemblyLine: string;
@@ -76,7 +74,7 @@ interface AssemblyOrderData {
 }
 
 export function AssemblyCPage() {
-  // context for remarks & alert status (from your existing order-context)
+ 
   const {
     updateRemark,
     toggleAlertStatus: toggleAlertStatusContext,
@@ -421,6 +419,8 @@ export function AssemblyCPage() {
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
+         const assemblyCQuickSteps = ["testing1", "svs"];
+
   
   // const currentStep = "assembly";
   const currentStep = "assembly-c"; // or derive from login role
@@ -447,9 +447,10 @@ export function AssemblyCPage() {
 
     // Pre-select first next step if available
     // Preselect first valid next step after applying branch filter
-    const isLineD = (order.assemblyLine || '').toUpperCase().includes('D');
-    const branched = nextSteps.filter((s) => (s === 'testing1' || s === 'testing2') ? (isLineD ? s === 'testing2' : s === 'testing1') : true);
-    setQuickAssignStep(branched[0] || nextSteps[0] || "");
+    // const isLineD = (order.assemblyLine || '').toUpperCase().includes('D');
+    // const branched = nextSteps.filter((s) => (s === 'testing1' || s === 'testing2') ? (isLineD ? s === 'testing2' : s === 'testing1') : true);
+    // setQuickAssignStep(branched[0] || nextSteps[0] || "");
+    setQuickAssignStep("");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
     setAssignStatus(null);
@@ -514,289 +515,297 @@ export function AssemblyCPage() {
     selectedRows.has(o.splittedCode || o.split_id || o.uniqueCode || o.id)
   );
   const handleShowBinCard = () => setBinCardDialogOpen(true);
-  // const handlePrintBinCard = () => {
-  //   const cards = selectedOrdersData
-  //     .map(
-  //       (order) => `
-  //     <div style="border:1px solid #ccc; padding:20px; border-radius:10px; margin-bottom:30px; page-break-inside: avoid;">
-  //       <h2 style="text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;">Assembly Line: ${order.assemblyLine}</h2>
-  //       <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-  //         <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
-  //         <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
-  //       </div>
-  //       <div style="margin-bottom:15px;"><strong>Item Description:</strong><br><span style="padding-top: 3px;">${order.product}</span></div>
-  //       <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-  //         <div><strong>QTY:</strong> ${order.totalQty}</div>
-  //         <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
-  //       </div>
-  //       <div style="margin-top:20px; border-top:1px solid #aaa; padding-top:15px;">
-  //         <strong>Inspected by:</strong>
-  //         <div style="height:30px; border-bottom:1px solid #555;"></div>
-  //       </div>
-  //     </div>`
-  //     )
-  //     .join("");
-
-  //   const html = `<!doctype html>
-  //   <html>
-  //     <head>
-  //       <meta charset="utf-8" />
-  //       <title></title>
-  //       <style>
-  //         @page { margin: 12mm; }
-  //         html, body { padding: 0; margin: 0; }
-  //         body { font-family: Arial, sans-serif; }
-  //       </style>
-  //     </head>
-  //     <body>${cards}</body>
-  //   </html>`;
-
-  //   const iframe = document.createElement("iframe");
-  //   iframe.style.position = "fixed";
-  //   iframe.style.right = "0";
-  //   iframe.style.bottom = "0";
-  //   iframe.style.width = "0";
-  //   iframe.style.height = "0";
-  //   iframe.style.border = "0";
-  //   document.body.appendChild(iframe);
-  //   const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  //   if (!doc) return;
-  //   doc.open();
-  //   doc.write(html);
-  //   doc.close();
-  //   setTimeout(() => {
-  //     iframe.contentWindow?.focus();
-  //     iframe.contentWindow?.print();
-  //     setTimeout(() => {
-  //       document.body.removeChild(iframe);
-  //     }, 500);
-  //   }, 200);
-  // };
+ 
 
   const handlePrintBinCard = () => {
-  const cards = selectedOrdersData
-    .map(
-      (order) => `
-      <div class="bin-card">
-        <div class="content">
+    const cards = selectedOrdersData
+      .map(
+        (order) => `
+        <div class="bin-card">
+          <div class="content">
 
-          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+            <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
 
-          <h6 class="company-address">
-            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-            Village Metoda, Dist. Rajkot-360 021
-          </h6>
+            <h6 class="company-address">
+              Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+              Village Metoda, Dist. Rajkot-360 021
+            </h6>
 
-          <h3 class="tag-title">In Process Material Tag</h3>
+            <h3 class="tag-title process-border">In Process Material Tag</h3>
+            <div class="meta">
+              <div class="meta-item">
+                <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+                <div>
+                  <span class="label">SOA:</span>
+                  ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+                </div>
 
-          <div class="doc-row">
-            <p>GMV-L4-F-PRD 01 A</p>
-            <p>(02/10.09.2020)</p>
+              </div>
+                <div class="title assembly-title">
+                  <p>Assembly Line: ${order.assemblyLine}</p>
+                </div>
+                <div class="meta-item">
+                  <p>GMV-L4-F-PRD 01 A</p>
+                  <p>(02/10.09.2020)</p>
+                </div>
           </div>
 
-          <div class="title">
-            Assembly Line: ${order.assemblyLine}
+            
+
+            <div class="desc">
+              <div clas="description party-desc">
+                <span class="label">Party:</span><p>${order.party}</p>
+              </div>
+              <div clas="description item-label-description">
+                <span class="label item-label">Item:</span><p>${order.product}</p>
+              </div>
+            </div>
+
+            <div class="qty-logo">
+            <div class="meta meta-logo">
+              <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
+              <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+              </div>
+              <div class="detail-items"><span class="label ">Special Note:</span> </div>
+              </div>
+
+            <div class="inspect">
+              <span class="label">Inspected by:</span>
+              <div class="inspect-line"></div>
+            </div>
+
           </div>
+        </div>`
+      )
+      .join("");
 
-          <div class="title-line"></div>
+    const html = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Bin Card</title>
 
-          <div class="meta">
-            <div><span class="label">Date:</span> ${order.assemblyDate}</div>
-            <div><span class="label">SOA:</span> ${order.gmsoaNo}-${order.soaSrNo}</div>
-          </div>
+        <style>
+          @page {
+            size: 130mm 85mm;
+            margin: 0;
+          }
 
-          <div class="desc">
-            <div><span class="label">Party:</span> ${order.party}</div>
-            <span class="label">Item:</span>
-            <div class="text">${order.product}</div>
-          </div>
+          html, body {
+            width: 130mm;
+            height: 85mm;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+          }
 
-          <div class="qty-logo meta">
-            <div><span class="label">QTY:</span> ${order.qty}</div>
-            <div><span class="label">Logo:</span> ${order.gmLogo}</div>
-          </div>
+          .item-label,
+          .party-desc {
+          padding-bottom: 2mm;}
 
-          <div class="inspect">
-            <span class="label">Inspected by:</span>
-            <div class="inspect-line"></div>
-          </div>
+          .item-label {
+          line-height: 1.8em;}
 
-        </div>
-      </div>`
-    )
-    .join("");
+          .bin-card {
+            width: 130mm;
+            height: 85mm;
+            padding: 6mm;
+            box-sizing: border-box;
+            page-break-after: always;
+          }
 
-  const html = `<!doctype html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <title>Bin Card</title>
+        .item-label-description {
+        padding-top: 50px;}
 
-      <style>
-        @page {
-          size: 130mm 85mm;
-          margin: 0;
-        }
+          .meta-qty {
+          width: 50%;}
 
-        html, body {
-          width: 130mm;
-          height: 85mm;
-          margin: 0;
-          padding: 0;
-          font-family: Arial, Helvetica, sans-serif;
-        }
+          .process-border {
+          border-top:1px solid #000;
+          border-bottom:1px solid #000;
+          padding-top: 1.5mm;
+          padding-bottom: 1.5mm;
+          }
 
-        .bin-card {
-          width: 130mm;
-          height: 85mm;
-          padding: 6mm;
-          box-sizing: border-box;
-          page-break-after: always;
-        }
+          .detail-logo {
+            padding-bottom: 0.9mm;
+          }
 
-        .content {
-          width: 100%;
-          height: 100%;
-          border: 1.5px solid #000;
-          border-radius: 10px;
-          padding: 6mm;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-        }
+          .description {
+            padding-bottom: 2mm;
+          }
 
-        /* RESET DEFAULT P TAG SPACE */
-        p {
-          margin: 0;
-        }
+          .content {
+            width: 100%;
+            height: 100%;
+            border: 1.5px solid #000;
+            border-radius: 10px;
+            padding-top: 2mm;
+            padding-bottom: 4mm;
+              padding-left: 6mm;
+                  padding-right: 6mm;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+          }
 
-        /* HEADER */
-        .company-name {
-          font-size: 11.5px;
-          font-weight: 700;
-          text-align: center;
-          margin: 0 0 1mm;
-        }
+          .meta-item {
+            padding-top: 2mm;
+          }
 
-        .company-address {
-          font-size: 7.5px;
-          font-weight: 400;
-          text-align: center;
-          line-height: 1.2;
-          margin: 0 0 1.2mm;
-        }
+          /* RESET DEFAULT P TAG SPACE */
+          p {
+            margin: 0;
+          }
 
-        .tag-title {
-          font-size: 10px;
-          font-weight: 700;
-          text-align: center;
-          margin: 0 0 1.5mm;
-        }
+          /* HEADER */
+          .company-name {
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 1mm;
+            
+          }
 
-        .doc-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 8.5px;
-          margin-bottom: 0.5mm; /* 🔥 reduced */
-        }
+          .assembly-title p {
+          border: 1px solid #000;
+            display: inline-block;
+            padding-top: 1mm;
+            padding-bottom: 0.9mm;
+            padding-left: 1mm;
+            padding-right: 1mm;
+          }
 
-        /* ASSEMBLY LINE */
-        .title {
-          text-align: center;
-          font-size: 11px;
-          font-weight: 700;
-          margin-top: 0;       /* 🔥 no top gap */
-          margin-bottom: 0.5mm;
-        }
+          .company-address {
+            font-size: 8px;
+            font-weight: 400;
+            text-align: center;
+            line-height: 1.2;
+            margin: 0 0 1.2mm;
+          }
 
-        .title-line {
-          border-bottom: 1px solid #000;
-          margin-bottom: 1.5mm;
-          margin-top: 0.5mm;
-        }
+          .tag-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 1.5mm;
+          }
 
-        /* META */
-        .meta {
-          font-size: 9px;
-          line-height: 1.25;
-          margin-bottom: 1.5mm;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
+          .doc-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            margin-bottom: 0.5mm; /* 🔥 reduced */
+          }
 
-        .meta div {
-          margin-bottom: 0.5mm;
-        }
+          /* ASSEMBLY LINE */
+          .title {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 0;       /* 🔥 no top gap */
+            margin-bottom: 0.5mm;
+            //  border: 1px solid #000;
+            // display: inline-block;
+          }
 
-        /* ITEM */
-        .desc {
-          font-size: 8.8px;
-          line-height: 1.25;
-          margin-bottom: 2mm;
-        }
+          .title-line {
+            border-bottom: 1px solid #000;
+            margin-bottom: 1.5mm;
+            margin-top: 0.5mm;
+          }
 
-        .desc .label {
-          display: block;
-          font-size: 9px;
-          margin-bottom: 0.3mm;
-          margin-top: 0.9mm;
-        }
+          /* META */
+          .meta {
+            font-size: 10px;
+            line-height: 1.25;
+            margin-bottom: 0.8mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
 
-        .desc .text {
-          word-break: break-word;
-        }
+          .meta div {
+            margin-bottom: 0.5mm;
+          }
 
-        /* QTY */
-        .qty-logo {
-          font-size: 9px;
-          line-height: 1.3;
-          margin-bottom: 2mm;
-        }
+          /* ITEM */
+          .desc {
+            font-size: 9px;
+            margin-bottom: 0.8mm;
+          }
 
-        /* INSPECTION */
-        .inspect {
-          margin-top: auto;
-          font-size: 9px;
-        }
+          .desc p {
+          padding-bottom: 0.6mm;}
 
-        .inspect-line {
-          height: 3mm;
-          border-bottom: 1px solid #000;
-        }
+          .desc span {
+            display: block;
+            padding-bottom: 0.1mm;
+          }
 
-        .label {
-          font-weight: 600;
-        }
-      </style>
-    </head>
+          .desc .label {
+            display: block;
+            font-size: 10px;
+            margin-bottom: 0.8mm;
+            margin-top: 0.8mm;
+          }
 
-    <body>${cards}</body>
-  </html>`;
+          .desc .text {
+            word-break: break-word;
+            
+          }
 
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
+          /* QTY */
+          .qty-logo {
+            font-size: 10px;
+            line-height: 1.3;
+            margin-bottom: 0.4mm;
+            margin-top: 0.8mm;
+          }
 
-  document.body.appendChild(iframe);
+          /* INSPECTION */
+          .inspect {
+            margin-top: auto;
+            font-size: 10px;
+          }
 
-  const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!doc) return;
+          .inspect-line {
+            height: 3mm;
+            border-bottom: 1px solid #000;
+          }
 
-  doc.open();
-  doc.write(html);
-  doc.close();
+          .label {
+            font-weight: 600;
+          }
+        </style>
+      </head>
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    setTimeout(() => document.body.removeChild(iframe), 500);
-  }, 300);
-};
+      <body>${cards}</body>
+    </html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 500);
+    }, 300);
+  };
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
@@ -962,321 +971,6 @@ const handleSaveRemarks = async () => {
   } | null>(null);
     const [isAssigning, setIsAssigning] = useState(false);
 
-// ✅ Assign order to next workflow stage
-// const handleAssignOrder = async () => {
-//   if (!selectedOrder) return;
-//   if (!validateQuickAssign()) return;
-
-//   setAssignStatus({
-//     type: "info",
-//     message: "Assigning order, please wait...",
-//   });
-
-//   try {
-//     const token = localStorage.getItem("token");
-//     if (!token) {
-//       setAssignStatus({
-//         type: "error",
-//         message: "Token missing. Please log in again.",
-//       });
-//       return;
-//     }
-
-//     const mainQty = Number(quickAssignQty || 0);
-//     const splitQty = Number(splitAssignQty || 0);
-
-//     // Main FormData
-//     const formData = new FormData();
-//     formData.append("orderId", String(selectedOrder.id));
-//     formData.append("totalQty", String(selectedOrder.qty));
-//     formData.append("executedQty", String(mainQty));
-//     formData.append("split_id", String(selectedOrder.split_id || ""));
-//     // Align with MaterialIssue: include human-readable next step
-//     {
-//       const currentStep = "assembly";
-//       const defaultNext = getNextSteps(currentStep)[0] || "";
-//       const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-//       if (nextMainLabel) formData.append("nextSteps", nextMainLabel);
-//     }
-
-//     console.log("📤 Assign main payload:", {
-//       orderId: selectedOrder.id,
-//       totalQty: selectedOrder.qty,
-//       executedQty: mainQty,
-//     });
-
-//     // --- MAIN ASSIGNMENT ---
-//     const responseMain = await axios.post(
-//       `${API_URL}/assign-order`,
-//       formData,
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-
-//     console.log("✅ Main assign response:", responseMain.data);
-
-//     const isSuccess =
-//       responseMain.data?.Resp_code === true ||
-//       responseMain.data?.Resp_code === "true" ||
-//       responseMain.data?.status === true;
-
-//     if (!isSuccess) {
-//       setAssignStatus({
-//         type: "error",
-//         message:
-//           responseMain.data?.Resp_desc || "Order assignment failed.",
-//       });
-//       return;
-//     }
-
-//     // ----------------------------
-//     //  SPLIT ASSIGNMENT (IF ANY)
-//     // ----------------------------
-//       if (splitOrder && splitQty > 0) {
-//         const formDataSplit = new FormData();
-//         formDataSplit.append("orderId", String(selectedOrder.id));
-//         formDataSplit.append("totalQty", String(selectedOrder.qty));
-//         formDataSplit.append("executedQty", String(splitQty));
-//         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
-//         formDataSplit.append("splitOrder", "true");
-//         // Include next step for split leg
-//         {
-//           const currentStep = "assembly";
-//           const defaultNext = getNextSteps(currentStep)[0] || "";
-//           const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-//           if (nextSplitLabel) formDataSplit.append("nextSteps", nextSplitLabel);
-//         }
-
-//       const responseSplit = await axios.post(
-//         `${API_URL}/assign-order`,
-//         formDataSplit,
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-
-//       const isSplitSuccess =
-//         responseSplit.data?.Resp_code === true ||
-//         responseSplit.data?.Resp_code === "true" ||
-//         responseSplit.data?.status === true;
-
-//       if (!isSplitSuccess) {
-//         setAssignStatus({
-//           type: "error",
-//           message: `⚠️ Main assigned, but split failed: ${
-//             responseSplit.data?.Resp_desc || "Unknown error"
-//           }`,
-//         });
-//       } else {
-//         const currentStep = "assembly";
-//         const defaultNext = getNextSteps(currentStep)[0] || "";
-//         const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-//         const nextSplitLabel = getStepLabel(splitAssignStep || defaultNext || "");
-//         const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}` +
-//           `\n✔ Split ${splitQty} → ${nextSplitLabel || "next stage"}`;
-//         setAssignStatus({ type: "success", message: msg });
-//       }
-//     } else {
-//       const currentStep = "assembly";
-//       const defaultNext = getNextSteps(currentStep)[0] || "";
-//       const nextMainLabel = getStepLabel(quickAssignStep || defaultNext || "");
-//       const msg = `✔ Assigned ${mainQty} → ${nextMainLabel || "next stage"}`;
-//       setAssignStatus({ type: "success", message: msg });
-//     }
-
-//     // ---------------------------------------------------
-//     //  🔥 UPDATE QTY LOCALLY (backend does not update it)
-//     // ---------------------------------------------------
-//     setOrders(prev =>
-//       prev.map(o => {
-//         if (o.id !== selectedOrder.id) return o;
-
-//         const oldExe = o.qtyExe || 0;
-//         const addMain = mainQty;
-//         const addSplit = splitOrder ? splitQty : 0;
-
-//         const newExe = oldExe + addMain + addSplit;
-//         const newPending = o.qty - newExe;
-
-//         return {
-//           ...o,
-//           qtyExe: newExe,
-//           qtyPending: newPending,
-//         };
-//       })
-//     );
-
-//       setQuickAssignOpen(false);
-//       setAssignStatus(null);
-
-//   } catch (error: any) {
-//     console.error("❌ Error assigning order:", error);
-
-//     if (error.response) {
-//       const msg =
-//         error.response.data?.message ||
-//         error.response.data?.Resp_desc ||
-//         "Validation failed.";
-
-//       const detailed =
-//         error.response.data?.errors &&
-//         Object.entries(error.response.data.errors)
-//           .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-//           .join("\n");
-
-//       setAssignStatus({
-//         type: "error",
-//         message: `❌ ${msg}\n${detailed || ""}`,
-//       });
-//     } else if (error.request) {
-//       setAssignStatus({
-//         type: "error",
-//         message: "❌ No response from server. Please check your connection.",
-//       });
-//     } else {
-//       setAssignStatus({
-//         type: "error",
-//         message: `❌ ${error.message}`,
-//       });
-//     }
-//   }
-// };
-
-// const handleAssignOrder = async () => {
-//   if (isAssigning) return;
-//   setIsAssigning(true);
-//   if (!selectedOrder) return;
-//   if (!validateQuickAssign()) return;
-
-//   setAssignStatus({
-//     type: "info",
-//     message: "Assigning order, please wait...",
-//   });
-
-//   try {
-//     const token = localStorage.getItem("token");
-//     if (!token) {
-//       setAssignStatus({
-//         type: "error",
-//         message: "Token missing. Please log in again.",
-//       });
-//       return;
-//     }
-
-//     // ✅ DEFINE PAGE CURRENT STEP — REQUIRED
-//     const currentSteps = "assembly-c";
-
-//     const mainQty = Number(quickAssignQty || 0);
-//     const splitQty = Number(splitAssignQty || 0);
-
-//     // ✅ next step key from dropdown or workflow
-//     const nextStepKey =
-//       quickAssignStep ||
-//       (Array.isArray(nextSteps) ? nextSteps[0] : "Assembly D");
-
-//     // ✅ Convert stored keys into readable labels
-//     const nextStepLabel = getStepLabel(nextStepKey);
-//     const currentStepLabel = getStepLabel(currentSteps);
-
-//     //
-//     // ---------------------------
-//     // MAIN ASSIGNMENT
-//     // ---------------------------
-//     //
-//     const formData = new FormData();
-//     formData.append("orderId", String(selectedOrder.id));
-//     formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
-//     formData.append("executedQty", String(mainQty));
-//     formData.append("currentSteps", currentStepLabel);
-//     formData.append("nextSteps", nextStepLabel);
-//     formData.append("split_id", String(selectedOrder.split_id || ""));
-
-//     console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
-
-//     const responseMain = await axios.post(
-//       `${API_URL}/assign-order`,
-//       formData,
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-
-//     const mainSuccess =
-//       responseMain.data?.Resp_code === "true" ||
-//       responseMain.data?.Resp_code === true;
-
-//     if (!mainSuccess) {
-//       setAssignStatus({
-//         type: "error",
-//         message: responseMain.data?.Resp_desc || "Main assignment failed.",
-//       });
-//       return;
-//     }
-
-//     let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
-
-//     //
-//     // ---------------------------
-//     // SPLIT ASSIGNMENT
-//     // ---------------------------
-//     //
-//     if (splitOrder && splitQty > 0) {
-//       const formDataSplit = new FormData();
-//       formDataSplit.append("orderId", String(selectedOrder.id));
-//       formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
-//       formDataSplit.append("executedQty", String(splitQty));
-//       formDataSplit.append("currentSteps", currentStepLabel);
-//       formDataSplit.append("nextSteps", nextStepLabel);
-//       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
-
-//       console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
-
-//       const responseSplit = await axios.post(
-//         `${API_URL}/assign-order`,
-//         formDataSplit,
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-
-//       const splitSuccess =
-//         responseSplit.data?.Resp_code === "true" ||
-//         responseSplit.data?.Resp_code === true;
-
-//       if (splitSuccess) {
-//         successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
-//       } else {
-//         setAssignStatus({
-//           type: "error",
-//           message:
-//             "Main assigned but split failed: " +
-//             (responseSplit.data?.Resp_desc || "Unknown error"),
-//         });
-//       }
-//     }
-
-//     setAssignStatus({ type: "success", message: successMessage });
-
-//     const makeKey = (o: AssemblyOrderData) =>
-//       (o.splittedCode || o.split_id)
-//         ? (o.splittedCode || o.split_id)
-//         : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
-//             .map((v) => v ?? "")
-//             .join("|");
-//     const selectedKey = makeKey(selectedOrder);
-
-//     setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
-//     setSelectedRows((prev) => {
-//       const copy = new Set(prev);
-//       copy.delete(selectedKey);
-//       return copy;
-//     });
-
-//     setQuickAssignOpen(false);
-//     setAssignStatus(null);
-//   } catch (error) {
-//     console.error("❌ Error assigning order:", error);
-//     setAssignStatus({
-//       type: "error",
-//       message: "Server error while assigning.",
-//     });
-//   } finally {
-//     setIsAssigning(false);
-//   }
-// };
 const handleAssignOrder = async () => {
   if (isAssigning) return;
   setIsAssigning(true);
@@ -1327,6 +1021,8 @@ const handleAssignOrder = async () => {
     formData.append("currentSteps", currentStepLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
+
+
 
     console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
 
@@ -1981,18 +1677,19 @@ const handleAssignOrder = async () => {
                     <Select
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
-                      disabled
+                      
                     >
                       <SelectTrigger id="assignStep">
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {effectiveNextSteps.map((step) => (
+                     <SelectContent>
+                        {assemblyCQuickSteps.map((step) => (
                           <SelectItem key={step} value={step}>
                             {getStepLabel(step)}
                           </SelectItem>
                         ))}
                       </SelectContent>
+
                     </Select>
                   </div>
 
@@ -2215,7 +1912,7 @@ const handleAssignOrder = async () => {
               </Button>
               <Button
                 onClick={handlePrintBinCard}
-                className="bg-blue-600 text-white"
+                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
               >
                 <Printer className="h-4 w-4" />
                 Print
