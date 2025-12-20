@@ -1576,7 +1576,7 @@ const handleExport = () => {
                         : "bg-btn-gradient text-white shadow-md transition-all"
                     }`}
                   >
-                    {showRemarksOnly ? "Show All Projects" : "Remarks"}
+                    {showRemarksOnly ? "Show All Projects" : "Remarks only"}
                   </Button>
                 </div>
               </div>
