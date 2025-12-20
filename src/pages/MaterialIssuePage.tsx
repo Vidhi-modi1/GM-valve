@@ -98,6 +98,8 @@ export function MaterialIssuePage() {
   const [total, setTotal] = useState<number>(0);
   const [lastPage, setLastPage] = useState<number>(1);
 
+     const [soaSort, setSoaSort] = useState<"asc" | "desc">("asc");
+
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -260,10 +262,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
 
   const nextStepValue = getStepLabel(quickAssignStep);
 
-  useEffect(() => {
-    fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, perPage]);
+
 
   const useGlobalSearch = useMemo(() => {
     const hasSearch = localSearchTerm.trim().length > 0;
@@ -271,6 +270,22 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     const hasDate = Boolean(dateFrom) || Boolean(dateTo);
     return hasSearch || hasFilters || hasDate || showUrgentOnly;
   }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+
+    const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+    useEffect(() => {
+      if (useGlobalSearch) {
+        if (!fullOrders) fetchAllPages();
+      } else {
+        setFullOrders(null);
+      }
+    }, [useGlobalSearch, perPage]);
+
+    useEffect(() => {
+      if (!useGlobalSearch) {
+        fetchOrders();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, perPage, useGlobalSearch]);
 
   const fetchAllPages = async () => {
     try {
@@ -469,6 +484,14 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
       );
     }
 
+    if (soaSort) {
+  filtered = [...filtered].sort((a, b) => {
+    const aNo = parseInt(a.soaSrNo || "0", 10);
+    const bNo = parseInt(b.soaSrNo || "0", 10);
+    return soaSort === "asc" ? aNo - bNo : bNo - aNo;
+  });
+}
+
     return filtered;
   }, [
     orders,
@@ -482,6 +505,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     dateFrom,
     dateTo,
     getAlertStatus,
+      soaSort, 
   ]);
 
    const truncateWords = (text = "", wordLimit = 4) => {
@@ -1473,8 +1497,14 @@ const handleExport = () => {
                     <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
                       GMSOA NO.
                     </th>
-                    <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">
+                    <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24 cursor-pointer select-none"
+                     onClick={() =>
+    setSoaSort(prev => (prev === "asc" ? "desc" : "asc"))
+  }
+                    >
                       SOA Sr. No.
+                      {soaSort === "asc" && " ▲"}
+  {soaSort === "desc" && " ▼"}
                     </th>
                     <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Assembly Date

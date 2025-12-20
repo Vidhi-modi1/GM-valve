@@ -6482,4 +6482,20 @@ table {
   border-spacing: 0;
 }  */
 
+.dialog-content-wrp {
+  max-width: 900px !important;
+  width: 100% !important;
+}
 
+.dialog-inline {
+  padding: 20px;
+}
+
+.bg-btn-gradient {
+  background-color: #f3f5f9;
+  color: #174a9f;
+}
+
+.inspected {
+  padding-top: 20px;
+}

@@ -1,183 +1,340 @@
-  // src/pages/PlanningPage.tsx
-  import React, { useState, useRef, useEffect, useMemo } from "react";
-  import axios from "axios";
-  import {
-    Plus,
-    Calendar as CalendarIcon,
-    Printer,
-    ArrowRight,
-    Search,
-    Siren,
-    Eye,
-    MessageSquarePlus,
-    Download
-  } from "lucide-react";
-  import { Button } from "../components/ui/button";
-  import { Badge } from "../components/ui/badge";
-  import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-  } from "../components/ui/dialog";
-  import { Textarea } from "../components/ui/textarea";
-  import { Label } from "../components/ui/label";
-  import { Input } from "../components/ui/input";
+// src/pages/PlanningPage.tsx
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import axios from "axios";
+import {
+  Plus,
+  Calendar as CalendarIcon,
+  Printer,
+  ArrowRight,
+  Search,
+  Siren,
+  Eye,
+  MessageSquarePlus,
+  Download,
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../components/ui/dialog";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
 
-  import * as XLSX from "xlsx";
-  import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
-  import { Checkbox } from "../components/ui/checkbox";
-  import { useOrderContext } from "../components/order-context";
-  import { OrderFilters } from "../components/order-filters";
-  import { API_URL } from "../config/api.ts";
+import { Checkbox } from "../components/ui/checkbox";
+import { useOrderContext } from "../components/order-context";
+import { OrderFilters } from "../components/order-filters";
+import { API_URL } from "../config/api.ts";
 
-  import { DashboardHeader } from "../components/dashboard-header.tsx";
-  // import { FullPageLoader } from "../components/loading-skeleton";
-  import { getStepLabel } from "../config/workflowSteps";
-  import TablePagination from "../components/table-pagination";
+import { DashboardHeader } from "../components/dashboard-header.tsx";
+// import { FullPageLoader } from "../components/loading-skeleton";
+import { getStepLabel } from "../config/workflowSteps";
+import TablePagination from "../components/table-pagination";
 
-  interface AssemblyOrderData {
-    id: string;
-    assemblyLine: string;
-    gmsoaNo: string;
-    soaSrNo: string;
-    assemblyDate: string;
-    uniqueCode: string;
-    splittedCode: string;
-    split_id: string;
-    party: string;
-    customerPoNo: string;
-    codeNo: string;
-    product: string;
-    poQty: number;
-    qty: number;
-    qtyExe: number;
-    qtyPending: number;
-    finishedValve: string;
-    gmLogo: string;
-    namePlate: string;
-    productSpcl1: string;
-    productSpcl2: string;
-    productSpcl3: string;
-    inspection: string;
-    painting: string;
-    remarks: string;
-    alertStatus: boolean;
-    // Preserve the original list position so items return when unmarked urgent
-    originalIndex: number;
-  }
+interface AssemblyOrderData {
+  id: string;
+  assemblyLine: string;
+  specialNotes: string; 
+  gmsoaNo: string;
+  soaSrNo: string;
+  assemblyDate: string;
+  uniqueCode: string;
+  splittedCode: string;
+  split_id: string;
+  party: string;
+  customerPoNo: string;
+  codeNo: string;
+  product: string;
+  poQty: number;
+  qty: number;
+  qtyExe: number;
+  qtyPending: number;
+  finishedValve: string;
+  gmLogo: string;
+  namePlate: string;
+  productSpcl1: string;
+  productSpcl2: string;
+  productSpcl3: string;
+  inspection: string;
+  painting: string;
+  remarks: string;
+  alertStatus: boolean;
+  // Preserve the original list position so items return when unmarked urgent
+  originalIndex: number;
+}
 
-  export function PlanningPage() {
-    // context for remarks & alert status (from your existing order-context)
-    const {
-      updateRemark,
-      toggleAlertStatus: toggleAlertStatusContext,
-      getRemark,
-      getAlertStatus,
-    } = useOrderContext();
+export function PlanningPage() {
+  // context for remarks & alert status (from your existing order-context)
+  const {
+    updateRemark,
+    toggleAlertStatus: toggleAlertStatusContext,
+    getRemark,
+    getAlertStatus,
+  } = useOrderContext();
 
-    // API data + UI state
-    const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
-    const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState<number>(1);
-    const [perPage, setPerPage] = useState<number>(20);
-    const [total, setTotal] = useState<number>(0);
-    const [lastPage, setLastPage] = useState<number>(1);
+  // API data + UI state
+  const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+  const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
+  const [total, setTotal] = useState<number>(0);
+  const [lastPage, setLastPage] = useState<number>(1);
 
-    const [localSearchTerm, setLocalSearchTerm] = useState("");
-    const [showUrgentOnly, setShowUrgentOnly] = useState(false);
-    const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
-    const [gmsoaFilter, setGmsoaFilter] = useState("all");
-    const [partyFilter, setPartyFilter] = useState("all");
-    const [dateFilterMode, setDateFilterMode] = useState<
-      "year" | "month" | "range"
-    >("range");
-    const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-    const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [soaSort, setSoaSort] = useState<"asc" | "desc">("asc");
 
-    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-    const [quickAssignOpen, setQuickAssignOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<AssemblyOrderData | null>(
-      null
-    );
-    const [quickAssignStep, setQuickAssignStep] = useState("");
-    const [quickAssignQty, setQuickAssignQty] = useState("");
-    const [splitOrder, setSplitOrder] = useState(false);
-    const [splitAssignStep, setSplitAssignStep] = useState("");
-    const [splitAssignQty, setSplitAssignQty] = useState("");
-    const [quickAssignErrors, setQuickAssignErrors] = useState<{
-      [k: string]: string;
-    }>({});
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
+  const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  const [showRemarksOnly, setShowRemarksOnly] = useState(false);
+  const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
+  const [gmsoaFilter, setGmsoaFilter] = useState("all");
+  const [partyFilter, setPartyFilter] = useState("all");
+  const [dateFilterMode, setDateFilterMode] = useState<
+    "year" | "month" | "range"
+  >("range");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
-    const [binCardDialogOpen, setBinCardDialogOpen] = useState(false);
-    const [viewDetailsDialogOpen, setViewDetailsDialogOpen] = useState(false);
-    const [viewedOrder, setViewedOrder] = useState<AssemblyOrderData | null>(
-      null
-    );
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [quickAssignOpen, setQuickAssignOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<AssemblyOrderData | null>(
+    null
+  );
+  const [quickAssignStep, setQuickAssignStep] = useState("");
+  const [quickAssignQty, setQuickAssignQty] = useState("");
+  const [splitOrder, setSplitOrder] = useState(false);
+  const [splitAssignStep, setSplitAssignStep] = useState("");
+  const [splitAssignQty, setSplitAssignQty] = useState("");
+  const [quickAssignErrors, setQuickAssignErrors] = useState<{
+    [k: string]: string;
+  }>({});
 
-    const [remarksDialogOpen, setRemarksDialogOpen] = useState(false);
-    const [remarksOrder, setRemarksOrder] = useState<AssemblyOrderData | null>(
-      null
-    );
-    const [remarksText, setRemarksText] = useState("");
+  const [binCardDialogOpen, setBinCardDialogOpen] = useState(false);
+  const [viewDetailsDialogOpen, setViewDetailsDialogOpen] = useState(false);
+  const [viewedOrder, setViewedOrder] = useState<AssemblyOrderData | null>(
+    null
+  );
 
-    // Upload file
-    const [file, setFile] = useState<File | null>(null);
-    const [uploading, setUploading] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [remarksDialogOpen, setRemarksDialogOpen] = useState(false);
+  const [remarksOrder, setRemarksOrder] = useState<AssemblyOrderData | null>(
+    null
+  );
+  const [remarksText, setRemarksText] = useState("");
 
-    // refs
-    const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  // Upload file
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    // token
-    const token = localStorage.getItem("token");
-    // role helper
-    const getCurrentUserRole = () => {
-      try {
-        const s = localStorage.getItem("user");
-        if (!s) return "";
-        const u = JSON.parse(s);
-        const raw = typeof u.role === "object" ? u.role?.name : u.role;
-        return String(raw || "").toLowerCase();
-      } catch {
-        return "";
-      }
-    };
-    const isAdmin = getCurrentUserRole().includes("admin");
+  // refs
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
-    // Fetch orders from API (POST)
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // token
+  const token = localStorage.getItem("token");
+  // role helper
+  const getCurrentUserRole = () => {
+    try {
+      const s = localStorage.getItem("user");
+      if (!s) return "";
+      const u = JSON.parse(s);
+      const raw = typeof u.role === "object" ? u.role?.name : u.role;
+      return String(raw || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+  const isAdmin = getCurrentUserRole().includes("admin");
 
-        const currentStage = "planning";
-        const stageLabel = getStepLabel(currentStage);
-        const payload = { menu_name: stageLabel, page, per_page: perPage };
+  // Fetch orders from API (POST)
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const res = await axios.post(
-          `${API_URL}/order-list`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+      const currentStage = "planning";
+      const stageLabel = getStepLabel(currentStage);
+      const payload = { menu_name: stageLabel, page, per_page: perPage };
+
+      const res = await axios.post(`${API_URL}/order-list`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
+      const ok =
+        res?.data?.Resp_code === "true" ||
+        res?.data?.Resp_code === true || // ✅ handle boolean true
+        res?.data?.Resp_code === "RCS";
+
+      if (ok && Array.isArray(res.data.data)) {
+        const apiOrders: AssemblyOrderData[] = res.data.data.map(
+          (item: any, index: number) => ({
+            id: String(item.id),
+            assemblyLine: item.assembly_no || "",
+            gmsoaNo: item.soa_no || "",
+            soaSrNo: item.soa_sr_no || "",
+            assemblyDate: item.assembly_date || "",
+            uniqueCode: item.unique_code || item.order_no || "",
+            splittedCode: item.splitted_code || "",
+            split_id: item.split_id || item.splitted_code || "",
+            party: item.party_name || item.party || "",
+            customerPoNo: item.customer_po_no || "",
+            codeNo: item.code_no || "",
+            product: item.product || "",
+            poQty: Number(item.po_qty ?? item.qty ?? 0),
+            qty: Number(item.qty || 0),
+            qtyExe: Number(item.qty_executed || 0),
+            qtyPending: Number(item.qty_pending || 0),
+            finishedValve: item.finished_valve || "",
+            gmLogo: item.gm_logo || "",
+            namePlate: item.name_plate || "",
+            specialNotes: item.special_notes || item.special_note || "",
+            productSpcl1: item.product_spc1 || "",
+            productSpcl2: item.product_spc2 || "",
+            productSpcl3: item.product_spc3 || "",
+            inspection: item.inspection || "",
+            painting: item.painting || "",
+            remarks: item.remarks || "",
+
+            // ✅ Preserve urgent flag properly (backend sends 0 or 1)
+            alertStatus:
+              item.is_urgent === true ||
+              item.is_urgent === "true" ||
+              item.alert_status === true ||
+              item.alert_status === "true" ||
+              item.urgent === 1 ||
+              item.urgent === "1",
+
+            // Track original position to restore when urgent is cleared
+            originalIndex: index,
+          })
         );
 
-        // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
-        const ok =
-          res?.data?.Resp_code === "true" ||
-          res?.data?.Resp_code === true || // ✅ handle boolean true
-          res?.data?.Resp_code === "RCS";
+        console.log("✅ Orders fetched:", apiOrders.length, "records");
+        // Sort so urgent items appear at top on initial load
+        setOrders(sortOrders(apiOrders));
+        setFullOrders(null);
+        const p = res?.data?.pagination;
+        if (p) {
+          const nextTotal = Number(p.total ?? apiOrders.length);
+          const nextPer = Number(p.per_page ?? perPage);
+          const nextPage = Number(p.current_page ?? page);
+          const lastRaw =
+            p.last_page ?? Math.ceil(nextTotal / Math.max(nextPer, 1));
+          const nextLast = Number(lastRaw || 1);
+          setTotal(nextTotal);
+          setPerPage(nextPer);
+          setPage(nextPage);
+          setLastPage(nextLast);
+        } else {
+          const nextTotal = apiOrders.length;
+          setTotal(nextTotal);
+          setLastPage(Math.max(1, Math.ceil(nextTotal / Math.max(perPage, 1))));
+        }
+        setError(null);
+        setMessage(null);
+      } else {
+        console.warn("⚠️ No valid order data received", res.data);
+        setOrders([]);
+        setError(res?.data?.Resp_desc || "Failed to fetch orders");
+      }
+    } catch (err: any) {
+      console.error("Error fetching orders:", err);
+      setError("Error fetching order list. Please check your token or server.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (ok && Array.isArray(res.data.data)) {
-          const apiOrders: AssemblyOrderData[] = res.data.data.map(
+  const useGlobalSearch = useMemo(() => {
+    const hasSearch = localSearchTerm.trim().length > 0;
+    const hasFilters =
+      assemblyLineFilter !== "all" ||
+      gmsoaFilter !== "all" ||
+      partyFilter !== "all";
+    const hasDate = Boolean(dateFrom) || Boolean(dateTo);
+    return (
+      hasSearch || hasFilters || hasDate || showUrgentOnly || showRemarksOnly
+    );
+  }, [
+    localSearchTerm,
+    assemblyLineFilter,
+    gmsoaFilter,
+    partyFilter,
+    dateFrom,
+    dateTo,
+    showUrgentOnly,
+    showRemarksOnly,
+  ]);
+
+  const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+  useEffect(() => {
+    if (useGlobalSearch) {
+      if (!fullOrders) fetchAllPages();
+    } else {
+      setFullOrders(null);
+    }
+  }, [useGlobalSearch, perPage]);
+
+  useEffect(() => {
+    if (!useGlobalSearch) {
+      fetchOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage, useGlobalSearch]);
+
+  const parseSoaSrNo = (val: string) => {
+    const n = parseInt(val, 10);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const fetchAllPages = async () => {
+    try {
+      setLoading(true);
+      const currentStage = "planning";
+      const stageLabel = getStepLabel(currentStage);
+      const first = await axios.post(
+        `${API_URL}/order-list`,
+        { menu_name: stageLabel, page: 1, per_page: perPage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const ok =
+        first?.data?.Resp_code === "true" ||
+        first?.data?.Resp_code === true ||
+        first?.data?.Resp_code === "RCS";
+      if (!ok) {
+        setFullOrders(null);
+        return;
+      }
+      const p = first?.data?.pagination;
+      const last = Number(p?.last_page || 1);
+      const requests: Promise<any>[] = [];
+      for (let pg = 1; pg <= last; pg++) {
+        requests.push(
+          axios.post(
+            `${API_URL}/order-list`,
+            { menu_name: stageLabel, page: pg, per_page: perPage },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+        );
+      }
+      const responses = await Promise.all(requests);
+      let all: AssemblyOrderData[] = [];
+      for (const r of responses) {
+        if (Array.isArray(r?.data?.data)) {
+          const chunk: AssemblyOrderData[] = r.data.data.map(
             (item: any, index: number) => ({
               id: String(item.id),
               assemblyLine: item.assembly_no || "",
@@ -198,14 +355,13 @@
               finishedValve: item.finished_valve || "",
               gmLogo: item.gm_logo || "",
               namePlate: item.name_plate || "",
+              specialNotes: item.special_notes || "",
               productSpcl1: item.product_spc1 || "",
               productSpcl2: item.product_spc2 || "",
               productSpcl3: item.product_spc3 || "",
               inspection: item.inspection || "",
               painting: item.painting || "",
               remarks: item.remarks || "",
-
-              // ✅ Preserve urgent flag properly (backend sends 0 or 1)
               alertStatus:
                 item.is_urgent === true ||
                 item.is_urgent === "true" ||
@@ -213,164 +369,29 @@
                 item.alert_status === "true" ||
                 item.urgent === 1 ||
                 item.urgent === "1",
-
-              // Track original position to restore when urgent is cleared
               originalIndex: index,
             })
           );
-
-          console.log("✅ Orders fetched:", apiOrders.length, "records");
-          // Sort so urgent items appear at top on initial load
-          setOrders(sortOrders(apiOrders));
-          setFullOrders(null);
-          const p = res?.data?.pagination;
-          if (p) {
-            const nextTotal = Number(p.total ?? apiOrders.length);
-            const nextPer = Number(p.per_page ?? perPage);
-            const nextPage = Number(p.current_page ?? page);
-            const lastRaw = (p.last_page ?? Math.ceil(nextTotal / Math.max(nextPer, 1)));
-            const nextLast = Number(lastRaw || 1);
-            setTotal(nextTotal);
-            setPerPage(nextPer);
-            setPage(nextPage);
-            setLastPage(nextLast);
-          } else {
-            const nextTotal = apiOrders.length;
-            setTotal(nextTotal);
-            setLastPage(Math.max(1, Math.ceil(nextTotal / Math.max(perPage, 1))));
-          }
-          setError(null);
-          setMessage(null);
-        } else {
-          console.warn("⚠️ No valid order data received", res.data);
-          setOrders([]);
-          setError(res?.data?.Resp_desc || "Failed to fetch orders");
+          all = all.concat(chunk);
         }
-      } catch (err: any) {
-        console.error("Error fetching orders:", err);
-        setError("Error fetching order list. Please check your token or server.");
-      } finally {
-        setLoading(false);
       }
-    };
-
-      const useGlobalSearch = useMemo(() => {
-      const hasSearch = localSearchTerm.trim().length > 0;
-      const hasFilters = assemblyLineFilter !== "all" || gmsoaFilter !== "all" || partyFilter !== "all";
-      const hasDate = Boolean(dateFrom) || Boolean(dateTo);
-      return hasSearch || hasFilters || hasDate || showUrgentOnly;
-    }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
-
-    const source = useGlobalSearch && fullOrders ? fullOrders : orders;
-    useEffect(() => {
-  if (useGlobalSearch) {
-    if (!fullOrders) fetchAllPages();
-  } else {
-    setFullOrders(null);
-  }
-}, [useGlobalSearch, perPage]);
-
-useEffect(() => {
-  if (!useGlobalSearch) {
-    fetchOrders();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [page, perPage, useGlobalSearch]);
-
-
-  
-
-
-    const fetchAllPages = async () => {
-      try {
-        setLoading(true);
-        const currentStage = "planning";
-        const stageLabel = getStepLabel(currentStage);
-        const first = await axios.post(
-          `${API_URL}/order-list`,
-          { menu_name: stageLabel, page: 1, per_page: perPage },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const ok =
-          first?.data?.Resp_code === "true" ||
-          first?.data?.Resp_code === true ||
-          first?.data?.Resp_code === "RCS";
-        if (!ok) {
-          setFullOrders(null);
-          return;
-        }
-        const p = first?.data?.pagination;
-        const last = Number(p?.last_page || 1);
-        const requests: Promise<any>[] = [];
-        for (let pg = 1; pg <= last; pg++) {
-          requests.push(
-            axios.post(
-              `${API_URL}/order-list`,
-              { menu_name: stageLabel, page: pg, per_page: perPage },
-              { headers: { Authorization: `Bearer ${token}` } }
-            )
-          );
-        }
-        const responses = await Promise.all(requests);
-        let all: AssemblyOrderData[] = [];
-        for (const r of responses) {
-          if (Array.isArray(r?.data?.data)) {
-            const chunk: AssemblyOrderData[] = r.data.data.map((item: any, index: number) => ({
-              id: String(item.id),
-              assemblyLine: item.assembly_no || "",
-              gmsoaNo: item.soa_no || "",
-              soaSrNo: item.soa_sr_no || "",
-              assemblyDate: item.assembly_date || "",
-              uniqueCode: item.unique_code || item.order_no || "",
-              splittedCode: item.splitted_code || "",
-              split_id: item.split_id || item.splitted_code || "",
-              party: item.party_name || item.party || "",
-              customerPoNo: item.customer_po_no || "",
-              codeNo: item.code_no || "",
-              product: item.product || "",
-              poQty: Number(item.po_qty ?? item.qty ?? 0),
-              qty: Number(item.qty || 0),
-              qtyExe: Number(item.qty_executed || 0),
-              qtyPending: Number(item.qty_pending || 0),
-              finishedValve: item.finished_valve || "",
-              gmLogo: item.gm_logo || "",
-              namePlate: item.name_plate || "",
-              productSpcl1: item.product_spc1 || "",
-              productSpcl2: item.product_spc2 || "",
-              productSpcl3: item.product_spc3 || "",
-              inspection: item.inspection || "",
-              painting: item.painting || "",
-              remarks: item.remarks || "",
-              alertStatus:
-                item.is_urgent === true ||
-                item.is_urgent === "true" ||
-                item.alert_status === true ||
-                item.alert_status === "true" ||
-                item.urgent === 1 ||
-                item.urgent === "1",
-              originalIndex: index,
-            }));
-            all = all.concat(chunk);
-          }
-        }
-        // Deduplicate by composite key
-        const seen = new Set<string>();
-        const makeRowKey = (o: AssemblyOrderData) => o.splittedCode || o.split_id || o.uniqueCode || o.id;
-        const deduped = all.filter((o) => {
-          const key = makeRowKey(o);
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        setFullOrders(sortOrders(deduped));
-      } catch (e) {
-        setFullOrders(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    
+      // Deduplicate by composite key
+      const seen = new Set<string>();
+      const makeRowKey = (o: AssemblyOrderData) =>
+        o.splittedCode || o.split_id || o.uniqueCode || o.id;
+      const deduped = all.filter((o) => {
+        const key = makeRowKey(o);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setFullOrders(sortOrders(deduped));
+    } catch (e) {
+      setFullOrders(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // useEffect(() => {
   //   const header = document.querySelector(".glass-header") as HTMLElement;
@@ -409,233 +430,254 @@ useEffect(() => {
   //   const onScroll = () => {
   //     const rect = thead.getBoundingClientRect();
 
+  useEffect(() => {
+    if (useGlobalSearch) {
+      if (!fullOrders) fetchAllPages();
+    } else {
+      setFullOrders(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useGlobalSearch, perPage]);
 
+  // filter option lists
+  const assemblyLines = useMemo(
+    () =>
+      Array.from(new Set(orders.map((o) => o.assemblyLine)))
+        .filter(Boolean)
+        .sort(),
+    [orders]
+  );
+  const gmsoaNos = useMemo(
+    () =>
+      Array.from(new Set(orders.map((o) => o.gmsoaNo)))
+        .filter(Boolean)
+        .sort(),
+    [orders]
+  );
+  const parties = useMemo(
+    () =>
+      Array.from(new Set(orders.map((o) => o.party)))
+        .filter(Boolean)
+        .sort(),
+    [orders]
+  );
 
+  const filteredOrders = useMemo(() => {
+    const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+    let filtered = source.slice();
 
-    useEffect(() => {
-      if (useGlobalSearch) {
-        if (!fullOrders) fetchAllPages();
-      } else {
-        setFullOrders(null);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [useGlobalSearch, perPage]);
+    if (showUrgentOnly) {
+      filtered = filtered.filter(
+        (o) => getAlertStatus(String(o.id)) || o.alertStatus
+      );
+    }
+    if (showRemarksOnly) {
+      filtered = filtered.filter(
+        (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
+      );
+    }
 
-    // filter option lists
-    const assemblyLines = useMemo(
-      () =>
-        Array.from(new Set(orders.map((o) => o.assemblyLine)))
-          .filter(Boolean)
-          .sort(),
-      [orders]
-    );
-    const gmsoaNos = useMemo(
-      () =>
-        Array.from(new Set(orders.map((o) => o.gmsoaNo)))
-          .filter(Boolean)
-          .sort(),
-      [orders]
-    );
-    const parties = useMemo(
-      () =>
-        Array.from(new Set(orders.map((o) => o.party)))
-          .filter(Boolean)
-          .sort(),
-      [orders]
-    );
+    if (assemblyLineFilter !== "all")
+      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (gmsoaFilter !== "all")
+      filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
+    if (partyFilter !== "all")
+      filtered = filtered.filter((o) => o.party === partyFilter);
 
-    const filteredOrders = useMemo(() => {
-      const source = useGlobalSearch && fullOrders ? fullOrders : orders;
-      let filtered = source.slice();
+    // ⬇️ UPDATED DATE FILTER SECTION
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter((order) => {
+        // skip HOLD or invalid dates
+        if (!order.assemblyDate || order.assemblyDate === "HOLD") return false;
 
-      if (showUrgentOnly) {
-        filtered = filtered.filter(
-          (o) => getAlertStatus(String(o.id)) || o.alertStatus
-        );
-      }
+        // Strict dd-mm-yyyy parser
+        const parseDMY = (str: string | null | undefined): Date | null => {
+          if (!str) return null;
 
-      if (assemblyLineFilter !== "all")
-        filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
-      if (gmsoaFilter !== "all")
-        filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
-      if (partyFilter !== "all")
-        filtered = filtered.filter((o) => o.party === partyFilter);
+          // Only dd-mm-yyyy accepted
+          const match = str.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+          if (!match) return null;
 
-      // ⬇️ UPDATED DATE FILTER SECTION
-      if (dateFrom || dateTo) {
-        filtered = filtered.filter((order) => {
-          // skip HOLD or invalid dates
-          if (!order.assemblyDate || order.assemblyDate === "HOLD") return false;
+          const [, d, m, y] = match;
+          const day = Number(d);
+          const month = Number(m);
+          const year = Number(y);
 
-          // Strict dd-mm-yyyy parser
-          const parseDMY = (str: string | null | undefined): Date | null => {
-            if (!str) return null;
+          // Create date
+          const date = new Date(year, month - 1, day);
 
-            // Only dd-mm-yyyy accepted
-            const match = str.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-            if (!match) return null;
-
-            const [, d, m, y] = match;
-            const day = Number(d);
-            const month = Number(m);
-            const year = Number(y);
-
-            // Create date
-            const date = new Date(year, month - 1, day);
-
-            // Validate (avoid auto-correcting by JS Date)
-            if (
-              date.getFullYear() !== year ||
-              date.getMonth() !== month - 1 ||
-              date.getDate() !== day
-            ) {
-              return null;
-            }
-
-            return date;
-          };
-
-          const orderDate = parseDMY(order.assemblyDate);
-          if (!orderDate) return false;
-
-          // Year filter mode
-          if (dateFilterMode === "year" && dateFrom) {
-            return orderDate.getFullYear() === dateFrom.getFullYear();
+          // Validate (avoid auto-correcting by JS Date)
+          if (
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+          ) {
+            return null;
           }
 
-          // Month filter mode
-          if (dateFilterMode === "month" && dateFrom) {
-            return (
-              orderDate.getFullYear() === dateFrom.getFullYear() &&
-              orderDate.getMonth() === dateFrom.getMonth()
-            );
-          }
+          return date;
+        };
 
-          // Range filter mode
-          if (dateFilterMode === "range") {
-            if (dateFrom && dateTo)
-              return orderDate >= dateFrom && orderDate <= dateTo;
-            if (dateFrom) return orderDate >= dateFrom;
-            if (dateTo) return orderDate <= dateTo;
-          }
+        const orderDate = parseDMY(order.assemblyDate);
+        if (!orderDate) return false;
 
-          return true;
-        });
-      }
+        // Year filter mode
+        if (dateFilterMode === "year" && dateFrom) {
+          return orderDate.getFullYear() === dateFrom.getFullYear();
+        }
 
-      if (localSearchTerm.trim()) {
-        const term = localSearchTerm.toLowerCase();
-        filtered = filtered.filter(
-          (o) =>
-            String(o.uniqueCode).toLowerCase().includes(term) ||
-            String(o.party).toLowerCase().includes(term) ||
-            String(o.gmsoaNo).toLowerCase().includes(term) ||
-            String(o.customerPoNo).toLowerCase().includes(term) ||
-            String(o.codeNo).toLowerCase().includes(term) ||
-            String(o.product).toLowerCase().includes(term)
-        );
-      }
+        // Month filter mode
+        if (dateFilterMode === "month" && dateFrom) {
+          return (
+            orderDate.getFullYear() === dateFrom.getFullYear() &&
+            orderDate.getMonth() === dateFrom.getMonth()
+          );
+        }
 
-      return filtered;
-    }, [
-      orders,
-      fullOrders,
-      localSearchTerm,
-      showUrgentOnly,
-      assemblyLineFilter,
-      gmsoaFilter,
-      partyFilter,
-      dateFilterMode,
-      dateFrom,
-      dateTo,
-      getAlertStatus,
-    ]);
+        // Range filter mode
+        if (dateFilterMode === "range") {
+          if (dateFrom && dateTo)
+            return orderDate >= dateFrom && orderDate <= dateTo;
+          if (dateFrom) return orderDate >= dateFrom;
+          if (dateTo) return orderDate <= dateTo;
+        }
 
-    const truncateWords = (text = "", wordLimit = 4) => {
-  const words = text.trim().split(/\s+/);
-  if (words.length <= wordLimit) return text;
-  return words.slice(0, wordLimit).join(" ") + "...";
-};
-
-    const paginatedOrders = useMemo(() => {
-      const start = (page - 1) * perPage;
-      return filteredOrders.slice(start, start + perPage);
-    }, [filteredOrders, page, perPage]);
-
-    useEffect(() => {
-      setPage(1);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
-
-    // selection helpers
-    const toggleRowSelection = (orderId: string) => {
-      setSelectedRows((prev) => {
-        const copy = new Set(prev);
-        if (copy.has(orderId)) copy.delete(orderId);
-        else copy.add(orderId);
-        return copy;
+        return true;
       });
-    };
+    }
 
-    const toggleSelectAll = () => {
-      setSelectedRows((prev) => {
-        if (prev.size === filteredOrders.length) return new Set();
-        return new Set(filteredOrders.map((o) => o.id));
+    if (localSearchTerm.trim()) {
+      const term = localSearchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (o) =>
+          String(o.uniqueCode).toLowerCase().includes(term) ||
+          String(o.party).toLowerCase().includes(term) ||
+          String(o.gmsoaNo).toLowerCase().includes(term) ||
+          String(o.customerPoNo).toLowerCase().includes(term) ||
+          String(o.codeNo).toLowerCase().includes(term) ||
+          String(o.product).toLowerCase().includes(term)
+      );
+    }
+
+    if (soaSort) {
+      filtered = [...filtered].sort((a, b) => {
+        const aNo = parseInt(a.soaSrNo || "0", 10);
+        const bNo = parseInt(b.soaSrNo || "0", 10);
+        return soaSort === "asc" ? aNo - bNo : bNo - aNo;
       });
-    };
+    }
 
-    const allRowsSelected =
-      filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
+    return filtered;
+  }, [
+    orders,
+    fullOrders,
+    localSearchTerm,
+    showUrgentOnly,
+    showRemarksOnly,
+    assemblyLineFilter,
+    gmsoaFilter,
+    partyFilter,
+    dateFilterMode,
+    dateFrom,
+    dateTo,
+    getAlertStatus,
+    soaSort,
+  ]);
 
-    // Quick Assign logic (local; you can replace with API calls as needed)
-    const handleQuickAssign = (order: AssemblyOrderData) => {
-      setSelectedOrder(order);
-      setQuickAssignOpen(true);
-      setQuickAssignStep("");
-      setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
-      setSplitOrder(false);
-      setSplitAssignStep("");
-      setSplitAssignQty("");
-      setQuickAssignErrors({});
-    };
+  const truncateWords = (text = "", wordLimit = 4) => {
+    const words = text.trim().split(/\s+/);
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(" ") + "...";
+  };
 
-    const validateQuickAssign = () => {
-      const errs: { [k: string]: string } = {};
-      const maxQty = Number(selectedOrder?.qtyPending ?? 0);
-      const mainQty = Number(quickAssignQty || 0);
-      const splitQty = Number(splitAssignQty || 0);
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredOrders.slice(start, start + perPage);
+  }, [filteredOrders, page, perPage]);
 
-      if (!quickAssignQty || mainQty <= 0)
-        errs.quickAssignQty = "Quantity is required and must be > 0";
-      if (mainQty > maxQty)
-        errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    localSearchTerm,
+    assemblyLineFilter,
+    gmsoaFilter,
+    partyFilter,
+    dateFrom,
+    dateTo,
+    showUrgentOnly,
+    showRemarksOnly,
+  ]);
 
-      if (splitOrder) {
-        if (!splitAssignStep) errs.splitAssignStep = "Choose second step";
-        if (!splitAssignQty || splitQty <= 0)
-          errs.splitAssignQty = "Split qty required";
-        if (
-          quickAssignStep &&
-          splitAssignStep &&
-          quickAssignStep === splitAssignStep
-        )
-          errs.sameEngineer = "Choose different steps";
-        const total = mainQty + splitQty;
-        if (total !== maxQty)
-          errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
-      }
+  // selection helpers
+  const toggleRowSelection = (orderId: string) => {
+    setSelectedRows((prev) => {
+      const copy = new Set(prev);
+      if (copy.has(orderId)) copy.delete(orderId);
+      else copy.add(orderId);
+      return copy;
+    });
+  };
 
-      setQuickAssignErrors(errs);
-      return Object.keys(errs).length === 0;
-    };
+  const toggleSelectAll = () => {
+    setSelectedRows((prev) => {
+      if (prev.size === filteredOrders.length) return new Set();
+      return new Set(filteredOrders.map((o) => o.id));
+    });
+  };
 
-    const handleQuickAssignCancel = () => {
-      setQuickAssignOpen(false);
-    };
+  const allRowsSelected =
+    filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-    // Bin Card / Print
-    const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
-    const handleShowBinCard = () => setBinCardDialogOpen(true);
+  // Quick Assign logic (local; you can replace with API calls as needed)
+  const handleQuickAssign = (order: AssemblyOrderData) => {
+    setSelectedOrder(order);
+    setQuickAssignOpen(true);
+    setQuickAssignStep("");
+    setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+    setSplitOrder(false);
+    setSplitAssignStep("");
+    setSplitAssignQty("");
+    setQuickAssignErrors({});
+  };
+
+  const validateQuickAssign = () => {
+    const errs: { [k: string]: string } = {};
+    const maxQty = Number(selectedOrder?.qtyPending ?? 0);
+    const mainQty = Number(quickAssignQty || 0);
+    const splitQty = Number(splitAssignQty || 0);
+
+    if (!quickAssignQty || mainQty <= 0)
+      errs.quickAssignQty = "Quantity is required and must be > 0";
+    if (mainQty > maxQty)
+      errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
+
+    if (splitOrder) {
+      if (!splitAssignStep) errs.splitAssignStep = "Choose second step";
+      if (!splitAssignQty || splitQty <= 0)
+        errs.splitAssignQty = "Split qty required";
+      if (
+        quickAssignStep &&
+        splitAssignStep &&
+        quickAssignStep === splitAssignStep
+      )
+        errs.sameEngineer = "Choose different steps";
+      const total = mainQty + splitQty;
+      if (total !== maxQty)
+        errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
+    }
+
+    setQuickAssignErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleQuickAssignCancel = () => {
+    setQuickAssignOpen(false);
+  };
+
+  // Bin Card / Print
+  const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
+  const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
     const cards = selectedOrdersData
       .map(
@@ -653,7 +695,9 @@ useEffect(() => {
             <h3 class="tag-title process-border">In Process Material Tag</h3>
             <div class="meta">
               <div class="meta-item">
-                <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+                <div><span class="label">Date:</span> ${
+                  order.assemblyDate
+                }</div>
                 <div>
                   <span class="label">SOA:</span>
                   ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
@@ -676,16 +720,26 @@ useEffect(() => {
                 <span class="label">Party:</span><p>${order.party}</p>
               </div>
               <div clas="description item-label-description">
-                <span class="label item-label">Item:</span><p>${order.product}</p>
+                <span class="label item-label">Item:</span><p>${
+                  order.product
+                }</p>
               </div>
             </div>
 
             <div class="qty-logo">
             <div class="meta meta-logo">
-              <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
-              <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+              <div class="meta-qty"><span class="label">QTY:</span> ${
+                order.qty
+              }</div>
+              <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
+                order.gmLogo
+              }</div>
               </div>
-              <div class="detail-items"><span class="label ">Special Note:</span> </div>
+              <div class="detail-items">
+  <span class="label">Special Note:</span>
+  <span>${order.specialNotes || ""}</span>
+</div>
+
               </div>
 
             <div class="inspect">
@@ -926,62 +980,60 @@ useEffect(() => {
     }, 300);
   };
 
-  const handleExport = () => {
-    // 🔥 Use ALL data (not paginated)
-    const dataToExport =
-      fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+const handleExport = () => {
+  // 1️⃣ If rows selected → export only those
+  const dataToExport =
+    selectedRows.size > 0
+      ? filteredOrders.filter((o) => selectedRows.has(o.id))
+      : filteredOrders; // 2️⃣ else export ALL filtered data
 
-    if (!dataToExport || dataToExport.length === 0) {
-      alert("No data available to export");
-      return;
-    }
+  if (!dataToExport || dataToExport.length === 0) {
+    alert("No data available to export");
+    return;
+  }
 
-    const exportData = dataToExport.map((order, index) => ({
-      "No": index + 1,
-      "Assembly Line": order.assemblyLine,
-      "GMSOA No": order.gmsoaNo,
-      "SOA Sr No": order.soaSrNo,
-      "Assembly Date": order.assemblyDate,
-      "Unique Code": order.uniqueCode,
-      "Splitted Code": order.splittedCode || "-",
-      "Party": order.party,
-      "Customer PO No": order.customerPoNo,
-      "Code No": order.codeNo,
-      "Product": order.product,
-      "PO Qty": order.poQty,
-      "Qty": order.qty,
-      "Qty Executed": order.qtyExe,
-      "Qty Pending": order.qtyPending,
-      "Finished Valve": order.finishedValve,
-      "GM Logo": order.gmLogo,
-      "Name Plate": order.namePlate,
-      "Product Special 1": order.productSpcl1,
-      "Product Special 2": order.productSpcl2,
-      "Product Special 3": order.productSpcl3,
-      "Inspection": order.inspection,
-      "Painting": order.painting,
-      "Remarks": order.remarks || "",
-    }));
+  const exportData = dataToExport.map((order, index) => ({
+    "No": index + 1,
+    "Assembly Line": order.assemblyLine,
+    "GMSOA No": order.gmsoaNo,
+    "SOA Sr No": order.soaSrNo,
+    "Assembly Date": order.assemblyDate,
+    "Unique Code": order.uniqueCode,
+    "Splitted Code": order.splittedCode || "-",
+    "Party": order.party,
+    "Customer PO No": order.customerPoNo,
+    "Code No": order.codeNo,
+    "Product": order.product,
+    "PO Qty": order.poQty,
+    "Qty": order.qty,
+    "Qty Executed": order.qtyExe,
+    "Qty Pending": order.qtyPending,
+    "Finished Valve": order.finishedValve,
+    "GM Logo": order.gmLogo,
+    "Name Plate": order.namePlate,
+    "Special Notes": order.specialNotes || "-",
+    "Product Special 1": order.productSpcl1,
+    "Product Special 2": order.productSpcl2,
+    "Product Special 3": order.productSpcl3,
+    "Inspection": order.inspection,
+    "Painting": order.painting,
+    "Remarks": order.remarks || "",
+  }));
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
 
-    const fileData = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-
-    saveAs(
-      fileData,
-      `Planning_Orders_All_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
-  };
-
+  saveAs(
+    new Blob([excelBuffer], { type: "application/octet-stream" }),
+    `Planning_Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
+};
 
 
 
@@ -994,7 +1046,7 @@ useEffect(() => {
   //       (order) => `
   //       <div class="card">
   //         <h2>Assembly Line: ${order.assemblyLine}</h2>
-          
+
   //         <div class="row">
   //           <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
   //           <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
@@ -1102,109 +1154,96 @@ useEffect(() => {
   //   }, 200);
   // };
 
+  // View details
+  const handleViewDetails = (order: AssemblyOrderData) => {
+    setViewedOrder(order);
+    setViewDetailsDialogOpen(true);
+  };
 
-    // View details
-    const handleViewDetails = (order: AssemblyOrderData) => {
-      setViewedOrder(order);
-      setViewDetailsDialogOpen(true);
-    };
+  // Remarks dialog
+  const handleOpenRemarks = (order: AssemblyOrderData) => {
+    setRemarksOrder(order);
+    setRemarksText(order.remarks || ""); // use backend value
+    setRemarksDialogOpen(true);
+  };
 
-    // Remarks dialog
-    const handleOpenRemarks = (order: AssemblyOrderData) => {
-      setRemarksOrder(order);
-      setRemarksText(order.remarks || ""); // use backend value
-      setRemarksDialogOpen(true);
-    };
+  const handleSaveRemarks = async () => {
+    if (!remarksOrder) return;
 
-    const handleSaveRemarks = async () => {
-      if (!remarksOrder) return;
+    // Build form-data
+    const formData = new FormData();
+    formData.append("orderId", String(remarksOrder.id));
+    formData.append("remarks", remarksText);
 
-      // Build form-data
-      const formData = new FormData();
-      formData.append("orderId", String(remarksOrder.id));
-      formData.append("remarks", remarksText);
-
-      try {
-        // Send to backend
-        const res = await axios.post(`${API_URL}/add-remarks`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        console.log("Add Remarks Response:", res.data);
-
-        const success =
-          res.data?.Resp_code === "true" || res.data?.Resp_code === true;
-
-        if (success) {
-          // 🔥 Update LOCAL orders list UI also!
-          setOrders((prev) =>
-            prev.map((o) =>
-              o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
-            )
-          );
-
-          // OPTIONAL: update context too if you need it
-          try {
-            updateRemark(remarksOrder.id, remarksText);
-          } catch {}
-
-          // Close dialog
-          setRemarksDialogOpen(false);
-          setRemarksOrder(null);
-          setRemarksText("");
-        } else {
-          console.warn("Backend rejected remarks:", res.data);
-        }
-      } catch (err) {
-        console.error("Error saving remarks:", err);
-      }
-    };
-
-    const toggleAlertStatus = async (orderId: string) => {
-      const order = orders.find((o) => o.id === orderId);
-      const currentStatus = order?.alertStatus === true;
-      const newStatus = !currentStatus;
-
-      // Optimistic update
-      setOrders((prev) => {
-        const updated = prev.map((o) =>
-          o.id === orderId ? { ...o, alertStatus: newStatus } : o
-        );
-
-        return sortOrders(updated);
+    try {
+      // Send to backend
+      const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      const payload = {
-        orderId: String(orderId),
-        urgent: newStatus ? "1" : "0",
-      };
+      console.log("Add Remarks Response:", res.data);
 
-      try {
-        const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const success =
+        res.data?.Resp_code === "true" || res.data?.Resp_code === true;
 
-        const success =
-          res.data?.Resp_code === "true" ||
-          res.data?.Resp_code === true ||
-          res.data?.status === true;
+      if (success) {
+        // 🔥 Update LOCAL orders list UI also!
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+          )
+        );
 
-        if (!success) {
-          // revert optimistic update
-          setOrders((prev) => {
-            const reverted = prev.map((o) =>
-              o.id === orderId ? { ...o, alertStatus: currentStatus } : o
-            );
+        // OPTIONAL: update context too if you need it
+        try {
+          updateRemark(remarksOrder.id, remarksText);
+        } catch {}
 
-            return sortOrders(reverted);
-          });
-        }
-      } catch (error) {
-        console.error("Urgent API failed:", error);
+        // Close dialog
+        setRemarksDialogOpen(false);
+        setRemarksOrder(null);
+        setRemarksText("");
+      } else {
+        console.warn("Backend rejected remarks:", res.data);
+      }
+    } catch (err) {
+      console.error("Error saving remarks:", err);
+    }
+  };
 
-        // revert on error
+  const toggleAlertStatus = async (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    const currentStatus = order?.alertStatus === true;
+    const newStatus = !currentStatus;
+
+    // Optimistic update
+    setOrders((prev) => {
+      const updated = prev.map((o) =>
+        o.id === orderId ? { ...o, alertStatus: newStatus } : o
+      );
+
+      return sortOrders(updated);
+    });
+
+    const payload = {
+      orderId: String(orderId),
+      urgent: newStatus ? "1" : "0",
+    };
+
+    try {
+      const res = await axios.post(`${API_URL}/mark-urgent`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const success =
+        res.data?.Resp_code === "true" ||
+        res.data?.Resp_code === true ||
+        res.data?.status === true;
+
+      if (!success) {
+        // revert optimistic update
         setOrders((prev) => {
           const reverted = prev.map((o) =>
             o.id === orderId ? { ...o, alertStatus: currentStatus } : o
@@ -1213,9 +1252,21 @@ useEffect(() => {
           return sortOrders(reverted);
         });
       }
-    };
+    } catch (error) {
+      console.error("Urgent API failed:", error);
 
-    const sortOrders = (list: AssemblyOrderData[]) => {
+      // revert on error
+      setOrders((prev) => {
+        const reverted = prev.map((o) =>
+          o.id === orderId ? { ...o, alertStatus: currentStatus } : o
+        );
+
+        return sortOrders(reverted);
+      });
+    }
+  };
+
+  const sortOrders = (list: AssemblyOrderData[]) => {
     return [...list].sort((a, b) => {
       // urgent first
       // const aUrg = a.alertStatus ? 1 : 0;
@@ -1227,335 +1278,346 @@ useEffect(() => {
     });
   };
 
-    // 🧭 Add inside component (top with other states)
-    const [assignStatus, setAssignStatus] = useState<{
-      type: "success" | "error" | "info";
-      message: string;
-    } | null>(null);
+  // 🧭 Add inside component (top with other states)
+  const [assignStatus, setAssignStatus] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
 
-    // ✅ Assign order to next workflow stage
-    const handleAssignOrder = async () => {
-      if (!selectedOrder) return;
-      if (!validateQuickAssign()) return;
+  // ✅ Assign order to next workflow stage
+  const handleAssignOrder = async () => {
+    if (!selectedOrder) return;
+    if (!validateQuickAssign()) return;
 
-      setAssignStatus({
-        type: "info",
-        message: "Assigning order, please wait...",
-      });
+    setAssignStatus({
+      type: "info",
+      message: "Assigning order, please wait...",
+    });
 
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setAssignStatus({
-            type: "error",
-            message: "Token missing. Please log in again.",
-          });
-          return;
-        }
-
-        const mainQty = Number(quickAssignQty || 0);
-        const splitQty = Number(splitAssignQty || 0);
-
-        const formData = new FormData();
-        formData.append("orderId", String(selectedOrder.id));
-        formData.append("totalQty", String(selectedOrder.qty));
-        formData.append("executedQty", String(mainQty));
-        formData.append("split_id", String(selectedOrder.split_id || ""));
-
-        console.log("📤 Assign main payload (FormData):", {
-          orderId: selectedOrder.id,
-          totalQty: selectedOrder.qty,
-          executedQty: mainQty,
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setAssignStatus({
+          type: "error",
+          message: "Token missing. Please log in again.",
         });
-
-        const responseMain = await axios.post(
-          `${API_URL}/assign-order`,
-          formData,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        console.log("✅ Main assign response:", responseMain.data);
-
-        const isSuccess =
-          responseMain.data?.Resp_code === true ||
-          responseMain.data?.Resp_code === "true" ||
-          responseMain.data?.status === true;
-
-        if (isSuccess) {
-          // --- Split assignment ---
-          if (splitOrder && splitQty > 0) {
-            const formDataSplit = new FormData();
-            formDataSplit.append("orderId", String(selectedOrder.id));
-            formDataSplit.append("totalQty", String(selectedOrder.qty));
-            formDataSplit.append("executedQty", String(splitQty));
-            formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
-            formDataSplit.append("splitOrder", "true");
-
-            const responseSplit = await axios.post(
-              `${API_URL}/assign-order`,
-              formDataSplit,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-
-            const isSplitSuccess =
-              responseSplit.data?.Resp_code === true ||
-              responseSplit.data?.Resp_code === "true" ||
-              responseSplit.data?.status === true;
-
-            if (isSplitSuccess) {
-              const mainStage = responseMain.data?.data?.to_stage || "next stage";
-              const splitStage =
-                responseSplit.data?.data?.to_stage || "next stage";
-              setAssignStatus({
-                type: "success",
-                message: `✅ Order assigned successfully! 
-  Main: ${mainQty} units to ${mainStage} 
-  Split: ${splitQty} units to ${splitStage}`,
-              });
-            } else {
-              setAssignStatus({
-                type: "error",
-                message: `⚠️ Main assigned, but split failed: ${
-                  responseSplit.data?.Resp_desc || "Unknown error"
-                }`,
-              });
-            }
-          } else {
-            const toStage = responseMain.data?.data?.to_stage || "next stage";
-            const fromStage =
-              responseMain.data?.data?.from_stage || "current stage";
-            setAssignStatus({
-              type: "success",
-              message: `✅ Order assigned successfully! 
-  ${mainQty} units moved from ${fromStage} → ${toStage}`,
-            });
-          }
-
-          await fetchOrders();
-            setQuickAssignOpen(false);
-            setAssignStatus(null);
-        } else {
-          setAssignStatus({
-            type: "error",
-            message: `⚠️ ${
-              responseMain.data?.Resp_desc || "Order assignment failed."
-            }`,
-          });
-        }
-      } catch (error: any) {
-        console.error("❌ Error assigning order:", error);
-
-        if (error.response) {
-          const msg =
-            error.response.data?.message ||
-            error.response.data?.Resp_desc ||
-            "Validation failed.";
-
-          const detailed =
-            error.response.data?.errors &&
-            Object.entries(error.response.data.errors)
-              .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
-              .join("\n");
-
-          setAssignStatus({
-            type: "error",
-            message: `❌ ${msg}\n${detailed || ""}`,
-          });
-        } else if (error.request) {
-          setAssignStatus({
-            type: "error",
-            message: "❌ No response from server. Please check your connection.",
-          });
-        } else {
-          setAssignStatus({
-            type: "error",
-            message: `❌ ${error.message}`,
-          });
-        }
-      }
-    };
-
-    const handleUpload = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!file) {
-        setMessage("Please select a file first");
         return;
       }
 
-      const fd = new FormData();
-      fd.append("file", file);
+      const mainQty = Number(quickAssignQty || 0);
+      const splitQty = Number(splitAssignQty || 0);
 
-      try {
-        setUploading(true);
+      const formData = new FormData();
+      formData.append("orderId", String(selectedOrder.id));
+      formData.append("totalQty", String(selectedOrder.qty));
+      formData.append("executedQty", String(mainQty));
+      formData.append("split_id", String(selectedOrder.split_id || ""));
 
-        // NOTE: Do NOT set Content-Type explicitly for multipart/form-data; let browser set the boundary
-        const res = await axios.post(`${API_URL}/upload-order-file`, fd, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      console.log("📤 Assign main payload (FormData):", {
+        orderId: selectedOrder.id,
+        totalQty: selectedOrder.qty,
+        executedQty: mainQty,
+      });
 
-        // Accept several possible success markers from your backend
-        if (
-          res.data?.status === true ||
-          res.data?.Resp_code === "RCS" ||
-          res.data?.Resp_code === "true"
-        ) {
-          setMessage("✅ File uploaded successfully");
-
-          // reset file input UI
-          setFile(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-
-          // refresh list
-          await fetchOrders();
-
-          // ✅ Add this block below fetchOrders()
-          // This identifies orders with Finished Valve = Yes
-          const finishedValveOrders = orders.filter(
-            (o) => String(o.finishedValve).trim().toLowerCase() === "yes"
-          );
-
-          // Optional debug log — visible in browser console
-          console.log(
-            "✅ Finished Valve Orders ready for SVS:",
-            finishedValveOrders.length
-          );
-        } else {
-          setMessage(res.data?.message || "Upload failed");
+      const responseMain = await axios.post(
+        `${API_URL}/assign-order`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      } catch (err) {
-        console.error("Upload error", err);
-        setMessage("Error uploading file");
-      } finally {
-        setUploading(false);
-        setTimeout(() => setMessage(null), 5000);
+      );
+
+      console.log("✅ Main assign response:", responseMain.data);
+
+      const isSuccess =
+        responseMain.data?.Resp_code === true ||
+        responseMain.data?.Resp_code === "true" ||
+        responseMain.data?.status === true;
+
+      if (isSuccess) {
+        // --- Split assignment ---
+        if (splitOrder && splitQty > 0) {
+          const formDataSplit = new FormData();
+          formDataSplit.append("orderId", String(selectedOrder.id));
+          formDataSplit.append("totalQty", String(selectedOrder.qty));
+          formDataSplit.append("executedQty", String(splitQty));
+          formDataSplit.append(
+            "split_id",
+            String(selectedOrder.split_id || "")
+          );
+          formDataSplit.append("splitOrder", "true");
+
+          const responseSplit = await axios.post(
+            `${API_URL}/assign-order`,
+            formDataSplit,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          const isSplitSuccess =
+            responseSplit.data?.Resp_code === true ||
+            responseSplit.data?.Resp_code === "true" ||
+            responseSplit.data?.status === true;
+
+          if (isSplitSuccess) {
+            const mainStage = responseMain.data?.data?.to_stage || "next stage";
+            const splitStage =
+              responseSplit.data?.data?.to_stage || "next stage";
+            setAssignStatus({
+              type: "success",
+              message: `✅ Order assigned successfully! 
+  Main: ${mainQty} units to ${mainStage} 
+  Split: ${splitQty} units to ${splitStage}`,
+            });
+          } else {
+            setAssignStatus({
+              type: "error",
+              message: `⚠️ Main assigned, but split failed: ${
+                responseSplit.data?.Resp_desc || "Unknown error"
+              }`,
+            });
+          }
+        } else {
+          const toStage = responseMain.data?.data?.to_stage || "next stage";
+          const fromStage =
+            responseMain.data?.data?.from_stage || "current stage";
+          setAssignStatus({
+            type: "success",
+            message: `✅ Order assigned successfully! 
+  ${mainQty} units moved from ${fromStage} → ${toStage}`,
+          });
+        }
+
+        await fetchOrders();
+        setQuickAssignOpen(false);
+        setAssignStatus(null);
+      } else {
+        setAssignStatus({
+          type: "error",
+          message: `⚠️ ${
+            responseMain.data?.Resp_desc || "Order assignment failed."
+          }`,
+        });
       }
-    };
+    } catch (error: any) {
+      console.error("❌ Error assigning order:", error);
 
-    // PDF export (simple version) - uses window.print or jsPDF if present
-    const handlePrint = () => {
-      try {
-        window.print();
-      } catch (err) {
-        console.error("Print error", err);
+      if (error.response) {
+        const msg =
+          error.response.data?.message ||
+          error.response.data?.Resp_desc ||
+          "Validation failed.";
+
+        const detailed =
+          error.response.data?.errors &&
+          Object.entries(error.response.data.errors)
+            .map(([field, messages]: [string, any]) => `${field}: ${messages}`)
+            .join("\n");
+
+        setAssignStatus({
+          type: "error",
+          message: `❌ ${msg}\n${detailed || ""}`,
+        });
+      } else if (error.request) {
+        setAssignStatus({
+          type: "error",
+          message: "❌ No response from server. Please check your connection.",
+        });
+      } else {
+        setAssignStatus({
+          type: "error",
+          message: `❌ ${error.message}`,
+        });
       }
-    };
+    }
+  };
 
-    // Clear filters
-    const clearFilters = () => {
-      setAssemblyLineFilter("all");
-      setGmsoaFilter("all");
-      setPartyFilter("all");
-      setDateFilterMode("range");
-      setDateFrom(undefined);
-      setDateTo(undefined);
-    };
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) {
+      setMessage("Please select a file first");
+      return;
+    }
 
-    // UI render
-    return (
-      <>
-        <div id="printable-bin-card" style={{ display: "none" }}></div>
+    const fd = new FormData();
+    fd.append("file", file);
 
-        
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
-          {/* {loading && orders.length === 0 && <FullPageLoader />} */}
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-              <div>
-                <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-                  Orders Management
-                </h1>
-                <p className="text-gray-600">
-                  Track and manage assembly line orders and manufacturing workflow
-                </p>
-              </div>
+    try {
+      setUploading(true);
 
-              <div className="flex flex-col gap-4 w-full">
-                <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
-                  {/* Search */}
-                  <div className="relative max-input">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
-                      value={localSearchTerm}
-                      onChange={(e) => setLocalSearchTerm(e.target.value)}
-                      className="pl-10 w-full bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0 "
-                    />
-                  </div>
+      // NOTE: Do NOT set Content-Type explicitly for multipart/form-data; let browser set the boundary
+      const res = await axios.post(`${API_URL}/upload-order-file`, fd, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-                  <div className="flex items-center gap-4">
-                    <Button
-                      onClick={handleShowBinCard}
-                      variant="outline"
-                      disabled={selectedRows.size === 0}
-                      className="flex items-center gap-2 ctm-btn-disable"
-                    >
-                      <Printer className="h-4 w-4" />
-                      Print Bin Card
-                    </Button>
+      // Accept several possible success markers from your backend
+      if (
+        res.data?.status === true ||
+        res.data?.Resp_code === "RCS" ||
+        res.data?.Resp_code === "true"
+      ) {
+        setMessage("✅ File uploaded successfully");
 
-                    <Button
-                      onClick={() => setShowUrgentOnly(!showUrgentOnly)}
-                      className={`btn-urgent flex items-center gap-2 ${
-                        showUrgentOnly
-                          ? "bg-red-600 text-white"
-                          : "bg-red-50 text-red-700"
-                      }`}
-                    >
-                      <Siren className="h-4 w-4" />
-                      {showUrgentOnly
-                        ? "Show All Projects"
-                        : "Urgent Projects Only"}
-                    </Button>
-                  </div>
+        // reset file input UI
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
+        // refresh list
+        await fetchOrders();
+
+        // ✅ Add this block below fetchOrders()
+        // This identifies orders with Finished Valve = Yes
+        const finishedValveOrders = orders.filter(
+          (o) => String(o.finishedValve).trim().toLowerCase() === "yes"
+        );
+
+        // Optional debug log — visible in browser console
+        console.log(
+          "✅ Finished Valve Orders ready for SVS:",
+          finishedValveOrders.length
+        );
+      } else {
+        setMessage(res.data?.message || "Upload failed");
+      }
+    } catch (err) {
+      console.error("Upload error", err);
+      setMessage("Error uploading file");
+    } finally {
+      setUploading(false);
+      setTimeout(() => setMessage(null), 5000);
+    }
+  };
+
+  // PDF export (simple version) - uses window.print or jsPDF if present
+  const handlePrint = () => {
+    try {
+      window.print();
+    } catch (err) {
+      console.error("Print error", err);
+    }
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setAssemblyLineFilter("all");
+    setGmsoaFilter("all");
+    setPartyFilter("all");
+    setDateFilterMode("range");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
+  // UI render
+  return (
+    <>
+      <div id="printable-bin-card" style={{ display: "none" }}></div>
+
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
+        {/* {loading && orders.length === 0 && <FullPageLoader />} */}
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+            <div>
+              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
+                Orders Management
+              </h1>
+              <p className="text-gray-600">
+                Track and manage assembly line orders and manufacturing workflow
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+                {/* Search */}
+                <div className="relative max-input">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
+                    value={localSearchTerm}
+                    onChange={(e) => setLocalSearchTerm(e.target.value)}
+                    className="pl-10 w-full bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0 "
+                  />
                 </div>
-                {/* Option row - could include more buttons */}
+
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={handleShowBinCard}
+                    variant="outline"
+                    disabled={selectedRows.size === 0}
+                    className="flex items-center gap-2 ctm-btn-disable"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print Bin Card
+                  </Button>
+
+                  <Button
+                    onClick={() => setShowUrgentOnly(!showUrgentOnly)}
+                    className={`btn-urgent flex items-center gap-2 ${
+                      showUrgentOnly
+                        ? "bg-red-600 text-white"
+                        : "bg-red-50 text-red-700"
+                    }`}
+                  >
+                    <Siren className="h-4 w-4" />
+                    {showUrgentOnly
+                      ? "Show All Projects"
+                      : "Urgent Projects Only"}
+                  </Button>
+
+                  <Button
+                    onClick={() => setShowRemarksOnly(!showRemarksOnly)}
+                    className={`btn-urgent flex items-center gap-2 ${
+                      showRemarksOnly
+                        ? "bg-black hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
+                        : "bg-btn-gradient text-white shadow-md transition-all"
+                    }`}
+                  >
+                    {showRemarksOnly ? "Show All Projects" : "Remarks"}
+                  </Button>
+                </div>
               </div>
-              <Button
-            onClick={handleExport}
-            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Data
-          </Button>
+              {/* Option row - could include more buttons */}
             </div>
-
-            {/* Filters */}
-            <div className="mt-4">
-              <OrderFilters
-              currentStage="default"
-                assemblyLineFilter={assemblyLineFilter}
-                setAssemblyLineFilter={setAssemblyLineFilter}
-                dateFilterMode={dateFilterMode}
-                setDateFilterMode={setDateFilterMode}
-                dateFrom={dateFrom}
-                setDateFrom={setDateFrom}
-                dateTo={dateTo}
-                setDateTo={setDateTo}
-                assemblyLines={assemblyLines}
-                onClearFilters={clearFilters}
-                hasActiveFilters={
-                  assemblyLineFilter !== "all" ||
-                  gmsoaFilter !== "all" ||
-                  partyFilter !== "all" ||
-                  !!dateFrom ||
-                  !!dateTo
-                }
-              />
-            </div>
-
-            
+            <Button
+              onClick={handleExport}
+              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Data
+            </Button>
           </div>
 
-          {/* Upload Section */}
-          {/* <form onSubmit={handleUpload} className="bg-white shadow-md p-4 rounded-xl mb-6">
+          {/* Filters */}
+          <div className="mt-4">
+            <OrderFilters
+              currentStage="default"
+              assemblyLineFilter={assemblyLineFilter}
+              setAssemblyLineFilter={setAssemblyLineFilter}
+              dateFilterMode={dateFilterMode}
+              setDateFilterMode={setDateFilterMode}
+              dateFrom={dateFrom}
+              setDateFrom={setDateFrom}
+              dateTo={dateTo}
+              setDateTo={setDateTo}
+              assemblyLines={assemblyLines}
+              onClearFilters={clearFilters}
+              hasActiveFilters={
+                assemblyLineFilter !== "all" ||
+                gmsoaFilter !== "all" ||
+                partyFilter !== "all" ||
+                !!dateFrom ||
+                !!dateTo
+              }
+            />
+          </div>
+        </div>
+
+        {/* Upload Section */}
+        {/* <form onSubmit={handleUpload} className="bg-white shadow-md p-4 rounded-xl mb-6">
           <h2 className="text-lg font-semibold mb-3 text-gray-700">Upload Order File</h2>
           <div className="flex items-center gap-3 flex-wrap">
             <input
@@ -1586,276 +1648,301 @@ useEffect(() => {
           {message && <div className="mt-3 text-sm text-yellow-800 bg-yellow-100 p-2 rounded">{message}</div>}
         </form> */}
 
-          {/* Table */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-            <div
-              ref={tableScrollRef}
-              className="relative overflow-x-auto max-w-full"
-              style={{ scrollbarGutter: "stable" }}
-            >
-              <div className="inline-block min-w-full align-middle table-sticky">
-                {loading && orders.length === 0 ? (
-                  <div className="p-10 text-center text-gray-600 ctm-load">Loading...</div>
-                ) : (
-                  <>
-                <table className="min-w-full border-collapse ">
-                  <thead className="table-head sticky top-16 z-30 bg-white">
-                    <tr>
-                      <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
-                        <button
-                          type="button"
-                          role="checkbox"
-                          aria-checked={String(allRowsSelected)}
-                          onClick={toggleSelectAll}
-                          className="peer rounded border p-0.5"
-                          aria-label="Select all rows"
-                        >
-                          {/* small box visual */}
-                          <div
-                            className={`w-4 h-4 ${
-                              allRowsSelected ? "bg-blue-600" : "bg-white border"
-                            }`}
-                          />
-                        </button>
-                      </th>
-
-                      <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
-                        Assembly Line
-                      </th>
-                      <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
-                        GMSOA NO.
-                      </th>
-                      <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">
-                        SOA Sr. No.
-                      </th>
-                      <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                        Assembly Date
-                      </th>
-
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-36">
-                        Unique Code
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        Splitted Code
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
-                        Party
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        Customer PO No.
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        Code No
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-20">
-                        Product
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        PO QTY
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        Qty
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        Qty Exe.
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        Qty Pending
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        finished valve
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        GM LOGO
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        NAME PLATE
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        PRODUCT SPCL1
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        PRODUCT SPCL2
-                      </th>
-                      <th
-                        className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                        style={{ width: "400px" }}
-                      >
-                        PRODUCT SPCL3
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        INSPECTION
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        PAINTING
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        remarks
-                      </th>
-
-                      <th className="sticky right-0 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-gray-200">
-                    {paginatedOrders.map((order) => (
-                      <tr key={order.id} className="group hover:bg-gray-50">
-                        <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
-                          <Checkbox
-                            checked={selectedRows.has(order.id)}
-                            onCheckedChange={() => toggleRowSelection(order.id)}
-                            aria-label={`Select row ${order.id}`}
-                          />
-                        </td>
-
-                        <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 w-20">
-                          <Badge
-                            variant="outline"
-                            className="bg-gray-50 text-gray-700 border-gray-200"
+        {/* Table */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div
+            ref={tableScrollRef}
+            className="relative overflow-x-auto max-w-full"
+            style={{ scrollbarGutter: "stable" }}
+          >
+            <div className="inline-block min-w-full align-middle table-sticky">
+              {loading && orders.length === 0 ? (
+                <div className="p-10 text-center text-gray-600 ctm-load">
+                  Loading...
+                </div>
+              ) : (
+                <>
+                  <table className="min-w-full border-collapse ">
+                    <thead className="table-head sticky top-16 z-30 bg-white">
+                      <tr>
+                        <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={String(allRowsSelected)}
+                            onClick={toggleSelectAll}
+                            className="peer rounded border p-0.5"
+                            aria-label="Select all rows"
                           >
-                            {order.assemblyLine}
-                          </Badge>
-                        </td>
+                            {/* small box visual */}
+                            <div
+                              className={`w-4 h-4 ${
+                                allRowsSelected
+                                  ? "bg-blue-600"
+                                  : "bg-white border"
+                              }`}
+                            />
+                          </button>
+                        </th>
 
-                        <td className="sticky left-164 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-28">
-                          {order.gmsoaNo}
-                        </td>
-                        <td className="sticky left-274 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-24">
-                          {order.soaSrNo}
-                        </td>
-                        <td className="sticky left-364 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                          {order.assemblyDate}
-                        </td>
-
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 font-mono min-w-36">
-                          {order.uniqueCode}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.splittedCode}
-                        </td>
-                        <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
-                           <div  style={{ width: "120px" }}
- 
-                                title={order.party} 
-                          >
-                            {truncateWords(order.party, 4)}
-                          </div>
-
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.customerPoNo}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.codeNo}
-                        </td>
-
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 min-w-90">
-                        <div
-                          className="line-clamp-2"
-                          style={{ width: "300px" }}
-                          title={order.product}   // 👈 shows full text on hover
+                        <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
+                          Assembly Line
+                        </th>
+                        <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
+                          GMSOA NO.
+                        </th>
+                        <th
+                          className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24 cursor-pointer select-none"
+                          onClick={() =>
+                            setSoaSort((prev) =>
+                              prev === "asc" ? "desc" : "asc"
+                            )
+                          }
                         >
-                          {order.product}
-                        </div>
-                      </td>
+                          SOA Sr. No.
+                          {soaSort === "asc" && " ▲"}
+                          {soaSort === "desc" && " ▼"}
+                        </th>
+                        <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                          Assembly Date
+                        </th>
 
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.poQty}
-                        </td>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-36">
+                          Unique Code
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Splitted Code
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
+                          Party
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Customer PO No.
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Code No
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-20">
+                          Product
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          PO QTY
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Qty
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Qty Exe.
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Qty Pending
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          finished valve
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          GM LOGO
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          NAME PLATE
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+  SPECIAL NOTES
+</th>
 
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.qty}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.qtyExe}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.qtyPending}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.finishedValve}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.gmLogo}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.namePlate}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.productSpcl1}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.productSpcl2}
-                        </td>
-                        <td
-                          className="px-3 py-2 text-center text-sm text-gray-900"
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          PRODUCT SPCL1
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          PRODUCT SPCL2
+                        </th>
+                        <th
+                          className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                           style={{ width: "400px" }}
                         >
-                          <div className="line-clamp-2">{order.productSpcl3}</div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.inspection}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
-                          {order.painting}
-                        </td>
+                          PRODUCT SPCL3
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          INSPECTION
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          PAINTING
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          remarks
+                        </th>
 
-                       <td className="px-3 py-2 text-center text-sm text-gray-900">
-  <div className="relative inline-block group">
-   <Button
-  size="sm"
-  variant="ghost"
-  title={order.remarks || "Add / Edit Remarks"}
-  className={`h-7 w-7 p-0 ${
-    order.remarks?.trim()
-      ? "bg-[#174a9f] hover:bg-[#123a7f]"
-      : "hover:bg-[#d1e2f3]"
-  }`}
-  onClick={() => handleOpenRemarks(order)}
->
-  <MessageSquarePlus
-    className={`h-4 w-4 ${
-      order.remarks?.trim() ? "text-white" : "text-blue-600"
-    }`}
-  />
-</Button>
+                        <th className="sticky right-0 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
 
+                    <tbody className="divide-y divide-gray-200">
+                      {paginatedOrders.map((order) => (
+                        <tr key={order.id} className="group hover:bg-gray-50">
+                          <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
+                            <Checkbox
+                              checked={selectedRows.has(order.id)}
+                              onCheckedChange={() =>
+                                toggleRowSelection(order.id)
+                              }
+                              aria-label={`Select row ${order.id}`}
+                            />
+                          </td>
 
-    {/* ✅ SHOW REMARK TEXT ON HOVER */}
-    {order.remarks?.trim() && (
-      <div
-        className="
+                          <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 w-20">
+                            <Badge
+                              variant="outline"
+                              className="bg-gray-50 text-gray-700 border-gray-200"
+                            >
+                              {order.assemblyLine}
+                            </Badge>
+                          </td>
+
+                          <td className="sticky left-164 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-28">
+                            {order.gmsoaNo}
+                          </td>
+                          <td className="sticky left-274 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r border-gray-200 min-w-24">
+                            {order.soaSrNo}
+                          </td>
+                          <td className="sticky left-364 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                            {order.assemblyDate}
+                          </td>
+
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 font-mono min-w-36">
+                            {order.uniqueCode}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.splittedCode}
+                          </td>
+                          <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
+                            <div style={{ width: "120px" }} title={order.party}>
+                              {truncateWords(order.party, 4)}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.customerPoNo}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.codeNo}
+                          </td>
+
+                          <td className="px-3 py-2 text-center text-sm text-gray-900 min-w-90">
+                            <div
+                              className="line-clamp-2"
+                              style={{ width: "300px" }}
+                              title={order.product} // 👈 shows full text on hover
+                            >
+                              {order.product}
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.poQty}
+                          </td>
+
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.qty}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.qtyExe}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.qtyPending}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.finishedValve}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.gmLogo}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.namePlate}
+                          </td>
+                          <td className="px-3 py-2 text-center text-sm text-gray-900">
+  <div
+    className="line-clamp-2"
+    style={{ width: "200px" }}
+    title={order.specialNotes}
+  >
+    {order.specialNotes || "-"}
+  </div>
+</td>
+
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.productSpcl1}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.productSpcl2}
+                          </td>
+                          <td
+                            className="px-3 py-2 text-center text-sm text-gray-900"
+                            style={{ width: "400px" }}
+                          >
+                            <div className="line-clamp-2">
+                              {order.productSpcl3}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.inspection}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                            {order.painting}
+                          </td>
+
+                          <td className="px-3 py-2 text-center text-sm text-gray-900">
+                            <div className="relative inline-block group">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title={order.remarks || "Add / Edit Remarks"}
+                                className={`h-7 w-7 p-0 ${
+                                  order.remarks?.trim()
+                                    ? "bg-[#174a9f] hover:bg-[#123a7f]"
+                                    : "hover:bg-[#d1e2f3]"
+                                }`}
+                                onClick={() => handleOpenRemarks(order)}
+                              >
+                                <MessageSquarePlus
+                                  className={`h-4 w-4 ${
+                                    order.remarks?.trim()
+                                      ? "text-white"
+                                      : "text-blue-600"
+                                  }`}
+                                />
+                              </Button>
+
+                              {/* ✅ SHOW REMARK TEXT ON HOVER */}
+                              {order.remarks?.trim() && (
+                                <div
+                                  className="
           absolute bottom-full left-1/2 -translate-x-1/2 mb-2
           hidden group-hover:block
           bg-gray-900 text-white text-xs
           px-3 py-2 rounded-md shadow-lg
           max-w-[260px] break-words z-[999]
         "
-      >
-        {order.remarks}
-      </div>
-    )}
-  </div>
-</td>
+                                >
+                                  {order.remarks}
+                                </div>
+                              )}
+                            </div>
+                          </td>
 
+                          <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 hover:bg-blue-100"
+                                title="View Details"
+                                onClick={() => handleViewDetails(order)}
+                              >
+                                <Eye className="h-4 w-4 text-blue-600" />
+                              </Button>
 
-                        <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 hover:bg-blue-100"
-                              title="View Details"
-                              onClick={() => handleViewDetails(order)}
-                            >
-                              <Eye className="h-4 w-4 text-blue-600" />
-                            </Button>
-
-                            
-
-                            {/* <Button
+                              {/* <Button
                             size="sm"
                             variant="ghost"
                             className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
@@ -1864,399 +1951,442 @@ useEffect(() => {
                           >
                             <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                           </Button> */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className={`h-7 w-7 p-0 transition-all duration-200 ${
-                                order.alertStatus
-                                  ? "bg-red-100 border border-red-200 shadow-sm"
-                                  : "hover:bg-red-50"
-                              }`}
-                              title={
-                                order.alertStatus
-                                  ? "Click to unmark urgent"
-                                  : "Click to mark as urgent"
-                              }
-                              onClick={() => {
-                                console.clear();
-                                console.log(
-                                  "BUTTON CLICKED → orderId:",
-                                  order.id
-                                );
-                                console.log(
-                                  "BEFORE CLICK → alertStatus:",
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`h-7 w-7 p-0 transition-all duration-200 ${
                                   order.alertStatus
-                                );
-                                toggleAlertStatus(order.id);
-                              }}
-                            >
-                              <Siren
-                                className={`h-4 w-4 ${
-                                  order.alertStatus
-                                    ? "text-red-600 animate-siren-pulse"
-                                    : "text-gray-400"
+                                    ? "bg-red-100 border border-red-200 shadow-sm"
+                                    : "hover:bg-red-50"
                                 }`}
-                              />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filteredOrders.length === 0 && (
-                  <div className="p-6 text-center text-gray-500">
-                    No orders found.
-                  </div>
-                )}
-                  </>
-                )}
-                
+                                title={
+                                  order.alertStatus
+                                    ? "Click to unmark urgent"
+                                    : "Click to mark as urgent"
+                                }
+                                onClick={() => {
+                                  console.clear();
+                                  console.log(
+                                    "BUTTON CLICKED → orderId:",
+                                    order.id
+                                  );
+                                  console.log(
+                                    "BEFORE CLICK → alertStatus:",
+                                    order.alertStatus
+                                  );
+                                  toggleAlertStatus(order.id);
+                                }}
+                              >
+                                <Siren
+                                  className={`h-4 w-4 ${
+                                    order.alertStatus
+                                      ? "text-red-600 animate-siren-pulse"
+                                      : "text-gray-400"
+                                  }`}
+                                />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredOrders.length === 0 && (
+                    <div className="p-6 text-center text-gray-500">
+                      No orders found.
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <TablePagination
+          page={page}
+          perPage={perPage}
+          total={filteredOrders.length}
+          lastPage={Math.max(
+            1,
+            Math.ceil(filteredOrders.length / Math.max(perPage, 1))
+          )}
+          onChangePage={setPage}
+          onChangePerPage={setPerPage}
+          disabled={loading}
+        />
+
+{/* Bin Card Preview Dialog */}
+<Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+  <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
+    <DialogHeader>
+      <DialogTitle className="text-lg font-semibold text-gray-900">
+        Bin Card Preview
+      </DialogTitle>
+      <DialogDescription className="text-sm text-gray-500">
+        This preview matches the printed bin card layout.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="py-6 space-y-8">
+      {selectedOrdersData.map((order) => (
+        <div
+          key={order.id}
+          className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
+        >
+          {/* COMPANY NAME */}
+          <h1 className="text-center text-lg font-bold">
+            G M Valve Pvt. Ltd.
+          </h1>
+
+          {/* ADDRESS */}
+          <p className="mt-1 text-center text-[11px] leading-tight">
+            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+            Village Metoda, Dist. Rajkot-360 021
+          </p>
+
+          {/* TAG */}
+          <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+            In Process Material Tag
+          </div>
+
+          {/* DATE / SOA / DOC */}
+          <div className="mt-3 grid grid-cols-3 items-start text-sm">
+            <div>
+              <div>
+                <span className="font-semibold">Date:</span>{" "}
+                {order.assemblyDate}
               </div>
+              <div>
+                <span className="font-semibold">SOA:</span>{" "}
+                {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                Assembly Line: {order.assemblyLine}
+              </span>
+            </div>
+
+            <div className="text-right text-xs leading-tight">
+              <div>GMV-L4-F-PRD 01 A</div>
+              <div>(02/10.09.2020)</div>
             </div>
           </div>
 
-          <TablePagination
-            page={page}
-            perPage={perPage}
-            total={filteredOrders.length}
-            lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
-            onChangePage={setPage}
-            onChangePerPage={setPerPage}
-            disabled={loading}
-          />
+          {/* PARTY */}
+          <div className="mt-4 text-sm">
+            <span className="font-semibold">Party:</span>
+            <div className="mt-1">{order.party}</div>
+          </div>
 
-          {/* Bin Card Preview Dialog */}
-          <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-            <DialogContent className="!max-w-[1000px] max-h-[90vh] overflow-y-auto print-bin-card">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-semibold text-gray-900">
-                  Bin Card Preview
-                </DialogTitle>
-                <DialogDescription>
-                  Review the bin card details before printing.
-                </DialogDescription>
-              </DialogHeader>
+          {/* ITEM */}
+          <div className="mt-3 text-sm">
+            <span className="font-semibold">Item:</span>
+            <div className="mt-1 leading-snug">{order.product}</div>
+          </div>
 
+          {/* QTY & LOGO */}
+          <div className="mt-4 flex justify-between text-sm">
+            <div>
+              <span className="font-semibold">QTY:</span> {order.qty}
+            </div>
+            <div>
+              <span className="font-semibold">Logo:</span> {order.gmLogo}
+            </div>
+          </div>
+
+          {/* SPECIAL NOTE */}
+          <div className="mt-4 text-sm">
+            <span className="font-semibold">Special Note:</span>
+            <div className="mt-1 h-5 border-b border-black">
+              {order.specialNotes || ""}
+            </div>
+          </div>
+
+          {/* INSPECTED BY */}
+          <div className="mt-6 inspected text-sm">
+            <span className="font-semibold">Inspected by:</span>
+            <div className="mt-1 h-6 border-b border-black"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* ACTIONS */}
+    <div className="flex justify-end gap-3 border-t pt-4">
+      <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button
+        onClick={handlePrintBinCard}
+        className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
+      >
+        <Printer className="h-4 w-4" />
+        Print
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+
+        {/* View Order Details Dialog */}
+        <Dialog
+          open={viewDetailsDialogOpen}
+          onOpenChange={setViewDetailsDialogOpen}
+        >
+          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Order Details</DialogTitle>
+              <DialogDescription>
+                Complete information for {viewedOrder?.uniqueCode}
+              </DialogDescription>
+            </DialogHeader>
+
+            {viewedOrder && (
               <div className="space-y-6 py-4">
-                {selectedOrdersData.map((order) => (
-                  <div
-                    key={order.id}
-                    className="border border-gray-300 rounded-xl p-6 bg-white shadow-sm"
-                    style={{ marginBottom: "30px" }} // <- margin bottom fix
-                  >
-                    <h2 className="text-lg font-bold text-center mb-4">
-                      Assembly Line: {order.assemblyLine}
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                      <div>
-                        <strong>Assembly Date:</strong> {order.assemblyDate}
-                      </div>
-                      <div>
-                        <strong>GMSOA No - SR. NO:</strong> {order.gmsoaNo} -{" "}
-                        {order.soaSrNo}
-                      </div>
+                <div className="bg-blue-50/50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">
+                    Basic Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Assembly Line
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.assemblyLine}
+                      </p>
                     </div>
-
-                    <div className="mb-4">
-                      <strong>Item Description:</strong>
-                      <p>{order.product}</p>
+                    <div>
+                      <Label className="text-gray-500 text-sm">GMSOA No.</Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.gmsoaNo}
+                      </p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                      <div>
-                        <strong>QTY:</strong> {order.qty}
-                      </div>
-                      <div>
-                        <strong>GM Logo:</strong> {order.gmLogo}
-                      </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        SOA Sr. No.
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.soaSrNo}
+                      </p>
                     </div>
-
-                    <div className="mt-6 pt-4 border-t border-gray-300">
-                      <strong>Inspected by:</strong>
-                      <div className="border-b border-gray-400 h-8"></div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Assembly Date
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.assemblyDate}
+                      </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <Button
-                
-                  variant="outline"
-                  onClick={() => setBinCardDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                
-                  onClick={handlePrintBinCard}
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
-                >
-                  <Printer className="h-4 w-4" /> Print
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* View Order Details Dialog */}
-          <Dialog
-            open={viewDetailsDialogOpen}
-            onOpenChange={setViewDetailsDialogOpen}
-          >
-            <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Order Details</DialogTitle>
-                <DialogDescription>
-                  Complete information for {viewedOrder?.uniqueCode}
-                </DialogDescription>
-              </DialogHeader>
-
-              {viewedOrder && (
-                <div className="space-y-6 py-4">
-                  <div className="bg-blue-50/50 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-3">
-                      Basic Information
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Assembly Line
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.assemblyLine}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">GMSOA No.</Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.gmsoaNo}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          SOA Sr. No.
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.soaSrNo}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Assembly Date
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.assemblyDate}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Unique Code
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.uniqueCode}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Splitted Code
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.splittedCode || "-"}
-                        </p>
-                      </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Unique Code
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.uniqueCode}
+                      </p>
                     </div>
-                  </div>
-
-                  <div className="bg-green-50/50 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-3">
-                      Customer & Product Information
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-500 text-sm">Party</Label>
-                        <p className="text-gray-900 mt-1">{viewedOrder.party}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Customer PO No.
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.customerPoNo}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">Code No</Label>
-                        <p className="text-gray-900 mt-1">{viewedOrder.codeNo}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-gray-500 text-sm">Product</Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.product}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-50/50 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-3">
-                      Quantity Information
-                    </h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <Label className="text-gray-500 text-sm">Qty</Label>
-                        <p className="text-gray-900 mt-1">{viewedOrder.qty}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">Qty Exe.</Label>
-                        <p className="text-gray-900 mt-1">{viewedOrder.qtyExe}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Qty Pending
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.qtyPending}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-amber-50/50 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-3">
-                      Product Specifications
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Finished Valve
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.finishedValve || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">GM Logo</Label>
-                        <p className="text-gray-900 mt-1">{viewedOrder.gmLogo}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Name Plate
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.namePlate}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Product SPCL1
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.productSpcl1 || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Product SPCL2
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.productSpcl2 || "-"}
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-gray-500 text-sm">
-                          Product SPCL3
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.productSpcl3 || "-"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-3">
-                      Additional Information
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-500 text-sm">
-                          Inspection
-                        </Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.inspection}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-sm">Painting</Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.painting}
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-gray-500 text-sm">Remarks</Label>
-                        <p className="text-gray-900 mt-1">
-                          {viewedOrder.remarks || "-"}
-                        </p>
-                      </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Splitted Code
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.splittedCode || "-"}
+                      </p>
                     </div>
                   </div>
                 </div>
-              )}
 
-              <div className="flex justify-end pt-4 border-t border-gray-100">
-                <Button
-                  variant="outline"
-                  onClick={() => setViewDetailsDialogOpen(false)}
-                >
-                  Close
-                </Button>
+                <div className="bg-green-50/50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">
+                    Customer & Product Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">Party</Label>
+                      <p className="text-gray-900 mt-1">{viewedOrder.party}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Customer PO No.
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.customerPoNo}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">Code No</Label>
+                      <p className="text-gray-900 mt-1">{viewedOrder.codeNo}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-gray-500 text-sm">Product</Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.product}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50/50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">
+                    Quantity Information
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">Qty</Label>
+                      <p className="text-gray-900 mt-1">{viewedOrder.qty}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">Qty Exe.</Label>
+                      <p className="text-gray-900 mt-1">{viewedOrder.qtyExe}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Qty Pending
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.qtyPending}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">
+                    Product Specifications
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Finished Valve
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.finishedValve || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">GM Logo</Label>
+                      <p className="text-gray-900 mt-1">{viewedOrder.gmLogo}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Name Plate
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.namePlate}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Product SPCL1
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.productSpcl1 || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Product SPCL2
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.productSpcl2 || "-"}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-gray-500 text-sm">
+                        Product SPCL3
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.productSpcl3 || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">
+                    Additional Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Inspection
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.inspection}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">Painting</Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.painting}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-gray-500 text-sm">Remarks</Label>
+                      <p className="text-gray-900 mt-1">
+                        {viewedOrder.remarks || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </DialogContent>
-          </Dialog>
+            )}
 
-          {/* Remarks Dialog */}
-          <Dialog open={remarksDialogOpen} onOpenChange={setRemarksDialogOpen}>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Add/Edit Remarks</DialogTitle>
-                <DialogDescription>
-                  {remarksOrder ? `Order: ${remarksOrder.uniqueCode}` : ""}
-                </DialogDescription>
-              </DialogHeader>
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button
+                variant="outline"
+                onClick={() => setViewDetailsDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-              <div className="space-y-4 py-4">
-                <Label htmlFor="remarks">Remarks</Label>
-                <Textarea
-                  id="remarks"
-                  placeholder="Enter remarks..."
-                  value={remarksText}
-                  onChange={(e) => setRemarksText(e.target.value)}
-                  rows={6}
-                  className="resize-none"
-                />
-              </div>
+        {/* Remarks Dialog */}
+        <Dialog open={remarksDialogOpen} onOpenChange={setRemarksDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Add/Edit Remarks</DialogTitle>
+              <DialogDescription>
+                {remarksOrder ? `Order: ${remarksOrder.uniqueCode}` : ""}
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-                <Button
-                  variant="outline"
-                  onClick={() => setRemarksDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveRemarks}
-                  // className="bg-blue-600 text-white"
-                >
-                  Save Remarks
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </>
-    );
-  }
+            <div className="space-y-4 py-4">
+              <Label htmlFor="remarks">Remarks</Label>
+              <Textarea
+                id="remarks"
+                placeholder="Enter remarks..."
+                value={remarksText}
+                onChange={(e) => setRemarksText(e.target.value)}
+                rows={6}
+                className="resize-none"
+              />
+            </div>
 
-  export default PlanningPage;
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+              <Button
+                variant="outline"
+                onClick={() => setRemarksDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveRemarks}
+                // className="bg-blue-600 text-white"
+              >
+                Save Remarks
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
+  );
+}
+
+export default PlanningPage;

@@ -121,6 +121,8 @@ export function SemiQcPage() {
     [k: string]: string;
   }>({});
 
+  const [soaSort, setSoaSort] = useState<"asc" | "desc">("asc");
+
   const [binCardDialogOpen, setBinCardDialogOpen] = useState(false);
   const [viewDetailsDialogOpen, setViewDetailsDialogOpen] = useState(false);
   const [viewedOrder, setViewedOrder] = useState<AssemblyOrderData | null>(
@@ -252,10 +254,87 @@ export function SemiQcPage() {
     }
   };
 
+  // 🔥 FETCH ALL PAGES FOR GLOBAL SEARCH
+const fetchAllPages = async () => {
+  try {
+    setLoading(true);
+    const currentStage = "semi-qc";
+    const stageLabel = getStepLabel(currentStage);
+
+    const res = await axios.post(
+      `${API_URL}/order-list`,
+      { menu_name: stageLabel },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (
+      res?.data?.Resp_code === "true" ||
+      res?.data?.Resp_code === true ||
+      res?.data?.Resp_code === "RCS"
+    ) {
+      const allOrders = res.data.data.map((item: any) => ({
+        ...item,
+        id: String(item.id),
+        assemblyLine: item.assembly_no || "",
+        gmsoaNo: item.soa_no || "",
+        party: item.party_name || "",
+        remarks: item.remarks || "",
+      }));
+
+      setFullOrders(allOrders);
+    }
+  } catch (err) {
+    console.error("❌ Error fetching all orders", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// useEffect(() => {
+//   if (useGlobalSearch) {
+//     if (!fullOrders) fetchAllPages();
+//   } else {
+//     setFullOrders(null);
+//   }
+//   // eslint-disable-next-line react-hooks/exhaustive-deps
+// }, [useGlobalSearch, perPage]);
+
+
+
+  // useEffect(() => {
+  //   fetchOrders();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
+
+
+
+  // 🔥 GLOBAL SEARCH FLAG
+const useGlobalSearch = useMemo(() => {
+  const hasSearch = localSearchTerm.trim().length > 0;
+  const hasFilters =
+    assemblyLineFilter !== "all" ||
+    gmsoaFilter !== "all" ||
+    partyFilter !== "all";
+  const hasDate = Boolean(dateFrom) || Boolean(dateTo);
+
+  return hasSearch || hasFilters || hasDate || showUrgentOnly;
+}, [
+  localSearchTerm,
+  assemblyLineFilter,
+  gmsoaFilter,
+  partyFilter,
+  dateFrom,
+  dateTo,
+  showUrgentOnly,
+]);
+
   useEffect(() => {
+  if (!useGlobalSearch) {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [page, perPage, useGlobalSearch]);
+
 
   // filter option lists
   const assemblyLines = useMemo(
@@ -282,7 +361,11 @@ export function SemiQcPage() {
 
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
-    let filtered = orders.slice();
+    const source =
+  useGlobalSearch && fullOrders ? fullOrders : orders;
+
+let filtered = source.slice();
+
     filtered = filtered.filter((o) => normalize(o.currentStage) === "semi-qc");
 
     if (showUrgentOnly) {
@@ -373,11 +456,11 @@ export function SemiQcPage() {
     getAlertStatus,
   ]);
 
-     const truncateWords = (text = "", wordLimit = 4) => {
-  const words = text.trim().split(/\s+/);
-  if (words.length <= wordLimit) return text;
-  return words.slice(0, wordLimit).join(" ") + "...";
-};
+    const truncateWords = (text = "", wordLimit = 4) => {
+const words = text.trim().split(/\s+/);
+if (words.length <= wordLimit) return text;
+return words.slice(0, wordLimit).join(" ") + "...";
+  };
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -1343,7 +1426,11 @@ const handleAssignOrder = async () => {
                     <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
                       GMSOA NO.
                     </th>
-                    <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">
+                    <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24 cursor-pointer select-none"
+                     onClick={() =>
+    setSoaSort(prev => (prev === "asc" ? "desc" : "asc"))
+  }
+                    >
                       SOA Sr. No.
                     </th>
                     <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
