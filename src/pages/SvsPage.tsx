@@ -735,14 +735,41 @@ const handlePrintBinCard = () => {
     setRemarksDialogOpen(true);
   };
 
-  const handleSaveRemarks = () => {
-    if (remarksOrder) {
+const handleSaveRemarks = async () => {
+  if (!remarksOrder) return;
+
+  const formData = new FormData();
+  formData.append("orderId", String(remarksOrder.id));
+  formData.append("remarks", remarksText);
+
+  try {
+    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const success =
+      res.data?.Resp_code === "true" || res.data?.Resp_code === true;
+
+    if (success) {
+      // ✅ Update local SVS orders list
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+        )
+      );
+
+      // ✅ Update context (for filters / tooltip / urgent logic)
       updateRemark(remarksOrder.id, remarksText);
+
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
-      setRemarksText('');
+      setRemarksText("");
     }
-  };
+  } catch (err) {
+    console.error("Error saving SVS remarks:", err);
+  }
+};
+
 
   const toggleAlertStatus = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);

@@ -10,6 +10,7 @@ import {
   Siren,
   Eye,
   MessageSquarePlus,
+  Download,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -34,6 +35,9 @@ import { Checkbox } from "../components/ui/checkbox";
 import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
+
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 import {
   getNextSteps,
@@ -82,8 +86,9 @@ export function Pdi1Page() {
     getAlertStatus,
   } = useOrderContext();
 
-  const assignAbortRef = useRef<AbortController | null>(null);
+  // const assignAbortRef = useRef<AbortController | null>(null);
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+   const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -223,7 +228,7 @@ export function Pdi1Page() {
         console.log("✅ Orders fetched:", apiOrders.length, "records");
         //  setOrders(sortOrders(apiOrders));
         setOrders(apiOrders);
-
+       setFullOrders(null);
         setError(null);
         setMessage(null);
       } else {
@@ -390,6 +395,12 @@ export function Pdi1Page() {
     setPage(1);
   }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
 
+     const truncateWords = (text = "", wordLimit = 4) => {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= wordLimit) return text;
+  return words.slice(0, wordLimit).join(" ") + "...";
+};
+
   // selection helpers
 const toggleRowSelection = (order: AssemblyOrderData) => {
   const key = rowKey(order);
@@ -535,294 +546,350 @@ const selectedOrdersData = orders.filter((o) =>
 );
 
   const handleShowBinCard = () => setBinCardDialogOpen(true);
-const handlePrintBinCard = () => {
-  const cards = selectedOrdersData
-    .map(
-      (order) => `
-      <div class="bin-card">
-        <div class="content">
+  const handlePrintBinCard = () => {
+    const cards = selectedOrdersData
+      .map(
+        (order) => `
+        <div class="bin-card">
+          <div class="content">
 
-          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+            <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
 
-          <h6 class="company-address">
-            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-            Village Metoda, Dist. Rajkot-360 021
-          </h6>
+            <h6 class="company-address">
+              Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+              Village Metoda, Dist. Rajkot-360 021
+            </h6>
 
-          <h3 class="tag-title process-border">In Process Material Tag</h3>
-          <div class="meta">
-            <div class="meta-item">
-              <div><span class="label">Date:</span> ${order.assemblyDate}</div>
-              <div>
-                <span class="label">SOA:</span>
-                ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
-              </div>
-
-            </div>
-              <div class="title assembly-title">
-                <p>Assembly Line: ${order.assemblyLine}</p>
-              </div>
+            <h3 class="tag-title process-border">In Process Material Tag</h3>
+            <div class="meta">
               <div class="meta-item">
-                <p>GMV-L4-F-PRD 01 A</p>
-                <p>(02/10.09.2020)</p>
+                <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+                <div>
+                  <span class="label">SOA:</span>
+                  ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+                </div>
+
               </div>
-         </div>
-
-           
-
-          <div class="desc">
-            <div clas="description party-desc">
-              <span class="label">Party:</span><p>${order.party}</p>
-            </div>
-            <div clas="description item-label-description">
-              <span class="label item-label">Item:</span><p>${order.product}</p>
-            </div>
+                <div class="title assembly-title">
+                  <p>Assembly Line: ${order.assemblyLine}</p>
+                </div>
+                <div class="meta-item">
+                  <p>GMV-L4-F-PRD 01 A</p>
+                  <p>(02/10.09.2020)</p>
+                </div>
           </div>
 
-          <div class="qty-logo">
-           <div class="meta meta-logo">
-            <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
-            <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
-             </div>
-            <div class="detail-items"><span class="label ">Special Note:</span> </div>
+            
+
+            <div class="desc">
+              <div clas="description party-desc">
+                <span class="label">Party:</span><p>${order.party}</p>
+              </div>
+              <div clas="description item-label-description">
+                <span class="label item-label">Item:</span><p>${order.product}</p>
+              </div>
             </div>
 
-          <div class="inspect">
-            <span class="label">Inspected by:</span>
-            <div class="inspect-line"></div>
+            <div class="qty-logo">
+            <div class="meta meta-logo">
+              <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
+              <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+              </div>
+              <div class="detail-items"><span class="label ">Special Note:</span> </div>
+              </div>
+
+            <div class="inspect">
+              <span class="label">Inspected by:</span>
+              <div class="inspect-line"></div>
+            </div>
+
           </div>
+        </div>`
+      )
+      .join("");
 
-        </div>
-      </div>`
-    )
-    .join("");
+    const html = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Bin Card</title>
 
-  const html = `<!doctype html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <title>Bin Card</title>
+        <style>
+          @page {
+            size: 130mm 85mm;
+            margin: 0;
+          }
 
-      <style>
-        @page {
-          size: 130mm 85mm;
-          margin: 0;
-        }
+          html, body {
+            width: 130mm;
+            height: 85mm;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+          }
 
-        html, body {
-          width: 130mm;
-          height: 85mm;
-          margin: 0;
-          padding: 0;
-          font-family: Arial, Helvetica, sans-serif;
-        }
+          .item-label,
+          .party-desc {
+          padding-bottom: 2mm;}
 
-        .item-label,
-        .party-desc {
-        padding-bottom: 2mm;}
+          .item-label {
+          line-height: 1.8em;}
 
-        .item-label {
-        line-height: 1.8em;}
+          .bin-card {
+            width: 130mm;
+            height: 85mm;
+            padding: 6mm;
+            box-sizing: border-box;
+            page-break-after: always;
+          }
 
-        .bin-card {
-          width: 130mm;
-          height: 85mm;
-          padding: 6mm;
-          box-sizing: border-box;
-          page-break-after: always;
-        }
+        .item-label-description {
+        padding-top: 50px;}
 
-      .item-label-description {
-      padding-top: 50px;}
+          .meta-qty {
+          width: 50%;}
 
-        .meta-qty {
-        width: 50%;}
+          .process-border {
+          border-top:1px solid #000;
+          border-bottom:1px solid #000;
+          padding-top: 1.5mm;
+          padding-bottom: 1.5mm;
+          }
 
-        .process-border {
-        border-top:1px solid #000;
-        border-bottom:1px solid #000;
-        padding-top: 1.5mm;
-        padding-bottom: 1.5mm;
-        }
+          .detail-logo {
+            padding-bottom: 0.9mm;
+          }
 
-        .detail-logo {
-          padding-bottom: 0.9mm;
-        }
+          .description {
+            padding-bottom: 2mm;
+          }
 
-        .description {
-          padding-bottom: 2mm;
-        }
+          .content {
+            width: 100%;
+            height: 100%;
+            border: 1.5px solid #000;
+            border-radius: 10px;
+            padding-top: 2mm;
+            padding-bottom: 4mm;
+              padding-left: 6mm;
+                  padding-right: 6mm;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+          }
 
-        .content {
-          width: 100%;
-          height: 100%;
-          border: 1.5px solid #000;
-          border-radius: 10px;
-          padding-top: 2mm;
-          padding-bottom: 4mm;
-             padding-left: 6mm;
-                padding-right: 6mm;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-        }
+          .meta-item {
+            padding-top: 2mm;
+          }
 
-        .meta-item {
-          padding-top: 2mm;
-        }
+          /* RESET DEFAULT P TAG SPACE */
+          p {
+            margin: 0;
+          }
 
-        /* RESET DEFAULT P TAG SPACE */
-        p {
-          margin: 0;
-        }
+          /* HEADER */
+          .company-name {
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 1mm;
+            
+          }
 
-        /* HEADER */
-        .company-name {
-          font-size: 12px;
-          font-weight: 700;
-          text-align: center;
-          margin: 0 0 1mm;
-          
-        }
+          .assembly-title p {
+          border: 1px solid #000;
+            display: inline-block;
+            padding-top: 1mm;
+            padding-bottom: 0.9mm;
+            padding-left: 1mm;
+            padding-right: 1mm;
+          }
 
-        .assembly-title p {
-        border: 1px solid #000;
-          display: inline-block;
-          padding-top: 1mm;
-          padding-bottom: 0.9mm;
-          padding-left: 1mm;
-          padding-right: 1mm;
-        }
+          .company-address {
+            font-size: 8px;
+            font-weight: 400;
+            text-align: center;
+            line-height: 1.2;
+            margin: 0 0 1.2mm;
+          }
 
-        .company-address {
-          font-size: 8px;
-          font-weight: 400;
-          text-align: center;
-          line-height: 1.2;
-          margin: 0 0 1.2mm;
-        }
+          .tag-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 1.5mm;
+          }
 
-        .tag-title {
-          font-size: 11px;
-          font-weight: 700;
-          text-align: center;
-          margin: 0 0 1.5mm;
-        }
+          .doc-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            margin-bottom: 0.5mm; /* 🔥 reduced */
+          }
 
-        .doc-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 9px;
-          margin-bottom: 0.5mm; /* 🔥 reduced */
-        }
+          /* ASSEMBLY LINE */
+          .title {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 0;       /* 🔥 no top gap */
+            margin-bottom: 0.5mm;
+            //  border: 1px solid #000;
+            // display: inline-block;
+          }
 
-        /* ASSEMBLY LINE */
-        .title {
-          text-align: center;
-          font-size: 11px;
-          font-weight: 700;
-          margin-top: 0;       /* 🔥 no top gap */
-          margin-bottom: 0.5mm;
-          //  border: 1px solid #000;
-          // display: inline-block;
-        }
+          .title-line {
+            border-bottom: 1px solid #000;
+            margin-bottom: 1.5mm;
+            margin-top: 0.5mm;
+          }
 
-        .title-line {
-          border-bottom: 1px solid #000;
-          margin-bottom: 1.5mm;
-          margin-top: 0.5mm;
-        }
+          /* META */
+          .meta {
+            font-size: 10px;
+            line-height: 1.25;
+            margin-bottom: 0.8mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
 
-        /* META */
-        .meta {
-          font-size: 10px;
-          line-height: 1.25;
-          margin-bottom: 0.8mm;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
+          .meta div {
+            margin-bottom: 0.5mm;
+          }
 
-        .meta div {
-          margin-bottom: 0.5mm;
-        }
+          /* ITEM */
+          .desc {
+            font-size: 9px;
+            margin-bottom: 0.8mm;
+          }
 
-        /* ITEM */
-        .desc {
-          font-size: 9px;
-          margin-bottom: 0.8mm;
-        }
+          .desc p {
+          padding-bottom: 0.6mm;}
 
-        .desc p {
-        padding-bottom: 0.6mm;}
+          .desc span {
+            display: block;
+            padding-bottom: 0.1mm;
+          }
 
-        .desc span {
-          display: block;
-          padding-bottom: 0.1mm;
-        }
+          .desc .label {
+            display: block;
+            font-size: 10px;
+            margin-bottom: 0.8mm;
+            margin-top: 0.8mm;
+          }
 
-        .desc .label {
-          display: block;
-          font-size: 10px;
-          margin-bottom: 0.8mm;
-          margin-top: 0.8mm;
-        }
+          .desc .text {
+            word-break: break-word;
+            
+          }
 
-        .desc .text {
-          word-break: break-word;
-          
-        }
+          /* QTY */
+          .qty-logo {
+            font-size: 10px;
+            line-height: 1.3;
+            margin-bottom: 0.4mm;
+            margin-top: 0.8mm;
+          }
 
-        /* QTY */
-        .qty-logo {
-          font-size: 10px;
-          line-height: 1.3;
-          margin-bottom: 0.4mm;
-           margin-top: 0.8mm;
-        }
+          /* INSPECTION */
+          .inspect {
+            margin-top: auto;
+            font-size: 10px;
+          }
 
-        /* INSPECTION */
-        .inspect {
-          margin-top: auto;
-          font-size: 10px;
-        }
+          .inspect-line {
+            height: 3mm;
+            border-bottom: 1px solid #000;
+          }
 
-        .inspect-line {
-          height: 3mm;
-          border-bottom: 1px solid #000;
-        }
+          .label {
+            font-weight: 600;
+          }
+        </style>
+      </head>
 
-        .label {
-          font-weight: 600;
-        }
-      </style>
-    </head>
+      <body>${cards}</body>
+    </html>`;
 
-    <body>${cards}</body>
-  </html>`;
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
 
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
+    document.body.appendChild(iframe);
 
-  document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
 
-  const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!doc) return;
+    doc.open();
+    doc.write(html);
+    doc.close();
 
-  doc.open();
-  doc.write(html);
-  doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 500);
+    }, 300);
+  };
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    setTimeout(() => document.body.removeChild(iframe), 500);
-  }, 300);
+const handleExport = () => {
+  // 🔥 Use ALL data (not paginated)
+  const dataToExport =
+    fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+
+  if (!dataToExport || dataToExport.length === 0) {
+    alert("No data available to export");
+    return;
+  }
+
+  const exportData = dataToExport.map((order, index) => ({
+    "No": index + 1,
+    "Assembly Line": order.assemblyLine,
+    "GMSOA No": order.gmsoaNo,
+    "SOA Sr No": order.soaSrNo,
+    "Assembly Date": order.assemblyDate,
+    "Unique Code": order.uniqueCode,
+    "Splitted Code": order.splittedCode || "-",
+    "Party": order.party,
+    "Customer PO No": order.customerPoNo,
+    "Code No": order.codeNo,
+    "Product": order.product,
+    "PO Qty": order.poQty,
+    "Qty": order.qty,
+    "Qty Executed": order.qtyExe,
+    "Qty Pending": order.qtyPending,
+    "Finished Valve": order.finishedValve,
+    "GM Logo": order.gmLogo,
+    "Name Plate": order.namePlate,
+    "Product Special 1": order.productSpcl1,
+    "Product Special 2": order.productSpcl2,
+    "Product Special 3": order.productSpcl3,
+    "Inspection": order.inspection,
+    "Painting": order.painting,
+    "Remarks": order.remarks || "",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  const fileData = new Blob([excelBuffer], {
+    type: "application/octet-stream",
+  });
+
+  saveAs(
+    fileData,
+    `Planning_Orders_All_${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
 };
 
   // View details
@@ -838,14 +905,41 @@ const handlePrintBinCard = () => {
     setRemarksDialogOpen(true);
   };
 
-  const handleSaveRemarks = () => {
-    if (remarksOrder) {
+const handleSaveRemarks = async () => {
+  if (!remarksOrder) return;
+
+  const formData = new FormData();
+  formData.append("orderId", String(remarksOrder.id));
+  formData.append("remarks", remarksText);
+
+  try {
+    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const success =
+      res.data?.Resp_code === "true" || res.data?.Resp_code === true;
+
+    if (success) {
+      // ✅ Update local SVS orders list
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+        )
+      );
+
+      // ✅ Update context (for filters / tooltip / urgent logic)
       updateRemark(remarksOrder.id, remarksText);
+
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
       setRemarksText("");
     }
-  };
+  } catch (err) {
+    console.error("Error saving SVS remarks:", err);
+  }
+};
+
 
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
@@ -1010,7 +1104,7 @@ const handlePrintBinCard = () => {
         `${API_URL}/assign-order`,
         formData,
         { headers: { Authorization: `Bearer ${token}` },
-         signal: controller.signal,
+        //  signal: controller.signal,
       }
       );
   
@@ -1266,6 +1360,14 @@ setSelectedRows((prev) => {
                       : "Urgent Projects Only"}
                   </Button>
                 </div>
+
+                <Button
+          onClick={handleExport}
+          className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export Data
+        </Button>
               </div>
               {/* Option row - could include more buttons */}
             </div>
@@ -1475,11 +1577,15 @@ setSelectedRows((prev) => {
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.splittedCode}
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-900 w-20">
-                        <div  style={{ width: "120px" }}>
-                        {order.party}
-                        </div>
-                      </td>
+                     <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
+                           <div  style={{ width: "120px" }}
+ 
+                                title={order.party} 
+                          >
+                            {truncateWords(order.party, 4)}
+                          </div>
+
+                        </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.customerPoNo}
                       </td>
@@ -1532,27 +1638,43 @@ setSelectedRows((prev) => {
                         {order.painting}
                       </td>
 
-                      <td className="px-3 py-2 text-center text-sm text-gray-900">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 ${
-                            getRemark(order.id)
-                              ? "bg-[#174a9f] hover:bg-[#123a7f]"
-                              : "hover:bg-[#d1e2f3]"
-                          }`}
-                          title="Add/Edit Remarks"
-                          onClick={() => handleOpenRemarks(order)}
-                        >
-                          <MessageSquarePlus
-                            className={`h-4 w-4 ${
-                              getRemark(order.id)
-                                ? "text-white"
-                                : "text-blue-600"
-                            }`}
-                          />
-                        </Button>
-                      </td>
+                     <td className="px-3 py-2 text-center text-sm text-gray-900">
+                                                                                       <div className="relative inline-block group">
+                                                                                         <Button
+                                                                                       size="sm"
+                                                                                       variant="ghost"
+                                                                                       title={order.remarks || "Add / Edit Remarks"}
+                                                                                       className={`h-7 w-7 p-0 ${
+                                                                                         order.remarks?.trim()
+                                                                                           ? "bg-[#174a9f] hover:bg-[#123a7f]"
+                                                                                           : "hover:bg-[#d1e2f3]"
+                                                                                       }`}
+                                                                                       onClick={() => handleOpenRemarks(order)}
+                                                                                     >
+                                                                                       <MessageSquarePlus
+                                                                                         className={`h-4 w-4 ${
+                                                                                           order.remarks?.trim() ? "text-white" : "text-blue-600"
+                                                                                         }`}
+                                                                                       />
+                                                                                     </Button>
+                                                                                     
+                                                                                     
+                                                                                         {/* ✅ SHOW REMARK TEXT ON HOVER */}
+                                                                                         {order.remarks?.trim() && (
+                                                                                           <div
+                                                                                             className="
+                                                                                               absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                                                                                               hidden group-hover:block
+                                                                                               bg-gray-900 text-white text-xs
+                                                                                               px-3 py-2 rounded-md shadow-lg
+                                                                                               max-w-[260px] break-words z-[999]
+                                                                                             "
+                                                                                           >
+                                                                                             {order.remarks}
+                                                                                           </div>
+                                                                                         )}
+                                                                                       </div>
+                                                                                     </td>
 
                       <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
                         <div className="flex items-center space-x-1">

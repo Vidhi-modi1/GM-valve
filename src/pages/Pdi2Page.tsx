@@ -10,6 +10,7 @@ import {
   Siren,
   Eye,
   MessageSquarePlus,
+  Download,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -34,6 +35,9 @@ import { Checkbox } from "../components/ui/checkbox";
 import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
+
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 import {
   getNextSteps,
@@ -87,6 +91,7 @@ export function Pdi2Page() {
 
   // API data + UI state
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
+  const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -309,6 +314,7 @@ export function Pdi2Page() {
   
           console.log("✅ Orders fetched:", apiOrders.length, "records");
            setOrders(apiOrders);
+           setFullOrders(null);
           setError(null);
           setMessage(null);
         } else {
@@ -483,6 +489,13 @@ export function Pdi2Page() {
   //     return copy;
   //   });
   // };
+
+  const truncateWords = (text = "", wordLimit = 4) => {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= wordLimit) return text;
+  return words.slice(0, wordLimit).join(" ") + "...";
+};
+
   const toggleRowSelection = (order: AssemblyOrderData) => {
   const key = rowKey(order);
 
@@ -915,6 +928,62 @@ const handlePrintBinCard = () => {
   }, 300);
 };
 
+const handleExport = () => {
+  // 🔥 Use ALL data (not paginated)
+  const dataToExport =
+    fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+
+  if (!dataToExport || dataToExport.length === 0) {
+    alert("No data available to export");
+    return;
+  }
+
+  const exportData = dataToExport.map((order, index) => ({
+    "No": index + 1,
+    "Assembly Line": order.assemblyLine,
+    "GMSOA No": order.gmsoaNo,
+    "SOA Sr No": order.soaSrNo,
+    "Assembly Date": order.assemblyDate,
+    "Unique Code": order.uniqueCode,
+    "Splitted Code": order.splittedCode || "-",
+    "Party": order.party,
+    "Customer PO No": order.customerPoNo,
+    "Code No": order.codeNo,
+    "Product": order.product,
+    "PO Qty": order.poQty,
+    "Qty": order.qty,
+    "Qty Executed": order.qtyExe,
+    "Qty Pending": order.qtyPending,
+    "Finished Valve": order.finishedValve,
+    "GM Logo": order.gmLogo,
+    "Name Plate": order.namePlate,
+    "Product Special 1": order.productSpcl1,
+    "Product Special 2": order.productSpcl2,
+    "Product Special 3": order.productSpcl3,
+    "Inspection": order.inspection,
+    "Painting": order.painting,
+    "Remarks": order.remarks || "",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  const fileData = new Blob([excelBuffer], {
+    type: "application/octet-stream",
+  });
+
+  saveAs(
+    fileData,
+    `Planning_Orders_All_${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
+};
+
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
     setViewedOrder(order);
@@ -928,14 +997,42 @@ const handlePrintBinCard = () => {
     setRemarksDialogOpen(true);
   };
 
-  const handleSaveRemarks = () => {
-    if (remarksOrder) {
+const handleSaveRemarks = async () => {
+  if (!remarksOrder) return;
+
+  const formData = new FormData();
+  formData.append("orderId", String(remarksOrder.id));
+  formData.append("remarks", remarksText);
+
+  try {
+    const res = await axios.post(`${API_URL}/add-remarks`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const success =
+      res.data?.Resp_code === "true" || res.data?.Resp_code === true;
+
+    if (success) {
+      // ✅ Update local SVS orders list
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === remarksOrder.id ? { ...o, remarks: remarksText } : o
+        )
+      );
+
+      // ✅ Update context (for filters / tooltip / urgent logic)
       updateRemark(remarksOrder.id, remarksText);
+
       setRemarksDialogOpen(false);
       setRemarksOrder(null);
       setRemarksText("");
     }
-  };
+  } catch (err) {
+    console.error("Error saving SVS remarks:", err);
+  }
+};
+
+
 
   // ✅ Marks urgent one-time only, persists after refresh
   const toggleAlertStatus = async (orderId: string) => {
@@ -1103,7 +1200,7 @@ const splitLabel = getStepLabel(splitStep);
       const responseMain = await axios.post(
         `${API_URL}/assign-order`,
         formData,
-        { headers: { Authorization: `Bearer ${token}` },signal: controller.signal, }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
   
@@ -1369,6 +1466,14 @@ const splitLabel = getStepLabel(splitStep);
               </div>
               {/* Option row - could include more buttons */}
             </div>
+
+            <Button
+                      onClick={handleExport}
+                      className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Data
+                    </Button>
           </div>
 
           {/* Filters */}
@@ -1574,11 +1679,15 @@ const splitLabel = getStepLabel(splitStep);
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.splittedCode}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 max-w-xs truncate">
-                        <div  style={{ width: "120px" }}>
-                        {order.party}
-                        </div>
-                      </td>
+                        <td className="px-3 py-2 text-center text-sm text-gray-900 max-w-xs">
+                           <div  style={{ width: "120px" }}
+ 
+                                title={order.party} 
+                          >
+                            {truncateWords(order.party, 4)}
+                          </div>
+
+                        </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.customerPoNo}
                       </td>
@@ -1631,27 +1740,43 @@ const splitLabel = getStepLabel(splitStep);
                         {order.painting}
                       </td>
 
-                      <td className="px-3 py-2 text-center text-sm text-gray-900">
-                        <Button
+                       <td className="px-3 py-2 text-center text-sm text-gray-900">
+                          <div className="relative inline-block group">
+                            <Button
                           size="sm"
                           variant="ghost"
+                          title={order.remarks || "Add / Edit Remarks"}
                           className={`h-7 w-7 p-0 ${
-                            getRemark(order.id)
+                            order.remarks?.trim()
                               ? "bg-[#174a9f] hover:bg-[#123a7f]"
                               : "hover:bg-[#d1e2f3]"
                           }`}
-                          title="Add/Edit Remarks"
                           onClick={() => handleOpenRemarks(order)}
                         >
                           <MessageSquarePlus
                             className={`h-4 w-4 ${
-                              getRemark(order.id)
-                                ? "text-white"
-                                : "text-blue-600"
+                              order.remarks?.trim() ? "text-white" : "text-blue-600"
                             }`}
                           />
                         </Button>
-                      </td>
+                        
+                        
+                            {/* ✅ SHOW REMARK TEXT ON HOVER */}
+                            {order.remarks?.trim() && (
+                              <div
+                                className="
+                                  absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                                  hidden group-hover:block
+                                  bg-gray-900 text-white text-xs
+                                  px-3 py-2 rounded-md shadow-lg
+                                  max-w-[260px] break-words z-[999]
+                                "
+                              >
+                                {order.remarks}
+                              </div>
+                            )}
+                          </div>
+                        </td>
 
                       <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
                         <div className="flex items-center space-x-1">
