@@ -1416,7 +1416,7 @@ const handleAssignOrder = async () => {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
             <div>
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Test and Performance Inspection
@@ -1440,7 +1440,7 @@ const handleAssignOrder = async () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"

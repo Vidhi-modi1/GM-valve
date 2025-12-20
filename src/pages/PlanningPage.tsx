@@ -254,17 +254,32 @@
       }
     };
 
-    useEffect(() => {
-      fetchOrders();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, perPage]);
-
-    const useGlobalSearch = useMemo(() => {
+      const useGlobalSearch = useMemo(() => {
       const hasSearch = localSearchTerm.trim().length > 0;
       const hasFilters = assemblyLineFilter !== "all" || gmsoaFilter !== "all" || partyFilter !== "all";
       const hasDate = Boolean(dateFrom) || Boolean(dateTo);
       return hasSearch || hasFilters || hasDate || showUrgentOnly;
     }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+
+    const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+    useEffect(() => {
+  if (useGlobalSearch) {
+    if (!fullOrders) fetchAllPages();
+  } else {
+    setFullOrders(null);
+  }
+}, [useGlobalSearch, perPage]);
+
+useEffect(() => {
+  if (!useGlobalSearch) {
+    fetchOrders();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [page, perPage, useGlobalSearch]);
+
+
+  
+
 
     const fetchAllPages = async () => {
       try {
