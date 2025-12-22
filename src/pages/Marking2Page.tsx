@@ -51,8 +51,10 @@ import TablePagination from "../components/table-pagination";
 
 interface AssemblyOrderData {
   id: string;
+   specialNotes: string;
   assemblyLine: string;
   gmsoaNo: string;
+  order_id: string; 
   soaSrNo: string;
   assemblyDate: string;
   uniqueCode: string;
@@ -188,6 +190,7 @@ export function Marking2Page() {
         const apiOrders: AssemblyOrderData[] = res.data.data.map(
           (item: any) => ({
             id: String(item.id),
+            order_id: String(item.order_id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
             soaSrNo: item.soa_sr_no || "",

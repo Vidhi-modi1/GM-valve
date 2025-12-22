@@ -27,11 +27,14 @@ import { getNextSteps, getStepLabel } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
 import TablePagination from "../components/table-pagination";
 
+import { useNavigate } from "react-router-dom";
+
   import * as XLSX from "xlsx";
   import { saveAs } from "file-saver";
 
 interface AssemblyOrderData {
   id: string;
+     specialNotes: string;
   assemblyLine: string;
   gmsoaNo: string;
   soaSrNo: string;
@@ -67,6 +70,8 @@ export function SvsPage() {
     getAlertStatus
   } = useOrderContext();
 
+  const navigate = useNavigate();
+
   const [orders, setOrders] = useState<AssemblyOrderData[]>([]);
      const [fullOrders, setFullOrders] = useState<AssemblyOrderData[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,8 +79,11 @@ export function SvsPage() {
   const [page, setPage] = useState<number>(1);
   const [perPage, setPerPage] = useState<number>(20);
 
+    const [soaSort, setSoaSort] = useState<"asc" | "desc" | null>(null);
+
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  const [showRemarksOnly, setShowRemarksOnly] = useState(false);
   const [assemblyLineFilter, setAssemblyLineFilter] = useState('all');
   const [gmsoaFilter, setGmsoaFilter] = useState('all');
   const [partyFilter, setPartyFilter] = useState('all');
@@ -105,6 +113,9 @@ export function SvsPage() {
   const [assignStatus, setAssignStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+
 
   const token = localStorage.getItem('token');
   // role helper
@@ -165,6 +176,7 @@ export function SvsPage() {
           finishedValve: item.finished_valve || '',
           gmLogo: item.gm_logo || '',
           namePlate: item.name_plate || '',
+          specialNotes: item.special_notes || '',
           productSpcl1: item.product_spc1 || '',
           productSpcl2: item.product_spc2 || '',
           productSpcl3: item.product_spc3 || '',
@@ -226,6 +238,13 @@ console.log(
 
     if (showUrgentOnly) {
       filtered = filtered.filter((o) => getAlertStatus(String(o.id)) || o.alertStatus);
+    }
+
+    
+      if (showRemarksOnly) {
+      filtered = filtered.filter(
+        (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
+      );
     }
 
     if (assemblyLineFilter !== 'all') filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
@@ -296,6 +315,7 @@ console.log(
   }, [
     orders,
     localSearchTerm,
+    showRemarksOnly,
     showUrgentOnly,
     assemblyLineFilter,
     gmsoaFilter,
@@ -313,7 +333,7 @@ console.log(
 
   useEffect(() => {
     setPage(1);
-  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly ,showRemarksOnly]);
 
   const toggleRowSelection = (orderId: string) => {
     setSelectedRows((prev) => {
@@ -427,7 +447,7 @@ const handlePrintBinCard = () => {
             <div class="meta-qty"><span class="label">QTY:</span> ${order.qty}</div>
             <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
              </div>
-            <div class="detail-items"><span class="label ">Special Note:</span> </div>
+            <div class="detail-items"><span class="label ">Special Note:</span> <span>${order.specialNotes || ""}</span></div>
             </div>
 
           <div class="inspect">
@@ -673,61 +693,78 @@ const handlePrintBinCard = () => {
     setViewDetailsDialogOpen(true);
   };
 
-   const handleExport = () => {
-    // 🔥 Use ALL data (not paginated)
-    const dataToExport =
-      fullOrders && fullOrders.length > 0 ? fullOrders : orders;
-  
-    if (!dataToExport || dataToExport.length === 0) {
-      alert("No data available to export");
-      return;
-    }
-  
-    const exportData = dataToExport.map((order, index) => ({
-      "No": index + 1,
-      "Assembly Line": order.assemblyLine,
-      "GMSOA No": order.gmsoaNo,
-      "SOA Sr No": order.soaSrNo,
-      "Assembly Date": order.assemblyDate,
-      "Unique Code": order.uniqueCode,
-      "Splitted Code": order.splittedCode || "-",
-      "Party": order.party,
-      "Customer PO No": order.customerPoNo,
-      "Code No": order.codeNo,
-      "Product": order.product,
-      "PO Qty": order.poQty,
-      "Qty": order.qty,
-      "Qty Executed": order.qtyExe,
-      "Qty Pending": order.qtyPending,
-      "Finished Valve": order.finishedValve,
-      "GM Logo": order.gmLogo,
-      "Name Plate": order.namePlate,
-      "Product Special 1": order.productSpcl1,
-      "Product Special 2": order.productSpcl2,
-      "Product Special 3": order.productSpcl3,
-      "Inspection": order.inspection,
-      "Painting": order.painting,
-      "Remarks": order.remarks || "",
-    }));
-  
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
-  
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-  
-    const fileData = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-  
-    saveAs(
-      fileData,
-      `Planning_Orders_All_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
-  };
+const handleExport = () => {
+  const dataToExport =
+    selectedRows.size > 0
+      ? filteredOrders.filter((o) => selectedRows.has(rowKey(o))) // ❌ rowKey not defined
+      : filteredOrders;
+
+  if (!dataToExport.length) {
+    alert("No data available to export");
+    return;
+  }
+
+  exportToExcel(dataToExport);
+};
+
+
+
+const handleExportAll = () => {
+  // Prefer fullOrders (global search mode), else fallback to orders
+  const allData =
+    fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+
+  if (!allData || allData.length === 0) {
+    alert("No data available to export");
+    return;
+  }
+
+  exportToExcel(allData);
+};
+
+const exportToExcel = (data: AssemblyOrderData[]) => {
+  const exportData = data.map((order, index) => ({
+    "No": index + 1,
+    "Assembly Line": order.assemblyLine,
+    "GMSOA No": order.gmsoaNo,
+    "SOA Sr No": order.soaSrNo,
+    "Assembly Date": order.assemblyDate,
+    "Unique Code": order.uniqueCode,
+    "Splitted Code": order.splittedCode || "-",
+    "Party": order.party,
+    "Customer PO No": order.customerPoNo,
+    "Code No": order.codeNo,
+    "Product": order.product,
+    "PO Qty": order.poQty,
+    "Qty": order.qty,
+    "Qty Executed": order.qtyExe,
+    "Qty Pending": order.qtyPending,
+    "Finished Valve": order.finishedValve,
+    "GM Logo": order.gmLogo,
+    "Name Plate": order.namePlate,
+    "Special Notes": order.specialNotes || "",
+    "Product Special 1": order.productSpcl1,
+    "Product Special 2": order.productSpcl2,
+    "Product Special 3": order.productSpcl3,
+    "Inspection": order.inspection,
+    "Painting": order.painting,
+    "Remarks": order.remarks || "",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  saveAs(
+    new Blob([excelBuffer], { type: "application/octet-stream" }),
+    `Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
+};
 
   const handleOpenRemarks = (order: AssemblyOrderData) => {
     setRemarksOrder(order);
@@ -1123,6 +1160,100 @@ const handleAssignOrder = async () => {
 
   // === PART 2 OF 2 - CONTINUES FROM PART 1 ===
 
+  const renderSvsTable = (data: AssemblyOrderData[]) => (
+  <table className="w-full border-collapse text-sm">
+    <thead className="sticky top-0 z-20 bg-gray-100">
+      <tr>
+        <th className="px-3 py-2 text-center">
+          <Checkbox
+            checked={
+              data.length > 0 &&
+              selectedRows.size === data.length
+            }
+            onCheckedChange={toggleSelectAll}
+          />
+        </th>
+
+        <th className="px-3 py-2 text-left">SOA</th>
+        <th className="px-3 py-2 text-left">Party</th>
+        <th className="px-3 py-2 text-left">Product</th>
+        <th className="px-3 py-2 text-center">Qty</th>
+        <th className="px-3 py-2 text-center">Executed</th>
+        <th className="px-3 py-2 text-center">Pending</th>
+        <th className="px-3 py-2 text-center">Urgent</th>
+        <th className="px-3 py-2 text-center">Remarks</th>
+        <th className="px-3 py-2 text-center">Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {data.length === 0 ? (
+        <tr>
+          <td colSpan={10} className="text-center py-6 text-gray-500">
+            No SVS data found
+          </td>
+        </tr>
+      ) : (
+        data.map((o) => (
+          <tr key={o.id} className="border-b hover:bg-gray-50">
+            <td className="px-3 py-2 text-center">
+              <Checkbox
+                checked={selectedRows.has(o.id)}
+                onCheckedChange={() => toggleRowSelection(o.id)}
+              />
+            </td>
+
+            <td className="px-3 py-2">
+              {o.gmsoaNo}-{o.soaSrNo}
+            </td>
+
+            <td className="px-3 py-2">{o.party}</td>
+            <td className="px-3 py-2">{o.product}</td>
+            <td className="px-3 py-2 text-center">{o.qty}</td>
+            <td className="px-3 py-2 text-center">{o.qtyExe}</td>
+            <td className="px-3 py-2 text-center">{o.qtyPending}</td>
+
+            <td className="px-3 py-2 text-center">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => toggleAlertStatus(o.id)}
+              >
+                <Siren
+                  className={`h-4 w-4 ${
+                    o.alertStatus ? "text-red-600" : "text-gray-400"
+                  }`}
+                />
+              </Button>
+            </td>
+
+            <td className="px-3 py-2 text-center">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => handleOpenRemarks(o)}
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+              </Button>
+            </td>
+
+            <td className="px-3 py-2 text-center">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => handleViewDetails(o)}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </td>
+          </tr>
+        ))
+      )}
+    </tbody>
+  </table>
+);
+
+
   return (
     <>
     
@@ -1149,7 +1280,7 @@ const handleAssignOrder = async () => {
 
           <div className="flex flex-col gap-4 w-full">
             <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
-              <div className="relative max-input">
+              {/* <div className="relative max-input">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                 <Input
                   type="text"
@@ -1158,7 +1289,7 @@ const handleAssignOrder = async () => {
                   onChange={(e) => setLocalSearchTerm(e.target.value)}
                   className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
                 />
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-3">
                 <Button
@@ -1178,15 +1309,42 @@ const handleAssignOrder = async () => {
                   <Siren className="h-4 w-4" />
                   {showUrgentOnly ? 'Show All Projects' : 'Urgent Projects Only'}
                 </Button>
+
+                 <Button
+                    onClick={() => setShowRemarksOnly(!showRemarksOnly)}
+                    className={`btn-urgent flex items-center gap-2 ${
+                      showRemarksOnly
+                        ? "bg-btn-gradient text-white shadow-md transition-all btn-remark"
+                        : "bg-btn-gradient text-white shadow-md transition-all btn-remark"
+                    }`}
+                  >
+                    {showRemarksOnly ? "Show All Projects" : "Remarks only"}
+                  </Button>
               </div>
 
               <Button
-                            onClick={handleExport}
-                            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Export Data
-                          </Button>
+                onClick={handleExport}
+                className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
+
+              <Button
+                onClick={handleExportAll}
+                className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export all Data
+              </Button>
+
+              <Button
+  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white shadow-lg hover:shadow-xl"
+  onClick={() => navigate("/svs-stock")}
+>
+  Inventory
+</Button>
+
             </div>
           </div>
         </div>
@@ -1194,6 +1352,8 @@ const handleAssignOrder = async () => {
         <div className="mt-4">
           <OrderFilters
           currentStage="default"
+          searchTerm={localSearchTerm}
+  setSearchTerm={setLocalSearchTerm}
             assemblyLineFilter={assemblyLineFilter}
             setAssemblyLineFilter={setAssemblyLineFilter}
             dateFilterMode={dateFilterMode}
@@ -1236,7 +1396,20 @@ const handleAssignOrder = async () => {
 
                   <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">Assembly Line</th>
                   <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">GMSOA NO.</th>
-                  <th className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24">SOA Sr. No.</th>
+                 <th
+  className="sticky left-274 z-20 bg-white px-3 py-2 text-center
+             text-xs font-medium text-gray-500 uppercase tracking-wider
+             border-r border-gray-200 min-w-24 cursor-pointer select-none"
+  onClick={() =>
+    setSoaSort((prev) =>
+      prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
+    )
+  }
+>
+  SOA Sr. No.
+  {soaSort === "asc" && " ▲"}
+  {soaSort === "desc" && " ▼"}
+</th>
                   <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Assembly Date</th>
 
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-36">Unique Code</th>
@@ -1251,6 +1424,9 @@ const handleAssignOrder = async () => {
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">finished valve</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">GM LOGO</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">NAME PLATE</th>
+                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          SPECIAL NOTES
+                        </th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">PRODUCT SPCL1</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">PRODUCT SPCL2</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ width: '400px' }}>PRODUCT SPCL3</th>
@@ -1310,6 +1486,15 @@ const handleAssignOrder = async () => {
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.finishedValve}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.gmLogo}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.namePlate}</td>
+                    <td className="px-3 py-2 text-center text-sm text-gray-900">
+                            <div
+                              className="line-clamp-2"
+                              style={{ width: "200px" }}
+                              title={order.specialNotes}
+                            >
+                              {order.specialNotes || "-"}
+                            </div>
+                          </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.productSpcl1}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">{order.productSpcl2}</td>
                     <td className="px-3 py-2 text-center text-sm text-gray-900" style={{ width: '400px' }}>
@@ -1497,67 +1682,95 @@ const handleAssignOrder = async () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bin Card Dialog */}
-      <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bin Card - Selected Orders</DialogTitle>
-            <DialogDescription>Review selected orders and print bin card</DialogDescription>
-          </DialogHeader>
+        {/* Bin Card Dialog */}
+        <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Bin Card - Selected Orders</DialogTitle>
+              <DialogDescription>
+                Review selected orders and print bin card
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            {selectedOrdersData.map((order) => (
-              <div key={order.id} className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white">
-                <div className="text-center pb-2 border-b border-gray-200">
-                  <p className="text-lg"><span className="text-gray-600">Assembly Line:</span> <span className="text-gray-900 font-bold text-xl">{order.assemblyLine}</span></p>
-                </div>
+            <div className="space-y-6 py-4">
+              {selectedOrdersData.map((order) => (
+                <div
+                  key={order.id}
+                  className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white"
+                >
+                  <div className="text-center pb-2 border-b border-gray-200">
+                    <p className="text-lg">
+                      <span className="text-gray-600">Assembly Line:</span>{" "}
+                      <span className="text-gray-900 font-bold text-xl">
+                        {order.assemblyLine}
+                      </span>
+                    </p>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        Assembly Date
+                      </Label>
+                      <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">
+                        GMSOA No - SR. NO.
+                      </Label>
+                      <p className="text-gray-900 mt-1">
+                        {order.gmsoaNo} - {order.soaSrNo}
+                      </p>
+                    </div>
+                  </div>
+
                   <div>
-                    <Label className="text-gray-500 text-sm">Assembly Date</Label>
-                    <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Item Description
+                    </Label>
+                    <p className="text-gray-900 mt-1">{order.product}</p>
                   </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">GMSOA No - SR. NO.</Label>
-                    <p className="text-gray-900 mt-1">{order.gmsoaNo} - {order.soaSrNo}</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500 text-sm">QTY</Label>
+                      <p className="text-gray-900 mt-1">{order.totalQty}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-sm">GM Logo</Label>
+                      <p className="text-gray-900 mt-1">{order.gmLogo}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <Label className="text-gray-500 text-sm whitespace-nowrap">
+                        Inspected by:
+                      </Label>
+                      <div className="border-b border-gray-400 flex-1 h-8"></div>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                <div>
-                  <Label className="text-gray-500 text-sm">Item Description</Label>
-                  <p className="text-gray-900 mt-1">{order.product}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">QTY</Label>
-                    <p className="text-gray-900 mt-1">{order.totalQty}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">GM Logo</Label>
-                    <p className="text-gray-900 mt-1">{order.gmLogo}</p>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <Label className="text-gray-500 text-sm whitespace-nowrap">Inspected by:</Label>
-                    <div className="border-b border-gray-400 flex-1 h-8"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-            <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handlePrintBinCard} className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all">
-              <Printer className="h-4 w-4" />
-              Print
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+              <Button
+                variant="outline"
+                onClick={() => setBinCardDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePrintBinCard}
+                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
       {/* View Order Details Dialog */}
       <Dialog open={viewDetailsDialogOpen} onOpenChange={setViewDetailsDialogOpen}>
@@ -1714,6 +1927,23 @@ const handleAssignOrder = async () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={inventoryOpen} onOpenChange={setInventoryOpen}>
+        <DialogContent className="max-w-7xl h-[85vh] overflow-hidden assmebly-svs-data">
+          <DialogHeader>
+            <DialogTitle>SVS Inventory</DialogTitle>
+            <DialogDescription>
+              Orders received from Assembly C → SVS
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="h-full overflow-auto border rounded-md">
+            {renderSvsTable(filteredOrders)}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
     </div>
     </>
   );

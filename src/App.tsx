@@ -27,6 +27,8 @@ import SuperAdminTabsPage from "./pages/SuperAdminTabsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import CustomerSupport from "./pages/CustomerSupport";
 import { DashboardHeader } from "./components/dashboard-header";
+import SvsStock from "./pages/SvsStock";
+
 
 export default function App() {
   return (
@@ -44,7 +46,9 @@ export default function App() {
 
           <Routes>
 
-            
+
+            <Route path="/svs-stock" element={<SvsStock />} />
+
             {/* Login Route */}
             <Route path="/login" element={<LoginPage />} />
 

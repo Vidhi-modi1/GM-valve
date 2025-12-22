@@ -362,7 +362,7 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
       Stage-wise Pending Quantity
     </h2>
 
-<input
+{/* <input
   type="date"
   value={selectedDate}   // blank by default
   // onChange={(e) => {
@@ -390,7 +390,7 @@ onChange={(e) => {
 
 
   className="border px-3 py-1 rounded-md shadow-sm"
-/>
+/> */}
 
 
   </div>

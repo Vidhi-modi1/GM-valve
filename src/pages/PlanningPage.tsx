@@ -23,7 +23,6 @@ import {
 } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -91,7 +90,7 @@ export function PlanningPage() {
   const [total, setTotal] = useState<number>(0);
   const [lastPage, setLastPage] = useState<number>(1);
 
-  const [soaSort, setSoaSort] = useState<"asc" | "desc">("asc");
+  const [soaSort, setSoaSort] = useState<"asc" | "desc" | null>(null);
 
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
@@ -279,7 +278,7 @@ export function PlanningPage() {
     showRemarksOnly,
   ]);
 
-  const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+  // const source = useGlobalSearch && fullOrders ? fullOrders : orders;
   useEffect(() => {
     if (useGlobalSearch) {
       if (!fullOrders) fetchAllPages();
@@ -295,10 +294,11 @@ export function PlanningPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage, useGlobalSearch]);
 
-  const parseSoaSrNo = (val: string) => {
-    const n = parseInt(val, 10);
-    return isNaN(n) ? 0 : n;
-  };
+const parseSoaSrNo = (val: string) => {
+  const n = parseInt(val, 10);
+  return isNaN(n) ? 0 : n;
+};
+
 
   const fetchAllPages = async () => {
     try {
@@ -430,14 +430,14 @@ export function PlanningPage() {
   //   const onScroll = () => {
   //     const rect = thead.getBoundingClientRect();
 
-  useEffect(() => {
-    if (useGlobalSearch) {
-      if (!fullOrders) fetchAllPages();
-    } else {
-      setFullOrders(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useGlobalSearch, perPage]);
+  // useEffect(() => {
+  //   if (useGlobalSearch) {
+  //     if (!fullOrders) fetchAllPages();
+  //   } else {
+  //     setFullOrders(null);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [useGlobalSearch, perPage]);
 
   // filter option lists
   const assemblyLines = useMemo(
@@ -464,6 +464,7 @@ export function PlanningPage() {
 
   const filteredOrders = useMemo(() => {
     const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+
     let filtered = source.slice();
 
     if (showUrgentOnly) {
@@ -559,18 +560,22 @@ export function PlanningPage() {
       );
     }
 
-    if (soaSort) {
-      filtered = [...filtered].sort((a, b) => {
-        const aNo = parseInt(a.soaSrNo || "0", 10);
-        const bNo = parseInt(b.soaSrNo || "0", 10);
-        return soaSort === "asc" ? aNo - bNo : bNo - aNo;
-      });
-    }
+// ✅ SOA SR NO SORT
+if (soaSort) {
+  filtered = [...filtered].sort((a, b) => {
+    const aNo = parseSoaSrNo(a.soaSrNo);
+    const bNo = parseSoaSrNo(b.soaSrNo);
+
+    return soaSort === "asc" ? aNo - bNo : bNo - aNo;
+  });
+}
+
 
     return filtered;
   }, [
     orders,
     fullOrders,
+     useGlobalSearch,
     localSearchTerm,
     showUrgentOnly,
     showRemarksOnly,
@@ -980,19 +985,90 @@ export function PlanningPage() {
     }, 300);
   };
 
+// const handleExport = () => {
+//   // 1️⃣ If rows selected → export only those
+//   const dataToExport =
+//     selectedRows.size > 0
+//       ? filteredOrders.filter((o) => selectedRows.has(o.id))
+//       : filteredOrders; // 2️⃣ else export ALL filtered data
+
+//   if (!dataToExport || dataToExport.length === 0) {
+//     alert("No data available to export");
+//     return;
+//   }
+
+//   const exportData = dataToExport.map((order, index) => ({
+//     "No": index + 1,
+//     "Assembly Line": order.assemblyLine,
+//     "GMSOA No": order.gmsoaNo,
+//     "SOA Sr No": order.soaSrNo,
+//     "Assembly Date": order.assemblyDate,
+//     "Unique Code": order.uniqueCode,
+//     "Splitted Code": order.splittedCode || "-",
+//     "Party": order.party,
+//     "Customer PO No": order.customerPoNo,
+//     "Code No": order.codeNo,
+//     "Product": order.product,
+//     "PO Qty": order.poQty,
+//     "Qty": order.qty,
+//     "Qty Executed": order.qtyExe,
+//     "Qty Pending": order.qtyPending,
+//     "Finished Valve": order.finishedValve,
+//     "GM Logo": order.gmLogo,
+//     "Name Plate": order.namePlate,
+//     "Special Notes": order.specialNotes || "-",
+//     "Product Special 1": order.productSpcl1,
+//     "Product Special 2": order.productSpcl2,
+//     "Product Special 3": order.productSpcl3,
+//     "Inspection": order.inspection,
+//     "Painting": order.painting,
+//     "Remarks": order.remarks || "",
+//   }));
+
+//   const worksheet = XLSX.utils.json_to_sheet(exportData);
+//   const workbook = XLSX.utils.book_new();
+//   XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+
+//   const excelBuffer = XLSX.write(workbook, {
+//     bookType: "xlsx",
+//     type: "array",
+//   });
+
+//   saveAs(
+//     new Blob([excelBuffer], { type: "application/octet-stream" }),
+//     `Planning_Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
+//   );
+// };
+
 const handleExport = () => {
-  // 1️⃣ If rows selected → export only those
   const dataToExport =
     selectedRows.size > 0
       ? filteredOrders.filter((o) => selectedRows.has(o.id))
-      : filteredOrders; // 2️⃣ else export ALL filtered data
+      : filteredOrders;
 
-  if (!dataToExport || dataToExport.length === 0) {
+  if (!dataToExport.length) {
     alert("No data available to export");
     return;
   }
 
-  const exportData = dataToExport.map((order, index) => ({
+  exportToExcel(dataToExport);
+};
+
+const handleExportAll = () => {
+  // Prefer fullOrders (global search mode), else fallback to orders
+  const allData =
+    fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+
+  if (!allData || allData.length === 0) {
+    alert("No data available to export");
+    return;
+  }
+
+  exportToExcel(allData);
+};
+
+const exportToExcel = (data: AssemblyOrderData[]) => {
+  const exportData = data.map((order, index) => ({
     "No": index + 1,
     "Assembly Line": order.assemblyLine,
     "GMSOA No": order.gmsoaNo,
@@ -1011,7 +1087,7 @@ const handleExport = () => {
     "Finished Valve": order.finishedValve,
     "GM Logo": order.gmLogo,
     "Name Plate": order.namePlate,
-    "Special Notes": order.specialNotes || "-",
+    "Special Notes": order.specialNotes || "",
     "Product Special 1": order.productSpcl1,
     "Product Special 2": order.productSpcl2,
     "Product Special 3": order.productSpcl3,
@@ -1022,7 +1098,7 @@ const handleExport = () => {
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
 
   const excelBuffer = XLSX.write(workbook, {
     bookType: "xlsx",
@@ -1031,128 +1107,12 @@ const handleExport = () => {
 
   saveAs(
     new Blob([excelBuffer], { type: "application/octet-stream" }),
-    `Planning_Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
+    `Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
   );
 };
 
 
-
-  //   const handlePrintBinCard = () => {
-  //   const CARD_WIDTH = 491; // px
-  //   const CARD_HEIGHT = 322; // px
-
-  //   const cards = selectedOrdersData
-  //     .map(
-  //       (order) => `
-  //       <div class="card">
-  //         <h2>Assembly Line: ${order.assemblyLine}</h2>
-
-  //         <div class="row">
-  //           <div><strong>Assembly Date:</strong> ${order.assemblyDate}</div>
-  //           <div><strong>GMSOA No - SR. NO:</strong> ${order.gmsoaNo} - ${order.soaSrNo}</div>
-  //         </div>
-
-  //         <div class="desc">
-  //           <strong>Item Description:</strong>
-  //           <span>${order.product}</span>
-  //         </div>
-
-  //         <div class="row">
-  //           <div><strong>QTY:</strong> ${order.qty}</div>
-  //           <div><strong>GM Logo:</strong> ${order.gmLogo}</div>
-  //         </div>
-
-  //         <div class="inspect">
-  //           <strong>Inspected by:</strong>
-  //           <div class="line"></div>
-  //         </div>
-  //       </div>`
-  //     )
-  //     .join("");
-
-  //   const html = `
-  //   <!doctype html>
-  //   <html>
-  //     <head>
-  //       <meta charset="utf-8" />
-  //       <style>
-  //         @page {
-  //           size: A4;
-  //           margin: 10mm;
-  //         }
-
-  //         body {
-  //           font-family: Arial, sans-serif;
-  //           margin: 0;
-  //           padding: 20px 152px;
-  //           display: flex;
-  //           justify-content: center;
-  //           align-items: center;
-  //           flex-direction: column;
-  //           gap: 5px;
-  //         }
-
-  //         .card {
-  //         width: 100%;
-  //           // width: ${CARD_WIDTH}px;
-  //           // height: ${CARD_HEIGHT}px;
-  //           height: 322px;
-  //           border: 1px solid #333;
-  //           border-radius: 10px;
-  //           padding: 10px 15px;
-  //           box-sizing: border-box;
-  //           display: flex;
-  //           justify-content: center;
-  //           // align-items: start;
-  //           flex-direction: column;
-  //         }
-
-  //         h2 {
-  //           text-align: center;
-  //           margin: 0 0 20px 0;
-  //           font-size: 16px;
-  //         }
-
-  //         .row {
-  //           display: flex;
-  //           justify-content: space-between;
-  //           font-size: 12px;
-  //         }
-
-  //         .desc span {
-  //           font-size: 11px;
-  //           line-height: 1.3;
-  //         }
-
-  //         .inspect .line {
-  //           margin-top: 8px;
-  //           border-bottom: 1px solid #444;
-  //           height: 25px;
-  //         }
-  //       </style>
-  //     </head>
-
-  //     <body>${cards}</body>
-  //   </html>`;
-
-  //   const iframe = document.createElement("iframe");
-  //   iframe.style.position = "fixed";
-  //   iframe.style.width = "0";
-  //   iframe.style.height = "0";
-  //   iframe.style.border = "0";
-
-  //   document.body.appendChild(iframe);
-
-  //   const doc = iframe.contentDocument || iframe.contentWindow.document;
-  //   doc.open();
-  //   doc.write(html);
-  //   doc.close();
-
-  //   setTimeout(() => {
-  //     iframe.contentWindow.print();
-  //     setTimeout(() => document.body.removeChild(iframe), 500);
-  //   }, 200);
-  // };
+  
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
@@ -1501,14 +1461,20 @@ const handleExport = () => {
   };
 
   // Clear filters
-  const clearFilters = () => {
-    setAssemblyLineFilter("all");
-    setGmsoaFilter("all");
-    setPartyFilter("all");
-    setDateFilterMode("range");
-    setDateFrom(undefined);
-    setDateTo(undefined);
-  };
+const clearFilters = () => {
+  setLocalSearchTerm("");   // 🔥 REQUIRED
+  setAssemblyLineFilter("all");
+  setGmsoaFilter("all");
+  setPartyFilter("all");
+  setDateFilterMode("range");
+  setDateFrom(undefined);
+  setDateTo(undefined);
+};
+
+useEffect(() => {
+  console.log("🔍 SEARCH TERM:", localSearchTerm);
+}, [localSearchTerm]);
+  
 
   // UI render
   return (
@@ -1520,11 +1486,11 @@ const handleExport = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-            <div>
+            <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Orders Management
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
             </div>
@@ -1532,7 +1498,7 @@ const handleExport = () => {
             <div className="flex flex-col gap-4 w-full">
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 {/* Search */}
-                <div className="relative max-input">
+                {/* <div className="relative max-input">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                   <Input
                     type="text"
@@ -1541,7 +1507,7 @@ const handleExport = () => {
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
                     className="pl-10 w-full bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0 "
                   />
-                </div>
+                </div> */}
 
                 <div className="flex items-center gap-4">
                   <Button
@@ -1572,8 +1538,8 @@ const handleExport = () => {
                     onClick={() => setShowRemarksOnly(!showRemarksOnly)}
                     className={`btn-urgent flex items-center gap-2 ${
                       showRemarksOnly
-                        ? "bg-black hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
-                        : "bg-btn-gradient text-white shadow-md transition-all"
+                        ? "bg-btn-gradient text-white shadow-md transition-all btn-remark"
+                        : "bg-btn-gradient text-white shadow-md transition-all btn-remark"
                     }`}
                   >
                     {showRemarksOnly ? "Show All Projects" : "Remarks only"}
@@ -1589,11 +1555,21 @@ const handleExport = () => {
               <Download className="h-4 w-4 mr-2" />
               Export Data
             </Button>
+
+             <Button
+              onClick={handleExportAll}
+              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export all Data
+            </Button>
           </div>
 
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
+             searchTerm={localSearchTerm}
+  setSearchTerm={setLocalSearchTerm}
               currentStage="default"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
@@ -1691,7 +1667,7 @@ const handleExport = () => {
                         <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
                           GMSOA NO.
                         </th>
-                        <th
+                        {/* <th
                           className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24 cursor-pointer select-none"
                           onClick={() =>
                             setSoaSort((prev) =>
@@ -1702,7 +1678,22 @@ const handleExport = () => {
                           SOA Sr. No.
                           {soaSort === "asc" && " ▲"}
                           {soaSort === "desc" && " ▼"}
+                        </th> */}
+                        <th
+                          className="sticky left-274 z-20 bg-white px-3 py-2 text-center
+                                    text-xs font-medium text-gray-500 uppercase tracking-wider
+                                    border-r border-gray-200 min-w-24 cursor-pointer select-none"
+                          onClick={() =>
+                            setSoaSort((prev) =>
+                              prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
+                            )
+                          }
+                        >
+                          SOA Sr. No.
+                          {soaSort === "asc" && " ▲"}
+                          {soaSort === "desc" && " ▼"}
                         </th>
+
                         <th className="sticky left-364 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r-2 border-gray-300 min-w-32 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                           Assembly Date
                         </th>
@@ -1747,8 +1738,8 @@ const handleExport = () => {
                           NAME PLATE
                         </th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-  SPECIAL NOTES
-</th>
+                          SPECIAL NOTES
+                        </th>
 
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           PRODUCT SPCL1
@@ -1861,14 +1852,14 @@ const handleExport = () => {
                             {order.namePlate}
                           </td>
                           <td className="px-3 py-2 text-center text-sm text-gray-900">
-  <div
-    className="line-clamp-2"
-    style={{ width: "200px" }}
-    title={order.specialNotes}
-  >
-    {order.specialNotes || "-"}
-  </div>
-</td>
+                            <div
+                              className="line-clamp-2"
+                              style={{ width: "200px" }}
+                              title={order.specialNotes}
+                            >
+                              {order.specialNotes || "-"}
+                            </div>
+                          </td>
 
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.productSpcl1}

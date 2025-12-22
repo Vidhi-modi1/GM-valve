@@ -145,6 +145,122 @@ export function DispatchPage() {
   // token
   const token = localStorage.getItem("token");
 
+const [packagingDialogOpen, setPackagingDialogOpen] = useState(false);
+const [packagingOrder, setPackagingOrder] = useState<any>(null);
+const [oslNo, setOslNo] = useState("");
+const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
+
+
+const handlePackagingCheckbox = async (
+  checked: boolean,
+  order: any
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const fd = new FormData();
+    fd.append("split_id", String(order.split_id));
+    fd.append("packaging", checked ? "1" : "0");
+
+    await axios.post(`${API_URL}/change-to-packaging`, fd, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // update UI
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === order.id
+          ? { ...o, packaging: checked ? 1 : 0 }
+          : o
+      )
+    );
+
+    // ❌ if unchecked → close popup if open
+    if (!checked) {
+      setPackagingDialogOpen(false);
+      setPackagingOrder(null);
+      setOslNo("");
+    }
+  } catch (err) {
+    console.error("Packaging toggle failed", err);
+    alert("Failed to update packaging status");
+  }
+};
+
+const handleOpenOslPopup = (order: any) => {
+  console.log("Opening OSL for order:", order); // debug once
+  setPackagingOrder(order); // FULL object
+  setOslNo("");
+  setPackagingDialogOpen(true);
+};
+
+
+const handleConfirmPackaging = async () => {
+  console.log("CONFIRM CLICKED", packagingOrder, oslNo);
+
+  if (!packagingOrder?.id) {
+    alert("Order ID missing");
+    return;
+  }
+
+  if (!oslNo.trim()) {
+    alert("Enter OSL number");
+    return;
+  }
+
+  try {
+    setIsSubmittingPackaging(true);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Token missing. Please login again.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("split_id", packagingOrder.split_id);
+    fd.append("order_id", packagingOrder.id);
+    fd.append("currentSteps", "Dispatch");
+    fd.append("nextSteps", "Packaging");
+    fd.append("osl_no", oslNo);
+
+    await axios.post(`${API_URL}/dispatch-to-packaging`, fd, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    alert("Moved to Packaging successfully");
+
+    setPackagingDialogOpen(false);
+    setPackagingOrder(null);
+    setOslNo("");
+
+    fetchOrders(); // refresh list
+  } catch (error: any) {
+    console.error("Dispatch to packaging failed", error);
+
+    alert(
+      error.response?.data?.message ||
+        error.response?.data?.Resp_desc ||
+        "Failed to move order to Packaging"
+    );
+  } finally {
+    setIsSubmittingPackaging(false);
+  }
+};
+
+
+
+
+const handleCancelPackagingPopup = () => {
+  setPackagingDialogOpen(false);
+  setPackagingOrder(null);
+  setOslNo("");
+};
+
+
+
   // Fetch orders from API (POST)
   const fetchOrders = async () => {
     try {
@@ -1630,6 +1746,29 @@ const handleExport = () => {
                                                           }`}
                                                         />
                                                       </Button>
+
+                                                       <div className="flex items-center gap-2">
+
+    {/* Packaging checkbox */}
+    <Checkbox
+      checked={order.packaging === 1}
+      onCheckedChange={(checked) =>
+        handlePackagingCheckbox(Boolean(checked), order)
+      }
+      title="Toggle Packaging"
+    />
+
+    {/* OSL button ONLY when packaging = 1 */}
+    {order.packaging === 1 && (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => handleOpenOslPopup(order)}
+      >
+        OSL
+      </Button>
+    )}
+  </div>
                           </div>
                         </td>
                       </tr>
@@ -1748,6 +1887,40 @@ const handleExport = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+<Dialog open={packagingDialogOpen} onOpenChange={setPackagingDialogOpen}>
+  <DialogContent className="sm:max-w-[400px]">
+    <DialogHeader>
+      <DialogTitle>Move to Packaging</DialogTitle>
+      <DialogDescription>
+        Enter OSL Number to continue
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="space-y-4 py-4">
+      <Label>OSL Number</Label>
+      <Input
+        value={oslNo}
+        onChange={(e) => setOslNo(e.target.value)}
+        placeholder="Enter OSL No"
+      />
+    </div>
+
+    <div className="flex justify-end gap-3 pt-4 border-t">
+      <Button variant="outline" onClick={handleCancelPackagingPopup}>
+        Cancel
+      </Button>
+
+      <Button
+        onClick={handleConfirmPackaging}
+        disabled={isSubmittingPackaging}
+      >
+        {isSubmittingPackaging ? "Processing..." : "Confirm"}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
 
         {/* View Order Details Dialog */}
         <Dialog
