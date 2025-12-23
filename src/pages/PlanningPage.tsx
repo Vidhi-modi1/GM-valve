@@ -1041,16 +1041,26 @@ if (soaSort) {
 // };
 
 const handleExport = () => {
+  // ✅ Only allow export when "Urgent Only" or "Remarks Only" is active,
+  // or when the user has explicitly selected rows.
+  const isUrgentMode = showUrgentOnly === true;
+  const isRemarksMode = showRemarksOnly === true;
+  const hasSelection = selectedRows.size > 0;
+
+  if (!isUrgentMode && !isRemarksMode && !hasSelection) {
+    alert(
+      "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+    );
+    return;
+  }
+
   let dataToExport: AssemblyOrderData[] = [];
 
   // 1️⃣ If user selected rows → export ONLY selected rows
-  if (selectedRows.size > 0) {
-    dataToExport = filteredOrders.filter((o) =>
-      selectedRows.has(o.id)
-    );
-  } 
-  // 2️⃣ Else → export CURRENT filtered result (Urgent / Remarks / Search)
-  else {
+  if (hasSelection) {
+    dataToExport = filteredOrders.filter((o) => selectedRows.has(o.id));
+  } else {
+    // 2️⃣ Else → export the CURRENT filtered result (Urgent / Remarks)
     dataToExport = filteredOrders;
   }
 

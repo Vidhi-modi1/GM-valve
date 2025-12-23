@@ -190,8 +190,9 @@ export function PhosphatingPage() {
 
       if (ok && Array.isArray(res.data.data)) {
         const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+          (item: any, index: number) => ({
             id: String(item.id),
+            originalIndex: index,
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
             soaSrNo: item.soa_sr_no || "",
@@ -216,7 +217,8 @@ export function PhosphatingPage() {
             productSpcl3: item.product_spc3 || "",
             inspection: item.inspection || "",
             painting: item.painting || "",
-            remarks: item.remarks || "",
+            currentStage: "Phosphating",
+            
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
             alertStatus:
@@ -293,12 +295,19 @@ export function PhosphatingPage() {
     [orders]
   );
 
+  const parseSoaSrNo = (val: string) => {
+  const n = parseInt(val, 10);
+  return isNaN(n) ? 0 : n;
+};
+
+
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
-    let filtered = orders.slice();
+  const source = useGlobalSearch && fullOrders ? fullOrders : orders;
+let filtered = source.slice();
+
 
     if (showUrgentOnly) {
-      // Check both: local context flag (getAlertStatus) and server-provided order.alertStatus
       filtered = filtered.filter(
         (o) => getAlertStatus(String(o.id)) || o.alertStatus
       );
@@ -391,6 +400,14 @@ export function PhosphatingPage() {
     //   seen.add(key);
     //   return true;
     // });
+    if (soaSort) {
+  filtered = [...filtered].sort((a, b) => {
+    const aNo = parseSoaSrNo(a.soaSrNo);
+    const bNo = parseSoaSrNo(b.soaSrNo);
+
+    return soaSort === "asc" ? aNo - bNo : bNo - aNo;
+  });
+}
 
     return filtered;
   }, [
@@ -406,6 +423,7 @@ export function PhosphatingPage() {
     dateFrom,
     dateTo,
     getAlertStatus,
+    
   ]);
 
        const truncateWords = (text = "", wordLimit = 4) => {
@@ -854,19 +872,31 @@ const handlePrintBinCard = () => {
   }, 300);
 };
 
-const rowKey = (o: AssemblyOrderData) =>
-  o.splittedCode || o.split_id
-    ? o.splittedCode || o.split_id
-    : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
-        .map((v) => v ?? "")
-        .join("|");
+const rowKey = (o: AssemblyOrderData, index?: number) =>
+  [
+    o.id,                 // ✅ ALWAYS unique
+    o.splittedCode || "",
+    o.split_id || "",
+    o.uniqueCode || "",
+    index ?? ""
+  ].join("|");
 
 
 const handleExport = () => {
-  const dataToExport =
-    selectedRows.size > 0
-      ? filteredOrders.filter((o) => selectedRows.has(rowKey(o)))
-      : filteredOrders;
+  const isUrgentMode = showUrgentOnly === true;
+  const isRemarksMode = showRemarksOnly === true;
+  const hasSelection = selectedRows.size > 0;
+
+  if (!isUrgentMode && !isRemarksMode && !hasSelection) {
+    alert(
+      "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+    );
+    return;
+  }
+
+  const dataToExport = hasSelection
+    ? filteredOrders.filter((o) => selectedRows.has(rowKey(o)))
+    : filteredOrders;
 
   if (!dataToExport.length) {
     alert("No data available to export");
@@ -1561,6 +1591,7 @@ const handleAssignOrder = async () => {
                 </div>
 
                 <Button
+                disabled={filteredOrders.length === 0}
                                   onClick={handleExport}
                                   className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
                                 >
@@ -1766,11 +1797,12 @@ const handleAssignOrder = async () => {
 
                 <tbody className="divide-y divide-gray-200">
                   {paginatedOrders.map((order, idx) => (
-                    <tr key={(order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine, idx].map((v) => v ?? "").join("|")} className="group hover:bg-gray-50">
+                    <tr key={rowKey(order, idx)} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                         <Checkbox
-                          checked={selectedRows.has((order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine].map((v) => v ?? "").join("|") )}
-                          onCheckedChange={() => toggleRowSelection((order.splittedCode || order.split_id) ? (order.splittedCode || order.split_id) : [order.uniqueCode, order.soaSrNo, order.gmsoaNo, order.codeNo, order.assemblyLine].map((v) => v ?? "").join("|") )}
+                         checked={selectedRows.has(rowKey(order))}
+                          onCheckedChange={() => toggleRowSelection(rowKey(order))}
+
                           aria-label={`Select row ${order.id}`}
                         />
                       </td>

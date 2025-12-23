@@ -404,6 +404,12 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
     [orders]
   );
 
+  const parseSoaSrNo = (val: string) => {
+  const n = parseInt(val, 10);
+  return isNaN(n) ? 0 : n;
+};
+
+
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
     const source = useGlobalSearch && fullOrders ? fullOrders : orders;
@@ -942,10 +948,20 @@ const handlePrintBinCard = () => {
 
 
 const handleExport = () => {
-  const dataToExport =
-    selectedRows.size > 0
-      ? filteredOrders.filter((o) => selectedRows.has(rowKey(o)))
-      : filteredOrders;
+  const isUrgentMode = showUrgentOnly === true;
+  const isRemarksMode = showRemarksOnly === true;
+  const hasSelection = selectedRows.size > 0;
+
+  if (!isUrgentMode && !isRemarksMode && !hasSelection) {
+    alert(
+      "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+    );
+    return;
+  }
+
+  const dataToExport = hasSelection
+    ? filteredOrders.filter((o) => selectedRows.has(rowKey(o)))
+    : filteredOrders;
 
   if (!dataToExport.length) {
     alert("No data available to export");
@@ -1428,6 +1444,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
             </div>
 
              <Button
+             disabled={filteredOrders.length === 0}
                           onClick={handleExport}
                           className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
                         >

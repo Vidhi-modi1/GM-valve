@@ -18,6 +18,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import TablePagination from "../components/table-pagination";
+import { DashboardHeader } from "../components/dashboard-header.tsx";
 
 // Local normalized order type (avoid components import)
 interface OrderData {
@@ -500,6 +501,7 @@ const groupedHistory = orderHistory.reduce((acc: any, item: any) => {
   //   return matchesSearch && matchesStage && matchesLine;
   // });
   // }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+  
   const filteredOrders = useMemo(() => {
     return allOrders.filter(order => {
       const searchLower = searchTerm.toLowerCase();
@@ -988,7 +990,20 @@ const getBackendStage = (stageKey: string) => {
   };
 
   return (
-    <div className="p-6 max-w-[1920px] mx-auto space-y-6 animate-fade-in-up">
+    <>
+      <DashboardHeader
+        role="svs"
+        currentPage="SVS"
+        onLogout={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }}
+        onNavigate={(page) => {
+          window.location.href = `/${page.toLowerCase()}`;
+        }}
+        onUploadSuccess={() => reloadData()}
+      />
+      <div className="p-6 max-w-[1920px] mx-auto space-y-6 animate-fade-in-up">
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between ctm-wrap">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1012,6 +1027,7 @@ const getBackendStage = (stageKey: string) => {
         </div>
         
         <Button
+        disabled={filteredOrders.length === 0}
           onClick={handleExport}
           className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
         >
@@ -1730,7 +1746,8 @@ const getBackendStage = (stageKey: string) => {
   </DialogContent>
 </Dialog>
 
-    </div>
+      </div>
+    </>
   );
 }
 

@@ -404,6 +404,15 @@ const useGlobalSearch = useMemo(() => {
       return true;
     });
 
+    if (soaSort) {
+  filtered = [...filtered].sort((a, b) => {
+    const aNo = parseSoaSrNo(a.soaSrNo);
+    const bNo = parseSoaSrNo(b.soaSrNo);
+
+    return soaSort === "asc" ? aNo - bNo : bNo - aNo;
+  });
+}
+
     return filtered;
   }, [
     orders,
@@ -417,6 +426,7 @@ const useGlobalSearch = useMemo(() => {
     dateFrom,
     dateTo,
     getAlertStatus,
+    
   ]);
 
   const paginatedOrders = useMemo(() => {
@@ -426,7 +436,7 @@ const useGlobalSearch = useMemo(() => {
 
   useEffect(() => {
     setPage(1);
-  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly]);
+  }, [localSearchTerm, assemblyLineFilter, gmsoaFilter, partyFilter, dateFrom, dateTo, showUrgentOnly,showRemarksOnly]);
 
     const truncateWords = (text = "", wordLimit = 4) => {
   const words = text.trim().split(/\s+/);
@@ -871,10 +881,20 @@ const handlePrintBinCard = () => {
         .join("|");
 
 const handleExport = () => {
-  const dataToExport =
-    selectedRows.size > 0
-      ? filteredOrders.filter((o) => selectedRows.has(rowKey(o))) // ❌ rowKey not defined
-      : filteredOrders;
+  const isUrgentMode = showUrgentOnly === true;
+  const isRemarksMode = showRemarksOnly === true;
+  const hasSelection = selectedRows.size > 0;
+
+  if (!isUrgentMode && !isRemarksMode && !hasSelection) {
+    alert(
+      "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+    );
+    return;
+  }
+
+  const dataToExport = hasSelection
+    ? filteredOrders.filter((o) => selectedRows.has(rowKey(o)))
+    : filteredOrders;
 
   if (!dataToExport.length) {
     alert("No data available to export");
@@ -1388,15 +1408,15 @@ const nextStepKey =
                   </Button>
 
                   <Button
-                                                        onClick={() => setShowRemarksOnly(!showRemarksOnly)}
-                                                        className={`btn-urgent flex items-center gap-2 ${
-                                                          showRemarksOnly
-                                                            ? "bg-btn-gradient text-white shadow-md transition-all btn-remark"
-                                                            : "bg-btn-gradient text-white shadow-md transition-all btn-remark"
-                                                        }`}
-                                                      >
-                                                        {showRemarksOnly ? "Show All Projects" : "Remarks only"}
-                                                      </Button>
+                  onClick={() => setShowRemarksOnly(!showRemarksOnly)}
+                  className={`btn-urgent flex items-center gap-2 ${
+                    showRemarksOnly
+                      ? "bg-btn-gradient text-white shadow-md transition-all btn-remark"
+                      : "bg-btn-gradient text-white shadow-md transition-all btn-remark"
+                  }`}
+                >
+                  {showRemarksOnly ? "Show All Projects" : "Remarks only"}
+                </Button>
                 </div>
 
                  <Button
@@ -1681,15 +1701,7 @@ const nextStepKey =
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.namePlate}
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-900">
-                            <div
-                              className="line-clamp-2"
-                              style={{ width: "200px" }}
-                              title={order.specialNotes}
-                            >
-                              {order.specialNotes || "-"}
-                            </div>
-                          </td>
+                     handleQuickAssignCancel
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                         {order.productSpcl1}
                       </td>
