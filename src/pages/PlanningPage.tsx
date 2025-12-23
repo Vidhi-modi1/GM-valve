@@ -602,6 +602,7 @@ if (soaSort) {
 
   useEffect(() => {
     setPage(1);
+    setSelectedRows(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     localSearchTerm,
@@ -1041,10 +1042,18 @@ if (soaSort) {
 // };
 
 const handleExport = () => {
-  const dataToExport =
-    selectedRows.size > 0
-      ? filteredOrders.filter((o) => selectedRows.has(o.id))
-      : filteredOrders;
+  let dataToExport: AssemblyOrderData[] = [];
+
+  // 1️⃣ If checkbox selected → export ONLY selected rows
+  if (selectedRows.size > 0) {
+    dataToExport = paginatedOrders.filter((o) =>
+      selectedRows.has(o.id)
+    );
+  }
+  // 2️⃣ Else → export ONLY CURRENT PAGE (visible rows)
+  else {
+    dataToExport = paginatedOrders;
+  }
 
   if (!dataToExport.length) {
     alert("No data available to export");
@@ -1055,7 +1064,6 @@ const handleExport = () => {
 };
 
 const handleExportAll = () => {
-  // Prefer fullOrders (global search mode), else fallback to orders
   const allData =
     fullOrders && fullOrders.length > 0 ? fullOrders : orders;
 
@@ -1066,6 +1074,7 @@ const handleExportAll = () => {
 
   exportToExcel(allData);
 };
+
 
 const exportToExcel = (data: AssemblyOrderData[]) => {
   const exportData = data.map((order, index) => ({
@@ -1550,6 +1559,7 @@ useEffect(() => {
             </div>
             <Button
               onClick={handleExport}
+              disabled={filteredOrders.length === 0}
               className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <Download className="h-4 w-4 mr-2" />

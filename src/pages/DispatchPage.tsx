@@ -153,12 +153,9 @@ const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
 
 
 const handlePackagingCheckbox = async (order: any) => {
-  // 🔒 HARD STOP (important)
   if (order.packaging === 1) return;
 
   try {
-    const token = localStorage.getItem("token");
-
     const fd = new FormData();
     fd.append("split_id", String(order.split_id));
     fd.append("packaging", "1");
@@ -167,17 +164,15 @@ const handlePackagingCheckbox = async (order: any) => {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    // ✅ Optimistic UI update
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === order.id ? { ...o, packaging: 1 } : o
-      )
-    );
+    // 🔥 IMPORTANT: DB mathi fresh data lai aav
+    await fetchOrders();
+
   } catch (err) {
-    console.error("Packaging toggle failed", err);
-    alert("Failed to update packaging");
+    console.error(err);
+    alert("Packaging update fail thayu");
   }
 };
+
 
 
 const handleOpenOslPopup = (order: any) => {
@@ -1745,10 +1740,10 @@ const handleExport = () => {
                                                        <div className="flex items-center gap-2">
 
     {/* Packaging checkbox */}
-    <Checkbox
-      checked={order.packaging === 1}
-      disabled={order.packaging === 1}
-      onCheckedChange={(checked) => {
+<Checkbox
+  checked={order.packaging === 1}
+  disabled={order.packaging === 1}
+  onCheckedChange={(checked) => {
     if (checked && order.packaging === 0) {
       handlePackagingCheckbox(order);
     }
@@ -1758,7 +1753,8 @@ const handleExport = () => {
       ? "Packaging already completed"
       : "Move to Packaging"
   }
-    />
+/>
+
 
     {/* OSL button ONLY when packaging = 1 */}
     {order.packaging === 1 && (
