@@ -1907,7 +1907,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
         variant="outline"
         onClick={() => handleOpenOslPopup(order)}
       >
-        OSL
+        OCL
       </Button>
     )}
   </div>
@@ -2035,7 +2035,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     <DialogHeader>
       <DialogTitle>Move to Packaging</DialogTitle>
       <DialogDescription>
-        Enter OSL Number to continue
+        Enter OCL Number to continue
       </DialogDescription>
     </DialogHeader>
 
