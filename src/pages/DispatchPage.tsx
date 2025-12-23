@@ -75,7 +75,8 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
-   originalIndex: number;
+  packaging: number;
+  originalIndex: number;
 }
 
 export function DispatchPage() {
@@ -151,41 +152,33 @@ const [oslNo, setOslNo] = useState("");
 const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
 
 
-const handlePackagingCheckbox = async (
-  checked: boolean,
-  order: any
-) => {
+const handlePackagingCheckbox = async (order: any) => {
+  // 🔒 HARD STOP (important)
+  if (order.packaging === 1) return;
+
   try {
     const token = localStorage.getItem("token");
 
     const fd = new FormData();
     fd.append("split_id", String(order.split_id));
-    fd.append("packaging", checked ? "1" : "0");
+    fd.append("packaging", "1");
 
     await axios.post(`${API_URL}/change-to-packaging`, fd, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    // update UI
+    // ✅ Optimistic UI update
     setOrders((prev) =>
       prev.map((o) =>
-        o.id === order.id
-          ? { ...o, packaging: checked ? 1 : 0 }
-          : o
+        o.id === order.id ? { ...o, packaging: 1 } : o
       )
     );
-
-    // ❌ if unchecked → close popup if open
-    if (!checked) {
-      setPackagingDialogOpen(false);
-      setPackagingOrder(null);
-      setOslNo("");
-    }
   } catch (err) {
     console.error("Packaging toggle failed", err);
-    alert("Failed to update packaging status");
+    alert("Failed to update packaging");
   }
 };
+
 
 const handleOpenOslPopup = (order: any) => {
   console.log("Opening OSL for order:", order); // debug once
@@ -315,6 +308,8 @@ const handleCancelPackagingPopup = () => {
             inspection: item.inspection || "",
             painting: item.painting || "",
             remarks: item.remarks || "",
+            packaging:
+              item.packaging === 1 || item.packaging === "1" ? 1 : 0,
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
             alertStatus:
@@ -1752,10 +1747,17 @@ const handleExport = () => {
     {/* Packaging checkbox */}
     <Checkbox
       checked={order.packaging === 1}
-      onCheckedChange={(checked) =>
-        handlePackagingCheckbox(Boolean(checked), order)
-      }
-      title="Toggle Packaging"
+      disabled={order.packaging === 1}
+      onCheckedChange={(checked) => {
+    if (checked && order.packaging === 0) {
+      handlePackagingCheckbox(order);
+    }
+  }}
+  title={
+    order.packaging === 1
+      ? "Packaging already completed"
+      : "Move to Packaging"
+  }
     />
 
     {/* OSL button ONLY when packaging = 1 */}

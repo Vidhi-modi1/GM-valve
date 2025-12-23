@@ -9,11 +9,12 @@ import { API_URL } from "../config/api";
 import { getStepLabel } from "../config/workflowSteps";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
-import { Eye, Download, Printer, MessageSquarePlus } from "lucide-react";
+import { Eye, Download, Printer, MessageSquarePlus, ArrowLeft } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Textarea } from "../components/ui/textarea";
+import { useNavigate } from "react-router-dom";
 
 interface StockOrder {
   id: string;
@@ -43,6 +44,7 @@ interface StockOrder {
 }
 
 export default function SvsStock() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<StockOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -409,6 +411,32 @@ export default function SvsStock() {
               <p className="text-gray-600">
                 Read-only inventory view (Finished Valve = Yes)
               </p>
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    // Navigate based on logged-in role
+                    try {
+                      const s = localStorage.getItem("user");
+                      const u = s ? JSON.parse(s) : null;
+                      const rawRole = u?.role?.name || u?.role || "";
+                      const role = String(rawRole || "").toLowerCase();
+                      if (role.includes("planning")) {
+                        navigate("/planning");
+                      } else {
+                        navigate("/svs");
+                      }
+                    } catch {
+                      navigate("/svs");
+                    }
+                  }}
+                  title="Back to SVS"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to SVS
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

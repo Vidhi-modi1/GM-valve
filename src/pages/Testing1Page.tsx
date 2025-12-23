@@ -51,7 +51,7 @@ import TablePagination from "../components/table-pagination";
 
 interface AssemblyOrderData {
   id: string;
-
+specialNotes: string;
   assemblyLine: string;
   gmsoaNo: string;
   soaSrNo: string;

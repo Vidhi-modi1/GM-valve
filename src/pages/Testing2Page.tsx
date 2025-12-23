@@ -51,6 +51,7 @@ import TablePagination from "../components/table-pagination";
 
 interface AssemblyOrderData {
   id: string;
+  specialNotes: string;
   assemblyLine: string;
   gmsoaNo: string;
   soaSrNo: string;
@@ -94,6 +95,8 @@ export function Testing2Page() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [perPage, setPerPage] = useState<number>(20);
+
+  const [soaSort, setSoaSort] = useState<"asc" | "desc" | null>(null);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
@@ -1876,94 +1879,94 @@ const nextStepKey =
         </Dialog>
 
         {/* Bin Card Dialog */}
-        <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Bin Card - Selected Orders</DialogTitle>
-              <DialogDescription>
-                Review selected orders and print bin card
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6 py-4">
-              {selectedOrdersData.map((order) => (
-                <div
-                  key={order.id}
-                  className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white"
-                >
-                  <div className="text-center pb-2 border-b border-gray-200">
-                    <p className="text-lg">
-                      <span className="text-gray-600">Assembly Line:</span>{" "}
-                      <span className="text-gray-900 font-bold text-xl">
-                        {order.assemblyLine}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-500 text-sm">
-                        Assembly Date
-                      </Label>
-                      <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
+                <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+                  <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Bin Card - Selected Orders</DialogTitle>
+                      <DialogDescription>
+                        Review selected orders and print bin card
+                      </DialogDescription>
+                    </DialogHeader>
+        
+                    <div className="space-y-6 py-4">
+                      {selectedOrdersData.map((order) => (
+                        <div
+                          key={order.id}
+                          className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white"
+                        >
+                          <div className="text-center pb-2 border-b border-gray-200">
+                            <p className="text-lg">
+                              <span className="text-gray-600">Assembly Line:</span>{" "}
+                              <span className="text-gray-900 font-bold text-xl">
+                                {order.assemblyLine}
+                              </span>
+                            </p>
+                          </div>
+        
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-gray-500 text-sm">
+                                Assembly Date
+                              </Label>
+                              <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-500 text-sm">
+                                GMSOA No - SR. NO.
+                              </Label>
+                              <p className="text-gray-900 mt-1">
+                                {order.gmsoaNo} - {order.soaSrNo}
+                              </p>
+                            </div>
+                          </div>
+        
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Item Description
+                            </Label>
+                            <p className="text-gray-900 mt-1">{order.product}</p>
+                          </div>
+        
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-gray-500 text-sm">QTY</Label>
+                              <p className="text-gray-900 mt-1">{order.totalQty}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-500 text-sm">GM Logo</Label>
+                              <p className="text-gray-900 mt-1">{order.gmLogo}</p>
+                            </div>
+                          </div>
+        
+                          <div className="pt-4 mt-4 border-t border-gray-200">
+                            <div className="flex items-center gap-3">
+                              <Label className="text-gray-500 text-sm whitespace-nowrap">
+                                Inspected by:
+                              </Label>
+                              <div className="border-b border-gray-400 flex-1 h-8"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <Label className="text-gray-500 text-sm">
-                        GMSOA No - SR. NO.
-                      </Label>
-                      <p className="text-gray-900 mt-1">
-                        {order.gmsoaNo} - {order.soaSrNo}
-                      </p>
+        
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                      <Button
+                        variant="outline"
+                        onClick={() => setBinCardDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handlePrintBinCard}
+                        className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Print
+                      </Button>
                     </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Item Description
-                    </Label>
-                    <p className="text-gray-900 mt-1">{order.product}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-500 text-sm">QTY</Label>
-                      <p className="text-gray-900 mt-1">{order.totalQty}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-500 text-sm">GM Logo</Label>
-                      <p className="text-gray-900 mt-1">{order.gmLogo}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <Label className="text-gray-500 text-sm whitespace-nowrap">
-                        Inspected by:
-                      </Label>
-                      <div className="border-b border-gray-400 flex-1 h-8"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button
-                variant="outline"
-                onClick={() => setBinCardDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handlePrintBinCard}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
-              >
-                <Printer className="h-4 w-4" />
-                Print
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+                  </DialogContent>
+                </Dialog>
 
         {/* View Order Details Dialog */}
         <Dialog

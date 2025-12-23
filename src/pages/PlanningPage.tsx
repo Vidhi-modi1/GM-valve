@@ -602,6 +602,7 @@ if (soaSort) {
 
   useEffect(() => {
     setPage(1);
+    setSelectedRows(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     localSearchTerm,
@@ -1041,18 +1042,19 @@ if (soaSort) {
 // };
 
 const handleExport = () => {
-  const dataToExport =
-    selectedRows.size > 0
-      ? filteredOrders.filter((o) => selectedRows.has(o.id))
-      : filteredOrders;
+  const validSelected = filteredOrders.filter(o =>
+    selectedRows.has(o.id)
+  );
 
-  if (!dataToExport.length) {
-    alert("No data available to export");
+  if (validSelected.length === 0) {
+    alert("Please select at least one row from the current view");
     return;
   }
 
-  exportToExcel(dataToExport);
+  exportToExcel(validSelected);
 };
+
+
 
 const handleExportAll = () => {
   // Prefer fullOrders (global search mode), else fallback to orders
@@ -1550,6 +1552,7 @@ useEffect(() => {
             </div>
             <Button
               onClick={handleExport}
+              disabled={selectedRows.size === 0}
               className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <Download className="h-4 w-4 mr-2" />
