@@ -163,6 +163,19 @@ export function Pdi1Page() {
   const rowKey = (o: AssemblyOrderData) =>
   o.splittedCode || o.split_id || o.uniqueCode || o.id;
 
+   const selectedTotals = useMemo(() => {
+    const selectedData = filteredOrders.filter((o) =>
+      selectedRows.has(rowKey(o))
+    );
+
+    return {
+      count: selectedData.length,
+      qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+      qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+      qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+    };
+  }, [selectedRows, filteredOrders]);
+
 
   const fetchOrders = async () => {
     try {
@@ -433,7 +446,7 @@ const useGlobalSearch = useMemo(() => {
     dateFrom,
     dateTo,
     getAlertStatus,
-    
+     soaSort,
   ]);
 
   const paginatedOrders = useMemo(() => {
@@ -1873,6 +1886,8 @@ setSelectedRows((prev) => {
             </div>
           </div>
         </div>
+
+        
 
          <TablePagination
                 page={page}

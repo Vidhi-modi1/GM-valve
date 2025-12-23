@@ -259,7 +259,7 @@ export function PhosphatingPage() {
     const source = useGlobalSearch && fullOrders ? fullOrders : orders;
     useEffect(() => {
       if (useGlobalSearch) {
-        if (!fullOrders) fetchAllPages();
+        // if (!fullOrders) fetchAllPages();
       } else {
         setFullOrders(null);
       }
@@ -307,11 +307,17 @@ export function PhosphatingPage() {
 let filtered = source.slice();
 
 
-    if (showUrgentOnly) {
-      filtered = filtered.filter(
-        (o) => getAlertStatus(String(o.id)) || o.alertStatus
-      );
-    }
+if (showUrgentOnly) {
+  filtered = filtered.filter(
+    (o) => getAlertStatus(String(o.id)) || o.alertStatus
+  );
+}
+
+// stage filter LAST
+// filtered = filtered.filter(
+//   (o) => normalize(o.currentStage) === normalize("Phosphating")
+// );
+
 
       if (showRemarksOnly) {
       filtered = filtered.filter(
@@ -423,7 +429,7 @@ let filtered = source.slice();
     dateFrom,
     dateTo,
     getAlertStatus,
-    
+     soaSort,
   ]);
 
        const truncateWords = (text = "", wordLimit = 4) => {
@@ -880,6 +886,19 @@ const rowKey = (o: AssemblyOrderData, index?: number) =>
     o.uniqueCode || "",
     index ?? ""
   ].join("|");
+
+   const selectedTotals = useMemo(() => {
+    const selectedData = filteredOrders.filter((o) =>
+      selectedRows.has(rowKey(o))
+    );
+
+    return {
+      count: selectedData.length,
+      qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+      qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+      qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+    };
+  }, [selectedRows, filteredOrders]);
 
 
 const handleExport = () => {
@@ -2008,6 +2027,25 @@ const handleAssignOrder = async () => {
             </div>
           </div>
         </div>
+
+
+        {selectedTotals.count > 0 && (
+  <div className="border-t bg-gray-50 px-6 py-3 flex flex-wrap gap-6 justify-end text-sm font-semibold">
+    <div>
+      Selected Rows: <span className="text-blue-700">{selectedTotals.count}</span>
+    </div>
+    <div>
+      Total Qty: <span className="text-gray-900">{selectedTotals.qty}</span>
+    </div>
+    <div>
+      Qty Executed: <span className="text-green-700">{selectedTotals.qtyExe}</span>
+    </div>
+    <div>
+      Qty Pending: <span className="text-red-600">{selectedTotals.qtyPending}</span>
+    </div>
+  </div>
+)}
+
 
           <TablePagination
                 page={page}

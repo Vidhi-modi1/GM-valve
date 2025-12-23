@@ -468,6 +468,9 @@ if (soaSort) {
     });
   };
 
+
+
+
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
@@ -885,6 +888,19 @@ const rowKey = (o: AssemblyOrderData) =>
     : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
         .map((v) => v ?? "")
         .join("|");
+
+         const selectedTotals = useMemo(() => {
+    const selectedData = filteredOrders.filter((o) =>
+      selectedRows.has(rowKey(o))
+    );
+
+    return {
+      count: selectedData.length,
+      qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+      qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+      qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+    };
+  }, [selectedRows, filteredOrders]);
 
 
 const handleExport = () => {
@@ -1891,6 +1907,24 @@ const handleAssignOrder = async () => {
             </div>
           </div>
         </div>
+
+        {selectedTotals.count > 0 && (
+  <div className="border-t bg-gray-50 px-6 py-3 flex flex-wrap gap-6 justify-end text-sm font-semibold">
+    <div>
+      Selected Rows: <span className="text-blue-700">{selectedTotals.count}</span>
+    </div>
+    <div>
+      Total Qty: <span className="text-gray-900">{selectedTotals.qty}</span>
+    </div>
+    <div>
+      Qty Executed: <span className="text-green-700">{selectedTotals.qtyExe}</span>
+    </div>
+    <div>
+      Qty Pending: <span className="text-red-600">{selectedTotals.qtyPending}</span>
+    </div>
+  </div>
+)}
+
         <TablePagination
                 page={page}
                 perPage={perPage}
