@@ -276,10 +276,7 @@ const useGlobalSearch = useMemo(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [page, perPage, useGlobalSearch]);
 
- const parseSoaSrNo = (val: string) => {
-  const n = parseInt(val, 10);
-  return isNaN(n) ? 0 : n;
-};
+
 
   // filter option lists
   const assemblyLines = useMemo(
