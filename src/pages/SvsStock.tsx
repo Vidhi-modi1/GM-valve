@@ -611,8 +611,8 @@ export default function SvsStock() {
                     </thead>
 
                     <tbody className="divide-y divide-gray-200">
-                      {paginatedOrders.map((order) => (
-                        <tr key={order.id} className="group hover:bg-gray-50">
+                     {paginatedOrders.map((order, index) => (
+                        <tr key={`${order.id}-${order.soaSrNo}-${order.uniqueCode}-${index}`} className="group hover:bg-gray-50">
                           <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                             <Checkbox
                               checked={selectedRows.has(order.id)}

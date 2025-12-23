@@ -246,7 +246,6 @@ export function Pdi1Page() {
       setError("Error fetching order list. Please check your token or server.");
     } finally {
       setLoading(false);
-       assignAbortRef.current = null;
     }
   };
 
@@ -558,10 +557,10 @@ const toggleSelectAll = () => {
 
   const handleQuickAssignCancel = () => {
 
-    if (assignAbortRef.current) {
-    assignAbortRef.current.abort();
-    assignAbortRef.current = null;
-  }
+  //   if (assignAbortRef.current) {
+  //   assignAbortRef.current.abort();
+  //   assignAbortRef.current = null;
+  // }
 
     setIsAssigning(false);
     setAssignStatus(null);

@@ -649,10 +649,10 @@ const toggleSelectAll = () => {
   };
 
   const handleQuickAssignCancel = () => {
-    if (assignAbortRef.current) {
-    assignAbortRef.current.abort(); // ✅ STOP API
-    assignAbortRef.current = null;
-  }
+  //   if (assignAbortRef.current) {
+  //   assignAbortRef.current.abort(); // ✅ STOP API
+  //   assignAbortRef.current = null;
+  // }
     setIsAssigning(false);
     setAssignStatus(null);
     setQuickAssignOpen(false);
