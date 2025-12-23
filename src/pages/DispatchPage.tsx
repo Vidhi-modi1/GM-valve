@@ -152,28 +152,48 @@ const [oslNo, setOslNo] = useState("");
 const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
 
 
-const handlePackagingCheckbox = async (order: any) => {
-  if (order.packaging === 1) return;
-
+const handlePackagingCheckbox = async (
+  checked: boolean,
+  order: any
+) => {
   try {
-    const fd = new FormData();
-    fd.append("split_id", String(order.split_id));
-    fd.append("packaging", "1");
+    const token = localStorage.getItem("token");
 
-    await axios.post(`${API_URL}/change-to-packaging`, fd, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    if (checked) {
+      const fd = new FormData();
+      fd.append("split_id", String(order.split_id));
+      fd.append("packaging", "1");
 
-    // 🔥 IMPORTANT: DB mathi fresh data lai aav
-    await fetchOrders();
+      await axios.post(`${API_URL}/change-to-packaging`, fd, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
+      );
+    } else {
+      // Once packaging is set to 1, do not allow reverting to 0
+      if (order.packaging === 1) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
+        );
+        alert("Packaging is permanent once set.");
+      } else {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === order.id ? { ...o, packaging: 0 } : o))
+        );
+      }
+    }
+
+    // Close popup if open
+    setPackagingDialogOpen(false);
+    setPackagingOrder(null);
+    setOslNo("");
   } catch (err) {
-    console.error(err);
-    alert("Packaging update fail thayu");
+    console.error("Packaging toggle failed", err);
+    alert("Failed to update packaging status");
   }
 };
-
-
 
 const handleOpenOslPopup = (order: any) => {
   console.log("Opening OSL for order:", order); // debug once
@@ -1740,21 +1760,14 @@ const handleExport = () => {
                                                        <div className="flex items-center gap-2">
 
     {/* Packaging checkbox */}
-<Checkbox
-  checked={order.packaging === 1}
-  disabled={order.packaging === 1}
-  onCheckedChange={(checked) => {
-    if (checked && order.packaging === 0) {
-      handlePackagingCheckbox(order);
-    }
-  }}
-  title={
-    order.packaging === 1
-      ? "Packaging already completed"
-      : "Move to Packaging"
-  }
-/>
-
+    <Checkbox
+      checked={order.packaging === 1}
+      disabled={order.packaging === 1}
+      onCheckedChange={(checked) =>
+        handlePackagingCheckbox(Boolean(checked), order)
+      }
+      title="Toggle Packaging"
+    />
 
     {/* OSL button ONLY when packaging = 1 */}
     {order.packaging === 1 && (

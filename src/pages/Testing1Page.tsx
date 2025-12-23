@@ -1462,6 +1462,9 @@ const handleAssignOrder = async () => {
             <OrderFilters
             currentStage="default"
 
+            searchTerm={localSearchTerm}
+  setSearchTerm={setLocalSearchTerm}
+
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}

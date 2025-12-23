@@ -171,17 +171,23 @@ const stageKey = rawStage
       item.urgent === 1 ||
       item.urgent === '1',
 
-    expectedDeliveryDate: (() => {
-      const raw =
-        item.expected_delivery_date ||
-        item.expectedDeliveryDate ||
-        item.delivery_date ||
-        '';
-      if (typeof raw === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(raw)) {
-        return toApiDate(raw);
-      }
-      return raw;
-    })(),
+   expectedDeliveryDate: (() => {
+  const raw =
+    item.deliveryDate ||          // ✅ value coming from customer-support API
+    item.expected_delivery_date ||
+    item.expectedDeliveryDate ||
+    item.delivery_date ||
+    "";
+
+  // API gives DD-MM-YYYY → convert to YYYY-MM-DD for <input type="date">
+  if (typeof raw === "string" && /^\d{2}-\d{2}-\d{4}$/.test(raw)) {
+    const [d, m, y] = raw.split("-");
+    return `${y}-${m}-${d}`;
+  }
+
+  return raw;
+})(),
+
 
     stage: rawStage,    
     stageKey: stageKey, 
@@ -189,6 +195,8 @@ const stageKey = rawStage
     workflowHistory: item.workflowHistory || [],
     stageProgress: cleanedProgress,   // ⭐ FINAL FIX
   };
+
+  
 };
 
 
@@ -287,35 +295,35 @@ const reloadData = async () => {
   const next: Record<string, OrderData[]> = {};
 
   try {
-    const stageLabel =
-      selectedStage === "all"
-        ? ""
-        : getStepLabel(selectedStage);
+    // Always fetch all stages; we filter client-side for stage and search
+const backendStage = getBackendStage(selectedStage);
 
-    const res = await axios.post(
-      CUSTOMER_SUPPORT_ENDPOINT,
-      {
-        per_page: perPage,
-        current_page: page,
-        menu_name: stageLabel
+const payload: any = {
+  per_page: 1000,
+  current_page: 1,
+};
 
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+// ✅ only send stage when user selects one
+if (backendStage) {
+  payload.stage = backendStage;
+}
+
+const res = await axios.post(
+  CUSTOMER_SUPPORT_ENDPOINT,
+  payload,
+  { headers: { Authorization: `Bearer ${token}` } }
+);
+
 
     const raw = Array.isArray(res?.data?.data)
       ? res.data.data
       : [];
 
-    const saved = localStorage.getItem("cs_expected_delivery_dates");
-    const savedMap: Record<string, string> = saved ? JSON.parse(saved) : {};
     const orders = (raw as any[]).map((item: any, idx: number) => {
       const mapped = mapApiItemToOrder(item);
-      const key = mapped.uniqueCode;
-      const override = key ? savedMap[key] : undefined;
       return {
         ...mapped,
-        expectedDeliveryDate: override || mapped.expectedDeliveryDate || "",
+        expectedDeliveryDate: mapped.expectedDeliveryDate || "",
         originalIndex: idx,
       };
     });
@@ -385,6 +393,7 @@ const saveDeliveryDate = async (order: OrderData, date: string) => {
     const form = new FormData();
     form.append("orderId", String(order.id));
     form.append("unique_code", order.uniqueCode);
+    // Convert from YYYY-MM-DD (input) to DD-MM-YYYY for API
     form.append("date", toDisplayDate(date));
 
     const res = await axios.post(
@@ -394,31 +403,12 @@ const saveDeliveryDate = async (order: OrderData, date: string) => {
     );
 
     if (res?.data?.Resp_code) {
-
-      // Update ONLY that order in the cached table
-      setDataByStage(prev => {
+      await reloadData();
+      setEditingDeliveryDate(prev => {
         const next = { ...prev };
-
-        Object.keys(next).forEach(stageKey => {
-          next[stageKey] = next[stageKey].map(o =>
-            o.uniqueCode === order.uniqueCode
-              ? { ...o, expectedDeliveryDate: date }
-              : o
-          );
-        });
-
+        delete next[order.uniqueCode];
         return next;
       });
-
-      // Keep the value in UI
-      setEditingDeliveryDate(prev => ({
-        ...prev,
-        [order.uniqueCode]: date
-      }));
-      const saved = localStorage.getItem("cs_expected_delivery_dates");
-      const savedMap: Record<string, string> = saved ? JSON.parse(saved) : {};
-      savedMap[order.uniqueCode] = date;
-      localStorage.setItem("cs_expected_delivery_dates", JSON.stringify(savedMap));
     }
   } catch (err) {
     console.error("Date save failed:", err);
@@ -427,7 +417,7 @@ const saveDeliveryDate = async (order: OrderData, date: string) => {
 
 useEffect(() => {
   reloadData();
-}, [selectedStage, selectedAssemblyLine, page, perPage]);
+}, [selectedStage, selectedAssemblyLine]);
 
 
   // Aliases to keep existing logic compatible
@@ -473,8 +463,8 @@ const allOrders = useMemo(() => {
     .flat()
     .map(order => ({
       ...order,
-      stageKey: order.stageKey,
-      currentStage: getStepLabel(order.stageKey),
+       stageKey: order.stageKey,
+  currentStage: order.stage || getStepLabel(order.stageKey),
     }))
     .sort((a, b) => (a.originalIndex ?? 0) - (b.originalIndex ?? 0));
 }, [dataByStage]);
@@ -511,27 +501,38 @@ const groupedHistory = orderHistory.reduce((acc: any, item: any) => {
   // });
   // }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
   const filteredOrders = useMemo(() => {
-  return allOrders.filter(order => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-      order.uniqueCode.toLowerCase().includes(searchLower) ||
-      order.gmsoaNo.toLowerCase().includes(searchLower) ||
-      order.party.toLowerCase().includes(searchLower) ||
-      order.customerPoNo.toLowerCase().includes(searchLower) ||
-      order.product.toLowerCase().includes(searchLower) ||
-      order.codeNo.toLowerCase().includes(searchLower);
+    return allOrders.filter(order => {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        order.uniqueCode.toLowerCase().includes(searchLower) ||
+        order.gmsoaNo.toLowerCase().includes(searchLower) ||
+        order.party.toLowerCase().includes(searchLower) ||
+        order.customerPoNo.toLowerCase().includes(searchLower) ||
+        order.product.toLowerCase().includes(searchLower) ||
+        order.codeNo.toLowerCase().includes(searchLower);
 
-    const matchesStage =
-      selectedStage === "all" ||
-      order.stageKey === selectedStage;    // ✔ Corrected
+      // Filter by CURRENT stage key rather than pending-only status
+     const matchesStage =
+  selectedStage === "all"
+    ? true
+    : order.stageKey === selectedStage &&
+      order.qtyPending > 0;
 
-    const matchesLine =
-      selectedAssemblyLine === "all" ||
-      order.assemblyLine === selectedAssemblyLine;
 
-    return matchesSearch && matchesStage && matchesLine;
-  });
-}, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+      const matchesLine =
+        selectedAssemblyLine === "all" ||
+        order.assemblyLine === selectedAssemblyLine;
+
+      return matchesSearch && matchesStage && matchesLine;
+    });
+  }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
+
+const getBackendStage = (stageKey: string) => {
+  if (stageKey === "all") return "";
+
+  // frontend key → backend label
+  return getStepLabel(stageKey);
+};
 
 
   const paginatedOrders = useMemo(() => {
@@ -932,12 +933,24 @@ const groupedHistory = orderHistory.reduce((acc: any, item: any) => {
       if (vNorm === 'in_progress' || vNorm === 'inprogress') return 'IN PROCESS';
     }
     if (!order.workflowHistory) return '';
-    const stageIndex = order.workflowHistory.findIndex(w => w.stage === stage);
+    // Normalize labels when comparing to workflowHistory entries
+    const normalizeForMatch = (s: string) => {
+      const base = String(s || '')
+        .toLowerCase()
+        .replace(/-/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      // Map variants like "phosphating qc" → "phosphating"
+      return base.replace(/\s+qc$/, '');
+    };
+    const target = normalizeForMatch(stage);
+    const stageIndex = order.workflowHistory.findIndex(w => normalizeForMatch(w.stage) === target);
     if (stageIndex === -1) return '';
     if (order.workflowHistory[stageIndex].exitedAt) {
       return 'OK';
     }
-    if (order.currentStage === stage) {
+    // Compare normalized currentStage as well
+    if (normalizeForMatch(order.currentStage) === target) {
       return 'IN PROCESS';
     }
     return '';

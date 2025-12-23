@@ -602,7 +602,6 @@ if (soaSort) {
 
   useEffect(() => {
     setPage(1);
-    setSelectedRows(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     localSearchTerm,
@@ -1044,18 +1043,18 @@ if (soaSort) {
 const handleExport = () => {
   let dataToExport: AssemblyOrderData[] = [];
 
-  // 1️⃣ If checkbox selected → export ONLY selected rows
+  // 1️⃣ If user selected rows → export ONLY selected rows
   if (selectedRows.size > 0) {
-    dataToExport = paginatedOrders.filter((o) =>
+    dataToExport = filteredOrders.filter((o) =>
       selectedRows.has(o.id)
     );
-  }
-  // 2️⃣ Else → export ONLY CURRENT PAGE (visible rows)
+  } 
+  // 2️⃣ Else → export CURRENT filtered result (Urgent / Remarks / Search)
   else {
-    dataToExport = paginatedOrders;
+    dataToExport = filteredOrders;
   }
 
-  if (!dataToExport.length) {
+  if (!dataToExport || dataToExport.length === 0) {
     alert("No data available to export");
     return;
   }
@@ -1063,7 +1062,10 @@ const handleExport = () => {
   exportToExcel(dataToExport);
 };
 
+
+
 const handleExportAll = () => {
+  // Always export EVERYTHING (ignore filters & selection)
   const allData =
     fullOrders && fullOrders.length > 0 ? fullOrders : orders;
 
@@ -1074,7 +1076,6 @@ const handleExportAll = () => {
 
   exportToExcel(allData);
 };
-
 
 const exportToExcel = (data: AssemblyOrderData[]) => {
   const exportData = data.map((order, index) => ({
