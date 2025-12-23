@@ -73,7 +73,7 @@ export default function SvsStock() {
       setLoading(true);
 
       const res = await axios.post(
-        `${API_URL}/order-list`,
+        `${API_URL}/get-svs-orders`,
         { menu_name: getStepLabel("svs") },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -84,37 +84,32 @@ export default function SvsStock() {
         res.data?.Resp_code === "RCS";
 
       if (ok && Array.isArray(res.data.data)) {
-        const mapped = res.data.data
-          .filter(
-            (o: any) =>
-              String(o.finished_valve).trim().toLowerCase() === "yes"
-          )
-          .map((o: any) => ({
-            id: String(o.id),
-            assemblyLine: o.assembly_no || "",
-            gmsoaNo: o.soa_no || "",
-            soaSrNo: o.soa_sr_no || "",
-            assemblyDate: o.assembly_date || "",
-            uniqueCode: o.unique_code || "",
-            splittedCode: o.splitted_code || "",
-            party: o.party_name || "",
-            customerPoNo: o.customer_po_no || "",
-            codeNo: o.code_no || "",
-            product: o.product || "",
-            totalQty: Number(o.total_qty || o.qty || 0),
-            qtyExe: Number(o.qty_executed || 0),
-            qtyPending: Number(o.qty_pending || 0),
-            finishedValve: o.finished_valve || "",
-            gmLogo: o.gm_logo || "",
-            namePlate: o.name_plate || "",
-            specialNotes: o.special_notes || "",
-            productSpcl1: o.product_spc1 || "",
-            productSpcl2: o.product_spc2 || "",
-            productSpcl3: o.product_spc3 || "",
-            inspection: o.inspection || "",
-            painting: o.painting || "",
-            remarks: o.remarks || "",
-          }));
+        const mapped = res.data.data.map((o: any) => ({
+  id: String(o.id),
+  assemblyLine: o.assembly_no || "",
+  gmsoaNo: o.soa_no || "",
+  soaSrNo: o.soa_sr_no || "",
+  assemblyDate: o.assembly_date || "",
+  uniqueCode: o.unique_code || "",
+  splittedCode: o.split_code || "",
+  party: o.party_name || "",
+  customerPoNo: o.customer_po_no || "",
+  codeNo: o.code_no || "",
+  product: o.product || "",
+  totalQty: Number(o.totalQty || o.qty || 0),
+  qtyExe: Number(o.qty_executed || 0),
+  qtyPending: Number(o.qty_pending || 0),
+  finishedValve: o.finished_valve || "",
+  gmLogo: o.gm_logo || "",
+  namePlate: o.name_plate || "",
+  specialNotes: o.special_notes || "",
+  productSpcl1: o.product_spc1 || "",
+  productSpcl2: o.product_spc2 || "",
+  productSpcl3: o.product_spc3 || "",
+  inspection: o.inspection || "",
+  painting: o.painting || "",
+  remarks: o.remarks || "",
+}));
 
         setOrders(mapped);
       } else {
