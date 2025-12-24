@@ -58,6 +58,7 @@ interface AssemblyOrderData {
   finishedValve: string;
   gmLogo: string;
   namePlate: string;
+  
   productSpcl1: string;
   productSpcl2: string;
   productSpcl3: string;
@@ -355,7 +356,7 @@ const parseSoaSrNo = (val: string) => {
               finishedValve: item.finished_valve || "",
               gmLogo: item.gm_logo || "",
               namePlate: item.name_plate || "",
-              specialNotes: item.special_notes || "",
+              specialNotes: item.special_notes || item.special_note || "",
               productSpcl1: item.product_spc1 || "",
               productSpcl2: item.product_spc2 || "",
               productSpcl3: item.product_spc3 || "",
@@ -2315,7 +2316,7 @@ useEffect(() => {
                       <p className="text-gray-900 mt-1">{viewedOrder.gmLogo}</p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-sm">
+                      <Label className="text-gray-500 text-sm ">
                         Name Plate
                       </Label>
                       <p className="text-gray-900 mt-1">
@@ -2345,7 +2346,7 @@ useEffect(() => {
                         Special notes
                       </Label>
                       <p className="text-gray-900 mt-1">
-                        {viewedOrder.special_notes || "-"}
+                        {viewedOrder.specialNotes || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">

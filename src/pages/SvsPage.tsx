@@ -176,7 +176,7 @@ export function SvsPage() {
           finishedValve: item.finished_valve || '',
           gmLogo: item.gm_logo || '',
           namePlate: item.name_plate || '',
-          specialNotes: item.special_notes || '',
+          specialNotes: item.special_notes || item.special_note || "",
           productSpcl1: item.product_spc1 || '',
           productSpcl2: item.product_spc2 || '',
           productSpcl3: item.product_spc3 || '',
