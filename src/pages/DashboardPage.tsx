@@ -406,7 +406,7 @@ onChange={(e) => {
           <Card
             key={k}
             className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
-            onClick={() => setCurrentPage(stageToPageKey(k))}
+            // onClick={() => setCurrentPage(stageToPageKey(k))}
           >
             <div>
               <div className="flex justify-between items-center mb-2">
@@ -454,7 +454,7 @@ onChange={(e) => {
                 <Card
                   key={k}
                   className={`p-4 rounded-xl border bg-gradient-to-br from-purple-50 to-white border-purple-200 hover:-translate-y-1 hover:shadow-lg transition`}
-                  onClick={() => setCurrentPage("Assembly" + k.slice(-1).toUpperCase())}
+                  // onClick={() => setCurrentPage("Assembly" + k.slice(-1).toUpperCase())}
                 >
                   <div>
                     <div className="flex justify-between items-center mb-2">
