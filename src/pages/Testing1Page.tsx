@@ -1873,24 +1873,24 @@ const handleAssignOrder = async () => {
                           <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
                         </Button> */}
                           <Button
-                                                                              size="sm"
-                                                                              variant="ghost"
-                                                                              className={`h-7 w-7 p-0 transition-all duration-200 ${
-                                                                                order.alertStatus
-                                                                                  ? "bg-red-100 border border-red-200 shadow-sm"
-                                                                                  : "hover:bg-red-50"
-                                                                              }`}
-                                                                              title={"Urgent status is read-only"}
-                                                                              disabled
-                                                                              >
-                                                                                <Siren
-                                                                                  className={`h-4 w-4 ${
-                                                                                    order.alertStatus
-                                                                                      ? "text-red-600 animate-siren-pulse"
-                                                                                      : "text-gray-400"
-                                                                                  }`}
-                                                                                />
-                                                                              </Button>
+                              size="sm"
+                              variant="ghost"
+                              className={`h-7 w-7 p-0 transition-all duration-200 ${
+                                order.alertStatus
+                                  ? "bg-red-100 border border-red-200 shadow-sm"
+                                  : "hover:bg-red-50"
+                              }`}
+                              title={"Urgent status is read-only"}
+                              disabled
+                              >
+                                <Siren
+                                  className={`h-4 w-4 ${
+                                    order.alertStatus
+                                      ? "text-red-600 animate-siren-pulse"
+                                      : "text-gray-400"
+                                  }`}
+                                />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -1909,16 +1909,33 @@ const handleAssignOrder = async () => {
             </div>
           </div>
         </div>
+
+        {selectedTotals.count > 0 && (
+  <div className="border-t bg-gray-50 px-6 py-3 flex flex-wrap gap-6 justify-end text-sm font-semibold">
+    <div>
+      Selected Rows: <span className="text-blue-700">{selectedTotals.count}</span>
+    </div>
+    <div>
+      Total Qty: <span className="text-gray-900">{selectedTotals.qty}</span>
+    </div>
+    <div>
+      Qty Executed: <span className="text-green-700">{selectedTotals.qtyExe}</span>
+    </div>
+    <div>
+      Qty Pending: <span className="text-red-600">{selectedTotals.qtyPending}</span>
+    </div>
+  </div>
+)}
         
         <TablePagination
-                page={page}
-                perPage={perPage}
-                total={filteredOrders.length}
-                lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
-                onChangePage={setPage}
-                onChangePerPage={setPerPage}
-                disabled={loading}
-              />
+          page={page}
+          perPage={perPage}
+          total={filteredOrders.length}
+          lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+          onChangePage={setPage}
+          onChangePerPage={setPerPage}
+          disabled={loading}
+        />
 
         {/* Quick Assign Dialog */}
         <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
@@ -1937,17 +1954,17 @@ const handleAssignOrder = async () => {
                   <div className="space-y-2">
                     <Label htmlFor="assignStep">Assign to Workflow Step</Label>
                     <Select value={quickAssignStep} onValueChange={setQuickAssignStep}>
-  <SelectTrigger id="assignStep">
-    <SelectValue placeholder="Select next step" />
-  </SelectTrigger>
-  <SelectContent>
-    {nextSteps.map((step) => (
-      <SelectItem key={step} value={step}>
-        {getStepLabel(step)}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+                      <SelectTrigger id="assignStep">
+                        <SelectValue placeholder="Select next step" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {nextSteps.map((step) => (
+                          <SelectItem key={step} value={step}>
+                            {getStepLabel(step)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
                   </div>
 
@@ -1972,64 +1989,7 @@ const handleAssignOrder = async () => {
                 </div>
               </div>
 
-              {/* Split Order Section (same as PlanningPage) */}
-              {/* <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="splitOrder"
-                  checked={splitOrder}
-                  onCheckedChange={(val) => setSplitOrder(Boolean(val))}
-                />
-                <Label htmlFor="splitOrder" className="cursor-pointer">
-                  Split order to multiple workflow steps
-                </Label>
-              </div>
-
-              {splitOrder && (
-                <div className="space-y-4 pl-6 border-l-2 border-blue-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Second Workflow Step</Label>
-                      <Select value={splitAssignStep} onValueChange={setSplitAssignStep}>
-  <SelectTrigger>
-    <SelectValue placeholder="Select split step" />
-  </SelectTrigger>
-  <SelectContent>
-    {nextSteps.map((step) => (
-      <SelectItem key={step} value={step}>
-        {getStepLabel(step)}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Split Quantity</Label>
-                      <Input
-                        type="number"
-                        value={splitAssignQty}
-                        onChange={(e) => setSplitAssignQty(e.target.value)}
-                        max={selectedOrder?.qtyPending}
-                      />
-                    </div>
-                  </div>
-
-                  {quickAssignErrors.sameEngineer && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{quickAssignErrors.sameEngineer}</p>
-                    </div>
-                  )}
-
-                  {quickAssignErrors.totalQtyMismatch && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm text-amber-700">{quickAssignErrors.totalQtyMismatch}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div> */}
+       
             </div>
 
             {/* Status Message */}
@@ -2070,118 +2030,118 @@ const handleAssignOrder = async () => {
         </Dialog>
 
           {/* Bin Card Dialog */}
-                     <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-                             <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
-                               <DialogHeader>
-                                 <DialogTitle className="text-lg font-semibold text-gray-900">
-                                   Bin Card Preview
-                                 </DialogTitle>
-                                 <DialogDescription className="text-sm text-gray-500">
-                                   This preview matches the printed bin card layout.
-                                 </DialogDescription>
-                               </DialogHeader>
-                   
-                               <div className="py-6 space-y-8">
-                                 {selectedOrdersData.map((order) => (
-                                   <div
-                                     key={order.id}
-                                     className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
-                                   >
-                                     {/* COMPANY NAME */}
-                                     <h1 className="text-center text-lg font-bold">
-                                       G M Valve Pvt. Ltd.
-                                     </h1>
-                   
-                                     {/* ADDRESS */}
-                                     <p className="mt-1 text-center text-[11px] leading-tight">
-                                       Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-                                       Village Metoda, Dist. Rajkot-360 021
-                                     </p>
-                   
-                                     {/* TAG */}
-                                     <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
-                                       In Process Material Tag
-                                     </div>
-                   
-                                     {/* DATE / SOA / DOC */}
-                                     <div className="mt-3 grid grid-cols-3 items-start text-sm">
-                                       <div>
-                                         <div>
-                                           <span className="font-semibold">Date:</span>{" "}
-                                           {order.assemblyDate}
-                                         </div>
-                                         <div>
-                                           <span className="font-semibold">SOA:</span>{" "}
-                                           {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
-                                         </div>
-                                       </div>
-                   
-                                       <div className="flex justify-center">
-                                         <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
-                                           Assembly Line: {order.assemblyLine}
-                                         </span>
-                                       </div>
-                   
-                                       <div className="text-right text-xs leading-tight">
-                                         <div>GMV-L4-F-PRD 01 A</div>
-                                         <div>(02/10.09.2020)</div>
-                                       </div>
-                                     </div>
-                   
-                                     {/* PARTY */}
-                                     <div className="mt-4 text-sm">
-                                       <span className="font-semibold">Party:</span>
-                                       <div className="mt-1">{order.party}</div>
-                                     </div>
-                   
-                                     {/* ITEM */}
-                                     <div className="mt-3 text-sm">
-                                       <span className="font-semibold">Item:</span>
-                                       <div className="mt-1 leading-snug">{order.product}</div>
-                                     </div>
-                   
-                                     {/* QTY & LOGO */}
-                                     <div className="mt-4 flex justify-between text-sm">
-                                       <div>
-                                         <span className="font-semibold">QTY:</span> {order.qty}
-                                       </div>
-                                       <div>
-                                         <span className="font-semibold">Logo:</span> {order.gmLogo}
-                                       </div>
-                                     </div>
-                   
-                                     {/* SPECIAL NOTE */}
-                                     <div className="mt-4 text-sm">
-                                       <span className="font-semibold">Special Note:</span>
-                                       <div className="mt-1 h-5 border-b border-black">
-                                         {order.specialNotes || ""}
-                                       </div>
-                                     </div>
-                   
-                                     {/* INSPECTED BY */}
-                                     <div className="mt-6 inspected text-sm">
-                                       <span className="font-semibold">Inspected by:</span>
-                                       <div className="mt-1 h-6 border-b border-black"></div>
-                                     </div>
-                                   </div>
-                                 ))}
-                               </div>
-                   
-                               {/* ACTIONS */}
-                               <div className="flex justify-end gap-3 border-t pt-4">
-                                 <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
-                                   Cancel
-                                 </Button>
-                                 <Button
-                                   onClick={handlePrintBinCard}
-                                   className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
-                                 >
-                                   <Printer className="h-4 w-4" />
-                                   Print
-                                 </Button>
-                               </div>
-                             </DialogContent>
-                           </Dialog>
+          <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+                    <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold text-gray-900">
+                          Bin Card Preview
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                          This preview matches the printed bin card layout.
+                        </DialogDescription>
+                      </DialogHeader>
+          
+                      <div className="py-6 space-y-8">
+                        {selectedOrdersData.map((order) => (
+                          <div
+                            key={order.id}
+                            className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
+                          >
+                            {/* COMPANY NAME */}
+                            <h1 className="text-center text-lg font-bold">
+                              G M Valve Pvt. Ltd.
+                            </h1>
+          
+                            {/* ADDRESS */}
+                            <p className="mt-1 text-center text-[11px] leading-tight">
+                              Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+                              Village Metoda, Dist. Rajkot-360 021
+                            </p>
+          
+                            {/* TAG */}
+                            <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+                              In Process Material Tag
+                            </div>
+          
+                            {/* DATE / SOA / DOC */}
+                            <div className="mt-3 grid grid-cols-3 items-start text-sm">
+                              <div>
+                                <div>
+                                  <span className="font-semibold">Date:</span>{" "}
+                                  {order.assemblyDate}
+                                </div>
+                                <div>
+                                  <span className="font-semibold">SOA:</span>{" "}
+                                  {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
+                                </div>
+                              </div>
+          
+                              <div className="flex justify-center">
+                                <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                                  Assembly Line: {order.assemblyLine}
+                                </span>
+                              </div>
+          
+                              <div className="text-right text-xs leading-tight">
+                                <div>GMV-L4-F-PRD 01 A</div>
+                                <div>(02/10.09.2020)</div>
+                              </div>
+                            </div>
+          
+                            {/* PARTY */}
+                            <div className="mt-4 text-sm">
+                              <span className="font-semibold">Party:</span>
+                              <div className="mt-1">{order.party}</div>
+                            </div>
+          
+                            {/* ITEM */}
+                            <div className="mt-3 text-sm">
+                              <span className="font-semibold">Item:</span>
+                              <div className="mt-1 leading-snug">{order.product}</div>
+                            </div>
+          
+                            {/* QTY & LOGO */}
+                            <div className="mt-4 flex justify-between text-sm">
+                              <div>
+                                <span className="font-semibold">QTY:</span> {order.qty}
+                              </div>
+                              <div>
+                                <span className="font-semibold">Logo:</span> {order.gmLogo}
+                              </div>
+                            </div>
+          
+                            {/* SPECIAL NOTE */}
+                            <div className="mt-4 text-sm">
+                              <span className="font-semibold">Special Note:</span>
+                              <div className="mt-1 h-5 border-b border-black">
+                                {order.specialNotes || ""}
+                              </div>
+                            </div>
+          
+                            {/* INSPECTED BY */}
+                            <div className="mt-6 inspected text-sm">
+                              <span className="font-semibold">Inspected by:</span>
+                              <div className="mt-1 h-6 border-b border-black"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+          
+                      {/* ACTIONS */}
+                      <div className="flex justify-end gap-3 border-t pt-4">
+                        <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handlePrintBinCard}
+                          className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
+                        >
+                          <Printer className="h-4 w-4" />
+                          Print
+                        </Button>
+                      </div>
+                    </DialogContent>
+          </Dialog>
 
         {/* View Order Details Dialog */}
         <Dialog
@@ -2347,6 +2307,14 @@ const handleAssignOrder = async () => {
                         {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
+                     <div>
+                        <Label className="text-gray-500 text-sm">
+                          Special notes
+                        </Label>
+                        <p className="text-gray-900 mt-1">
+                          {viewedOrder.special_notes || "-"}
+                        </p>
+                      </div>
                     <div className="col-span-2">
                       <Label className="text-gray-500 text-sm">
                         Product SPCL3

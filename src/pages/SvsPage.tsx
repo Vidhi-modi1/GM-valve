@@ -715,18 +715,32 @@ const handlePrintBinCard = () => {
           .map((v) => v ?? "")
           .join("|");
   
-           const selectedTotals = useMemo(() => {
-      const selectedData = filteredOrders.filter((o) =>
-        selectedRows.has(rowKey(o))
-      );
+    //        const selectedTotals = useMemo(() => {
+    //   const selectedData = filteredOrders.filter((o) =>
+    //     selectedRows.has(rowKey(o))
+    //   );
   
-      return {
-        count: selectedData.length,
-        qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
-        qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
-        qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
-      };
-    }, [selectedRows, filteredOrders]);
+    //   return {
+    //     count: selectedData.length,
+    //     qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+    //     qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+    //     qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+    //   };
+    // }, [selectedRows, filteredOrders]);
+
+    const selectedTotals = useMemo(() => {
+  const selectedData = filteredOrders.filter((o) =>
+    selectedRows.has(String(o.id))
+  );
+
+  return {
+    count: selectedData.length,
+    qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+    qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+    qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+  };
+}, [selectedRows, filteredOrders]);
+
 
 const handleExport = () => {
   const isUrgentMode = showUrgentOnly === true;
@@ -1939,6 +1953,14 @@ const handleAssignOrder = async () => {
                     <Label className="text-gray-500 text-sm">Product SPCL2</Label>
                     <p className="text-gray-900 mt-1">{viewedOrder.productSpcl2 || 'N/A'}</p>
                   </div>
+                   <div>
+                        <Label className="text-gray-500 text-sm">
+                          Special notes
+                        </Label>
+                        <p className="text-gray-900 mt-1">
+                          {viewedOrder.special_notes || "-"}
+                        </p>
+                      </div>
                   <div className="col-span-2">
                     <Label className="text-gray-500 text-sm">Product SPCL3</Label>
                     <p className="text-gray-900 mt-1">{viewedOrder.productSpcl3 || 'N/A'}</p>

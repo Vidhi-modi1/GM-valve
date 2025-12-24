@@ -2288,6 +2288,14 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                         {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
+                     <div>
+                        <Label className="text-gray-500 text-sm">
+                          Special notes
+                        </Label>
+                        <p className="text-gray-900 mt-1">
+                          {viewedOrder.special_notes || "-"}
+                        </p>
+                      </div>
                     <div className="col-span-2">
                       <Label className="text-gray-500 text-sm">
                         Product SPCL3

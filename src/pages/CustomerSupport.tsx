@@ -106,7 +106,55 @@ const [orderHistory, setOrderHistory] = useState<any[]>([]);
     return keys.map((key) => ({ key, display: getStepLabel(key) }));
   }, []);
 
-const mapApiItemToOrder = (item: any): OrderData => {
+  // Map backend stage labels to our canonical frontend keys
+  const labelToKey = useMemo(() => {
+    const map: Record<string, string> = {};
+    getAllWorkflowSteps().forEach((k) => {
+      const label = getStepLabel(k)
+        .replace(/-/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+      map[label] = k;
+    });
+    // Handle known backend label variants/aliases
+    map["phosphating qc"] = "phosphating";
+    map["after phosphating qc"] = "phosphating";
+    return map;
+  }, []);
+
+  const normalizeStageKey = (raw: unknown): string => {
+    const s = String(raw || "")
+      .replace(/-/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    return labelToKey[s] || s.replace(/\s+/g, "-") || "planning";
+  };
+
+//   const labelToKey = useMemo(() => {
+//   const map: Record<string, string> = {};
+
+//   getAllWorkflowSteps().forEach((k) => {
+//     const label = getStepLabel(k)
+//       .replace(/-/g, " ")
+//       .toLowerCase()
+//       .trim();
+
+//     map[label] = k;
+//   });
+
+//   // 🔥 ADD THESE
+//   map["assembly a"] = "assembly-a";
+//   map["assembly b"] = "assembly-b";
+//   map["assembly c"] = "assembly-c";
+//   map["assembly d"] = "assembly-d";
+
+//   return map;
+// }, []);
+
+
+  const mapApiItemToOrder = (item: any): OrderData => {
  
   const rawStage =
     item.status ||
@@ -116,12 +164,7 @@ const mapApiItemToOrder = (item: any): OrderData => {
     item.menu_name ||
    "Planning";
 
-const stageKey = rawStage
-  .replace(/-/g, " ")          // Assembly-A → Assembly A
-  .replace(/\s+/g, " ")        // remove extra spaces
-  .trim()
-  .toLowerCase()
-    .replace(/ /g, "-") || "planning";         // Assembly A → assembly-a
+const stageKey = normalizeStageKey(rawStage);
 
   // ⭐ Normalize backend stage_progress keys
   const cleanedProgress: Record<string, string> = {};
@@ -240,21 +283,16 @@ const fetchOrderHistory = async (order: OrderData) => {
     const splits = res?.data?.splits || {};
     const historyList = Object.values(splits).flat();
 
-    // ❌ If no data → Don't open modal
-    if (historyList.length === 0) {
-      setOrderHistory([]);
-      return; // ← STOP HERE (modal will NOT open)
-    }
-
-    // ✔ If data exists → open modal
-    setOrderHistory(historyList);
+    // Always open modal; show message if empty
+    setOrderHistory(Array.isArray(historyList) ? historyList : []);
     setShowHistoryDialog(true);
 
   } catch (err) {
     console.error("Error fetching order history", err);
 
-    // 💡 Do not open modal on error too
+    // Open modal even on error to surface feedback
     setOrderHistory([]);
+    setShowHistoryDialog(true);
   }
 };
 
@@ -502,32 +540,26 @@ const groupedHistory = orderHistory.reduce((acc: any, item: any) => {
   // });
   // }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
   
-  const filteredOrders = useMemo(() => {
-    return allOrders.filter(order => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        order.uniqueCode.toLowerCase().includes(searchLower) ||
-        order.gmsoaNo.toLowerCase().includes(searchLower) ||
-        order.party.toLowerCase().includes(searchLower) ||
-        order.customerPoNo.toLowerCase().includes(searchLower) ||
-        order.product.toLowerCase().includes(searchLower) ||
-        order.codeNo.toLowerCase().includes(searchLower);
+const filteredOrders = useMemo(() => {
+  return allOrders.filter(order => {
+    const searchLower = searchTerm.toLowerCase();
 
-      // Filter by CURRENT stage key rather than pending-only status
-     const matchesStage =
-  selectedStage === "all"
-    ? true
-    : order.stageKey === selectedStage &&
-      order.qtyPending > 0;
+    const matchesSearch =
+      order.uniqueCode.toLowerCase().includes(searchLower) ||
+      order.gmsoaNo.toLowerCase().includes(searchLower) ||
+      order.party.toLowerCase().includes(searchLower) ||
+      order.customerPoNo.toLowerCase().includes(searchLower) ||
+      order.product.toLowerCase().includes(searchLower) ||
+      order.codeNo.toLowerCase().includes(searchLower);
 
+    const matchesLine =
+      selectedAssemblyLine === "all" ||
+      order.assemblyLine === selectedAssemblyLine;
 
-      const matchesLine =
-        selectedAssemblyLine === "all" ||
-        order.assemblyLine === selectedAssemblyLine;
+    return matchesSearch && matchesLine;
+  });
+}, [allOrders, searchTerm, selectedAssemblyLine]);
 
-      return matchesSearch && matchesStage && matchesLine;
-    });
-  }, [allOrders, searchTerm, selectedStage, selectedAssemblyLine]);
 
 const getBackendStage = (stageKey: string) => {
   if (stageKey === "all") return "";
@@ -1484,6 +1516,14 @@ const getBackendStage = (stageKey: string) => {
                           {selectedOrder.qtyPending}
                         </Badge>
                       </div>
+                       {/* <div>
+                          <Label className="text-gray-500 text-sm">
+                            Special notes
+                          </Label>
+                          <p className="text-gray-900 mt-1">
+                            {selectedOrder.special_notes || "-"}
+                          </p>
+                        </div> */}
                     </div>
                     {(editingDeliveryDate[selectedOrder.uniqueCode] || selectedOrder.expectedDeliveryDate) && (
                       <div>

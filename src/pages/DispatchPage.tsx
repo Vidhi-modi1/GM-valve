@@ -152,7 +152,7 @@ export function DispatchPage() {
 
 const [packagingDialogOpen, setPackagingDialogOpen] = useState(false);
 const [packagingOrder, setPackagingOrder] = useState<any>(null);
-const [oslNo, setOslNo] = useState("");
+const [oclNo, setOclNo] = useState("");
 const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
 
 
@@ -192,31 +192,31 @@ const handlePackagingCheckbox = async (
     // Close popup if open
     setPackagingDialogOpen(false);
     setPackagingOrder(null);
-    setOslNo("");
+    setOclNo("");
   } catch (err) {
     console.error("Packaging toggle failed", err);
     alert("Failed to update packaging status");
   }
 };
 
-const handleOpenOslPopup = (order: any) => {
-  console.log("Opening OSL for order:", order); // debug once
+const handleOpenOclPopup = (order: any) => {
+  console.log("Opening OCL for order:", order); // debug once
   setPackagingOrder(order); // FULL object
-  setOslNo("");
+  setOclNo("");
   setPackagingDialogOpen(true);
 };
 
 
 const handleConfirmPackaging = async () => {
-  console.log("CONFIRM CLICKED", packagingOrder, oslNo);
+  console.log("CONFIRM CLICKED", packagingOrder, oclNo);
 
   if (!packagingOrder?.id) {
     alert("Order ID missing");
     return;
   }
 
-  if (!oslNo.trim()) {
-    alert("Enter OSL number");
+  if (!oclNo.trim()) {
+    alert("Enter OCL number");
     return;
   }
 
@@ -234,7 +234,7 @@ const handleConfirmPackaging = async () => {
     fd.append("order_id", packagingOrder.id);
     fd.append("currentSteps", "Dispatch");
     fd.append("nextSteps", "Packaging");
-    fd.append("osl_no", oslNo);
+    fd.append("ocl_no", oclNo);
 
     await axios.post(`${API_URL}/dispatch-to-packaging`, fd, {
       headers: {
@@ -246,7 +246,7 @@ const handleConfirmPackaging = async () => {
 
     setPackagingDialogOpen(false);
     setPackagingOrder(null);
-    setOslNo("");
+    setOclNo("");
 
     fetchOrders(); // refresh list
   } catch (error: any) {
@@ -268,7 +268,7 @@ const handleConfirmPackaging = async () => {
 const handleCancelPackagingPopup = () => {
   setPackagingDialogOpen(false);
   setPackagingOrder(null);
-  setOslNo("");
+  setOclNo("");
 };
 
 
@@ -1913,12 +1913,12 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
       title="Toggle Packaging"
     />
 
-    {/* OSL button ONLY when packaging = 1 */}
+    {/* OCL button ONLY when packaging = 1 */}
     {order.packaging === 1 && (
       <Button
         size="sm"
         variant="outline"
-        onClick={() => handleOpenOslPopup(order)}
+        onClick={() => handleOpenOclPopup(order)}
       >
         OCL
       </Button>
@@ -1971,95 +1971,119 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                   disabled={loading}
                 />
 
-        {/* Bin Card Dialog */}
-        <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Bin Card - Selected Orders</DialogTitle>
-              <DialogDescription>
-                Review selected orders and print bin card
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6 py-4">
-              {selectedOrdersData.map((order) => (
-                <div
-                  key={order.id}
-                  className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white"
-                >
-                  <div className="text-center pb-2 border-b border-gray-200">
-                    <p className="text-lg">
-                      <span className="text-gray-600">Assembly Line:</span>{" "}
-                      <span className="text-gray-900 font-bold text-xl">
-                        {order.assemblyLine}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-500 text-sm">
-                        Assembly Date
-                      </Label>
-                      <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-500 text-sm">
-                        GMSOA No - SR. NO.
-                      </Label>
-                      <p className="text-gray-900 mt-1">
-                        {order.gmsoaNo} - {order.soaSrNo}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Item Description
-                    </Label>
-                    <p className="text-gray-900 mt-1">{order.product}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-500 text-sm">QTY</Label>
-                      <p className="text-gray-900 mt-1">{order.totalQty}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-500 text-sm">GM Logo</Label>
-                      <p className="text-gray-900 mt-1">{order.gmLogo}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <Label className="text-gray-500 text-sm whitespace-nowrap">
-                        Inspected by:
-                      </Label>
-                      <div className="border-b border-gray-400 flex-1 h-8"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button
-                variant="outline"
-                onClick={() => setBinCardDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handlePrintBinCard}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
-              >
-                <Printer className="h-4 w-4" />
-                Print
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          {/* Bin Card Dialog */}
+                     <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+                             <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
+                               <DialogHeader>
+                                 <DialogTitle className="text-lg font-semibold text-gray-900">
+                                   Bin Card Preview
+                                 </DialogTitle>
+                                 <DialogDescription className="text-sm text-gray-500">
+                                   This preview matches the printed bin card layout.
+                                 </DialogDescription>
+                               </DialogHeader>
+                   
+                               <div className="py-6 space-y-8">
+                                 {selectedOrdersData.map((order) => (
+                                   <div
+                                     key={order.id}
+                                     className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
+                                   >
+                                     {/* COMPANY NAME */}
+                                     <h1 className="text-center text-lg font-bold">
+                                       G M Valve Pvt. Ltd.
+                                     </h1>
+                   
+                                     {/* ADDRESS */}
+                                     <p className="mt-1 text-center text-[11px] leading-tight">
+                                       Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+                                       Village Metoda, Dist. Rajkot-360 021
+                                     </p>
+                   
+                                     {/* TAG */}
+                                     <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+                                       In Process Material Tag
+                                     </div>
+                   
+                                     {/* DATE / SOA / DOC */}
+                                     <div className="mt-3 grid grid-cols-3 items-start text-sm">
+                                       <div>
+                                         <div>
+                                           <span className="font-semibold">Date:</span>{" "}
+                                           {order.assemblyDate}
+                                         </div>
+                                         <div>
+                                           <span className="font-semibold">SOA:</span>{" "}
+                                           {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
+                                         </div>
+                                       </div>
+                   
+                                       <div className="flex justify-center">
+                                         <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                                           Assembly Line: {order.assemblyLine}
+                                         </span>
+                                       </div>
+                   
+                                       <div className="text-right text-xs leading-tight">
+                                         <div>GMV-L4-F-PRD 01 A</div>
+                                         <div>(02/10.09.2020)</div>
+                                       </div>
+                                     </div>
+                   
+                                     {/* PARTY */}
+                                     <div className="mt-4 text-sm">
+                                       <span className="font-semibold">Party:</span>
+                                       <div className="mt-1">{order.party}</div>
+                                     </div>
+                   
+                                     {/* ITEM */}
+                                     <div className="mt-3 text-sm">
+                                       <span className="font-semibold">Item:</span>
+                                       <div className="mt-1 leading-snug">{order.product}</div>
+                                     </div>
+                   
+                                     {/* QTY & LOGO */}
+                                     <div className="mt-4 flex justify-between text-sm">
+                                       <div>
+                                         <span className="font-semibold">QTY:</span> {order.qty}
+                                       </div>
+                                       <div>
+                                         <span className="font-semibold">Logo:</span> {order.gmLogo}
+                                       </div>
+                                     </div>
+                   
+                                     {/* SPECIAL NOTE */}
+                                     <div className="mt-4 text-sm">
+                                       <span className="font-semibold">Special Note:</span>
+                                       <div className="mt-1 h-5 border-b border-black">
+                                         {order.specialNotes || ""}
+                                       </div>
+                                     </div>
+                   
+                                     {/* INSPECTED BY */}
+                                     <div className="mt-6 inspected text-sm">
+                                       <span className="font-semibold">Inspected by:</span>
+                                       <div className="mt-1 h-6 border-b border-black"></div>
+                                     </div>
+                                   </div>
+                                 ))}
+                               </div>
+                   
+                               {/* ACTIONS */}
+                               <div className="flex justify-end gap-3 border-t pt-4">
+                                 <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
+                                   Cancel
+                                 </Button>
+                                 <Button
+                                   onClick={handlePrintBinCard}
+                                   className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
+                                 >
+                                   <Printer className="h-4 w-4" />
+                                   Print
+                                 </Button>
+                               </div>
+                             </DialogContent>
+                           </Dialog>
 
 <Dialog open={packagingDialogOpen} onOpenChange={setPackagingDialogOpen}>
   <DialogContent className="sm:max-w-[400px]">
@@ -2073,8 +2097,8 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     <div className="space-y-4 py-4">
       <Label>OCL Number</Label>
       <Input
-        value={oslNo}
-        onChange={(e) => setOslNo(e.target.value)}
+        value={oclNo}
+        onChange={(e) => setOclNo(e.target.value)}
         placeholder="Enter OCL No"
       />
     </div>
@@ -2259,6 +2283,14 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                         {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
+                     <div>
+                        <Label className="text-gray-500 text-sm">
+                          Special notes
+                        </Label>
+                        <p className="text-gray-900 mt-1">
+                          {viewedOrder.special_notes || "-"}
+                        </p>
+                      </div>
                     <div className="col-span-2">
                       <Label className="text-gray-500 text-sm">
                         Product SPCL3

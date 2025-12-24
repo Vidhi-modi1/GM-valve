@@ -1838,6 +1838,23 @@ const handleAssignOrder = async () => {
           </div>
         </div>
 
+        {selectedTotals.count > 0 && (
+  <div className="border-t bg-gray-50 px-6 py-3 flex flex-wrap gap-6 justify-end text-sm font-semibold">
+    <div>
+      Selected Rows: <span className="text-blue-700">{selectedTotals.count}</span>
+    </div>
+    <div>
+      Total Qty: <span className="text-gray-900">{selectedTotals.qty}</span>
+    </div>
+    <div>
+      Qty Executed: <span className="text-green-700">{selectedTotals.qtyExe}</span>
+    </div>
+    <div>
+      Qty Pending: <span className="text-red-600">{selectedTotals.qtyPending}</span>
+    </div>
+  </div>
+)}
+
         
 
           <TablePagination
@@ -2220,6 +2237,14 @@ const handleAssignOrder = async () => {
                         {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
+                     <div>
+                        <Label className="text-gray-500 text-sm">
+                          Special notes
+                        </Label>
+                        <p className="text-gray-900 mt-1">
+                          {viewedOrder.special_notes || "-"}
+                        </p>
+                      </div>
                     <div className="col-span-2">
                       <Label className="text-gray-500 text-sm">
                         Product SPCL3
