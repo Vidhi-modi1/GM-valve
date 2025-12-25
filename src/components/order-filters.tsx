@@ -111,7 +111,7 @@ export function OrderFilters({
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
         <Input
           type="text"
-          placeholder="Search by Unique Code, GMSOA No, Party, PO No, Code No, Product..."
+          placeholder="Search by Unique Code, SOA No, Party, PO No, Code No, Product..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 w-full bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0 "

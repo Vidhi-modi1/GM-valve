@@ -1693,7 +1693,7 @@ const splitLabel = getStepLabel(splitStep);
                       Assembly Line
                     </th>
                     <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
-                      GMSOA NO.
+                      SOA NO.
                     </th>
                    <th
   className="sticky left-274 z-20 bg-white px-3 py-2 text-center
@@ -1705,7 +1705,7 @@ const splitLabel = getStepLabel(splitStep);
     )
   }
 >
-  SOA Sr. No.
+  Sr. No.
   {soaSort === "asc" && " ▲"}
   {soaSort === "desc" && " ▼"}
 </th>
@@ -2323,14 +2323,14 @@ const splitLabel = getStepLabel(splitStep);
                       </p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-sm">GMSOA No.</Label>
+                      <Label className="text-gray-500 text-sm">SOA No.</Label>
                       <p className="text-gray-900 mt-1">
                         {viewedOrder.gmsoaNo}
                       </p>
                     </div>
                     <div>
                       <Label className="text-gray-500 text-sm">
-                        SOA Sr. No.
+                        Sr. No.
                       </Label>
                       <p className="text-gray-900 mt-1">
                         {viewedOrder.soaSrNo}
