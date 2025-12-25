@@ -154,50 +154,84 @@ const [packagingDialogOpen, setPackagingDialogOpen] = useState(false);
 const [packagingOrder, setPackagingOrder] = useState<any>(null);
 const [oclNo, setOclNo] = useState("");
 const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
+const [packagingToast, setPackagingToast] = useState(false);
 
+// const handlePackagingCheckbox = async (
+  
+//   checked: boolean,
+//   order: any
+// ) => {
+
+  
+//   try {
+//     const token = localStorage.getItem("token");
+
+//     if (checked) {
+//       const fd = new FormData();
+//       fd.append("split_id", String(order.split_id));
+//       fd.append("packaging", "1");
+
+//       await axios.post(`${API_URL}/change-to-packaging`, fd, {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
+
+//       setOrders((prev) =>
+//         prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
+//       );
+//     } else {
+//       // Once packaging is set to 1, do not allow reverting to 0
+//       if (order.packaging === 1) {
+//         setOrders((prev) =>
+//           prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
+//         );
+//         alert("Packaging is permanent once set.");
+//       } else {
+//         setOrders((prev) =>
+//           prev.map((o) => (o.id === order.id ? { ...o, packaging: 0 } : o))
+//         );
+//       }
+//     }
+
+//     // Close popup if open
+//     setPackagingDialogOpen(false);
+//     setPackagingOrder(null);
+//     setOclNo("");
+//   } catch (err) {
+//     console.error("Packaging toggle failed", err);
+//     alert("Failed to update packaging status");
+//   }
+// };
 
 const handlePackagingCheckbox = async (
   checked: boolean,
   order: any
 ) => {
+  if (!checked) return;
+
   try {
     const token = localStorage.getItem("token");
 
-    if (checked) {
-      const fd = new FormData();
-      fd.append("split_id", String(order.split_id));
-      fd.append("packaging", "1");
+    const fd = new FormData();
+    fd.append("split_id", String(order.split_id));
+    fd.append("packaging", "1");
 
-      await axios.post(`${API_URL}/change-to-packaging`, fd, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    await axios.post(`${API_URL}/change-to-packaging`, fd, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
-      );
-    } else {
-      // Once packaging is set to 1, do not allow reverting to 0
-      if (order.packaging === 1) {
-        setOrders((prev) =>
-          prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
-        );
-        alert("Packaging is permanent once set.");
-      } else {
-        setOrders((prev) =>
-          prev.map((o) => (o.id === order.id ? { ...o, packaging: 0 } : o))
-        );
-      }
-    }
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, packaging: 1 } : o))
+    );
 
-    // Close popup if open
-    setPackagingDialogOpen(false);
-    setPackagingOrder(null);
-    setOclNo("");
+    // ✅ SHOW TOAST
+    setPackagingToast(true);
+    setTimeout(() => setPackagingToast(false), 2000);
+
   } catch (err) {
     console.error("Packaging toggle failed", err);
-    alert("Failed to update packaging status");
   }
 };
+
 
 const handleOpenOclPopup = (order: any) => {
   console.log("Opening OCL for order:", order); // debug once
@@ -660,7 +694,7 @@ const useGlobalSearch = useMemo(() => {
 
   const handleQuickAssignCancel = () => {
     setIsAssigning(false);
-    setAssignStatus(null);
+    // setAssignStatus(null);
     setQuickAssignOpen(false);
     setSelectedOrder(null);
     setQuickAssignStep("");
@@ -1309,7 +1343,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
         });
 
           setQuickAssignOpen(false);
-          setAssignStatus(null);
+          // setAssignStatus(null);
 
       } else {
         setAssignStatus({
@@ -1901,29 +1935,43 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                                                         />
                                                       </Button>
 
-                                                       <div className="flex items-center gap-2">
+                                                       <div
+  onClick={(e) => e.stopPropagation()}   // ✅ IMPORTANT
+  className="flex items-center gap-2"
+>
+  <Checkbox
+    checked={order.packaging === 1}
+    disabled={order.packaging === 1}
+    onCheckedChange={(checked) => {
+      handlePackagingCheckbox(Boolean(checked), order);
+    }}
+    title="Toggle Packaging"
+  />
 
-    {/* Packaging checkbox */}
-    <Checkbox
-      checked={order.packaging === 1}
-      disabled={order.packaging === 1}
-      onCheckedChange={(checked) =>
-        handlePackagingCheckbox(Boolean(checked), order)
-      }
-      title="Toggle Packaging"
-    />
-
-    {/* OCL button ONLY when packaging = 1 */}
-    {order.packaging === 1 && (
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => handleOpenOclPopup(order)}
-      >
-        OCL
-      </Button>
-    )}
+  {packagingToast && (
+  <div className="
+    fixed bottom-6 right-6 z-[9999]
+    bg-green-600 text-white
+    px-5 py-3 rounded-lg shadow-lg
+    text-sm font-semibold
+    animate-fade-in
+  ">
+    ✔ Moved to Packaging successfully
   </div>
+)}
+
+
+  {order.packaging === 1 && (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => handleOpenOclPopup(order)}
+    >
+      OCL
+    </Button>
+  )}
+</div>
+
                           </div>
                         </td>
                       </tr>
@@ -2086,7 +2134,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                            </Dialog>
 
 <Dialog open={packagingDialogOpen} onOpenChange={setPackagingDialogOpen}>
-  <DialogContent className="sm:max-w-[400px]">
+  <DialogContent className="max-w-[400px]">
     <DialogHeader>
       <DialogTitle>Move to Packaging</DialogTitle>
       <DialogDescription>
@@ -2288,7 +2336,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                           Special notes
                         </Label>
                         <p className="text-gray-900 mt-1">
-                          {viewedOrder.special_notes || "-"}
+                           {viewedOrder.specialNotes || "-"}
                         </p>
                       </div>
                     <div className="col-span-2">

@@ -344,7 +344,7 @@ totalQty: Number(item.totalQty || item.total_qty || item.qty || 0), // displayed
             finishedValve: item.finished_valve || "",
             gmLogo: item.gm_logo || "",
             namePlate: item.name_plate || "",
-            specialNotes: item.special_notes || "",
+            specialNotes: item.special_notes || item.special_note || "",
             productSpcl1: item.product_spc1 || "",
             productSpcl2: item.product_spc2 || "",
             productSpcl3: item.product_spc3 || "",
@@ -1393,11 +1393,11 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-            <div>
+            <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Material Issue
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
             </div>
@@ -2293,7 +2293,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                           Special notes
                         </Label>
                         <p className="text-gray-900 mt-1">
-                          {viewedOrder.special_notes || "-"}
+                          {viewedOrder.specialNotes || "-"}
                         </p>
                       </div>
                     <div className="col-span-2">

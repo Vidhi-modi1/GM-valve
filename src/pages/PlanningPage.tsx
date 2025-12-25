@@ -1526,7 +1526,7 @@ useEffect(() => {
                 Orders Management
               </h1>
               <p className="text-sm text-gray-600">
-                Track and manage assembly line orders and manufacturing workflow
+                Track and manage assembly line orders and manufacturing workflow.
               </p>
             </div>
 

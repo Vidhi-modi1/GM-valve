@@ -2287,7 +2287,7 @@ const handleSaveRemarks = () => {
                           Special notes
                         </Label>
                         <p className="text-gray-900 mt-1">
-                          {viewedOrder.special_notes || "-"}
+                          {viewedOrder.specialNotes || "-"}
                         </p>
                       </div>
                     <div className="col-span-2">
