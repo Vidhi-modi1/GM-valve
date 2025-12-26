@@ -28,6 +28,8 @@ import { DashboardPage } from "./pages/DashboardPage";
 import CustomerSupport from "./pages/CustomerSupport";
 import { DashboardHeader } from "./components/dashboard-header";
 import SvsStock from "./pages/SvsStock";
+// import PackgingPage from "./pages/PackgingPage";
+
 
 
 export default function App() {
@@ -48,6 +50,7 @@ export default function App() {
 
 
             <Route path="/svs-stock" element={<SvsStock />} />
+          {/* <Route path="/packging" element={<PackgingPage />} /> */}
 
             {/* Login Route */}
             <Route path="/login" element={<LoginPage />} />

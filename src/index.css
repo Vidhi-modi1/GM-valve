@@ -4688,6 +4688,9 @@
     .lg\:grid-cols-4 {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+      .lg\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 
   @media (width >= 64rem) {
@@ -6520,3 +6523,23 @@ table {
   width: 100% !important;
   max-width: 1240px !important;
 }
+
+/* .table-sticky table {
+  height: 800px;
+  overflow-y: auto;
+} */
+
+/* .table-sticky th {
+  position: sticky;
+} */
+
+.table-head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999;
+}
+
+/* .table-head th {
+  position: sticky !important;
+    top: 0 !important;
+} */

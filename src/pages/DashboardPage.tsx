@@ -317,7 +317,7 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
               Loading....
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <ModernStatCard
                 title="Total Orders"
                 value={totalOrders}
@@ -342,14 +342,14 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
                 change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
                 trend={[40, 50, 70, 90, 100]}
               />
-              <ModernStatCard
+              {/* <ModernStatCard
                 title="Efficiency"
                 value={(summary.efficiency ?? 0) + "%"}
                 icon={TrendingUp}
                 gradient="purple"
                 change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
                 trend={[50, 60, 70, 80, 90]}
-              />
+              /> */}
             </div>
           )}
         </>

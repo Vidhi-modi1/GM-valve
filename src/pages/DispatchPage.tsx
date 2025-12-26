@@ -45,6 +45,7 @@ import {
 } from "../config/workflowSteps";
 import { DashboardHeader } from "../components/dashboard-header.tsx";
 import TablePagination from "../components/table-pagination";
+import { useNavigate } from "react-router-dom";
 
 // const API_URL = 'http://192.168.1.17:2010/api';
 
@@ -81,6 +82,7 @@ interface AssemblyOrderData {
 }
 
 export function DispatchPage() {
+   const navigate = useNavigate();
   // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
@@ -1547,12 +1549,18 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                     </Button>
 
                     <Button
-                                                                                onClick={handleExportAll}
-                                                                                className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                                                                              >
-                                                                                <Download className="h-4 w-4 mr-2" />
-                                                                                Export all Data
-                                                                              </Button>
+                    onClick={handleExportAll}
+                    className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export all Data
+                  </Button>
+{/* <Button
+  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white shadow-lg hover:shadow-xl"
+  onClick={() => navigate("/packging")}
+>
+  Completed Projects
+</Button> */}
           </div>
 
           {/* Filters */}
@@ -1620,7 +1628,11 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
-            style={{ scrollbarGutter: "stable" }}
+             style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
@@ -1628,7 +1640,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
               ) : (
                 <>
                 <table className="min-w-full border-collapse">
-                  <thead>
+                     <thead className="table-head sticky top-16 z-30 bg-white">
                     <tr>
                       {/* Select all sticky checkbox */}
                       <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">

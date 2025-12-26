@@ -1139,31 +1139,200 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     const [isAssigning, setIsAssigning] = useState(false);
 
 
+// const handleAssignOrder = async () => {
+//   if (isAssigning) return;
+
+//      const controller = new AbortController();
+//   assignAbortRef.current = controller;
+
+//   setIsAssigning(true);
+
+//   // 🔴 2️⃣ ONLY NOW do validations
+//   if (!selectedOrder) {
+//     assignAbortRef.current = null;
+//     setIsAssigning(false);
+//     return;
+//   }
+
+//   if (!validateQuickAssign()) {
+//     assignAbortRef.current = null;
+//     setIsAssigning(false);
+//     return;
+//   }
+
+//   setIsAssigning(true);
+//   if (!selectedOrder) return;
+//   if (!validateQuickAssign()) return;
+
+//   setAssignStatus({
+//     type: "info",
+//     message: "Assigning order, please wait...",
+//   });
+
+//   try {
+//     const token = localStorage.getItem("token");
+//     if (!token) {
+//       setAssignStatus({
+//         type: "error",
+//         message: "Token missing. Please log in again.",
+//       });
+//       return;
+//     }
+
+//     const currentSteps = "assembly-b";
+
+//     const mainQty = Number(quickAssignQty || 0);
+//     const splitQty = Number(splitAssignQty || 0);
+
+//     const nextStepKey =
+//       quickAssignStep ||
+//       (Array.isArray(nextSteps) ? nextSteps[0] : "Assembly D");
+
+//     const nextStepLabel = getStepLabel(nextStepKey);
+//     const currentStepLabel = getStepLabel(currentSteps);
+
+//     //
+//     // 🔵 MAIN ASSIGNMENT
+//     //
+//     const formData = new FormData();
+//     formData.append("orderId", String(selectedOrder.id));
+//     formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+//     formData.append("executedQty", String(mainQty));
+//     formData.append("currentSteps", currentStepLabel);
+//     formData.append("nextSteps", nextStepLabel);
+//     formData.append("split_id", String(selectedOrder.split_id || ""));
+
+//     // cancel previous request
+//     // if (assignAbortRef.current) {
+//     //   assignAbortRef.current.abort();
+//     // }
+
+//     // const controller = new AbortController();
+//     // assignAbortRef.current = controller;
+
+//     const responseMain = await axios.post(
+//       `${API_URL}/assign-order`,
+//       formData,
+//       { headers: { Authorization: `Bearer ${token}` }, signal: assignAbortRef.current?.signal }
+//     );
+
+//     const mainSuccess =
+//       responseMain.data?.Resp_code === "true" ||
+//       responseMain.data?.Resp_code === true;
+
+//     if (!mainSuccess) {
+//       setAssignStatus({
+//         type: "error",
+//         message: responseMain.data?.Resp_desc || "Main assignment failed.",
+//       });
+//       return;
+//     }
+
+//     let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+
+//     //
+//     // 🔵 SPLIT ASSIGNMENT
+//     //
+//     if (splitOrder && splitQty > 0) {
+//       const formDataSplit = new FormData();
+//       formDataSplit.append("orderId", String(selectedOrder.id));
+//       formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+//       formDataSplit.append("executedQty", String(splitQty));
+//       formDataSplit.append("currentSteps", currentStepLabel);
+//       formDataSplit.append("nextSteps", nextStepLabel);
+//       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
+
+//       const responseSplit = await axios.post(
+//         `${API_URL}/assign-order`,
+//         formDataSplit,
+//         {  headers: { Authorization: `Bearer ${token}` },
+//           signal: controller.signal, }
+//       );
+
+//       const splitSuccess =
+//         responseSplit.data?.Resp_code === "true" ||
+//         responseSplit.data?.Resp_code === true;
+
+//       if (splitSuccess) {
+//         successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
+//       } else {
+//         setAssignStatus({
+//           type: "error",
+//           message:
+//             "Main assigned but split failed: " +
+//             (responseSplit.data?.Resp_desc || "Unknown error"),
+//         });
+//       }
+//     }
+
+//     setAssignStatus({ type: "success", message: successMessage });
+
+//     //
+//     // 🔥 DO NOT REMOVE THE ROW — UPDATE IT
+//     //
+//     setOrders((prev) =>
+//       prev.map((o) => {
+//         if (o.id !== selectedOrder.id) return o;
+
+//         const oldExe = o.qtyExe || 0;
+//         const addedQty = mainQty + (splitOrder ? splitQty : 0);
+
+//         const newExe = oldExe + addedQty;
+//         const newPending = (o.totalQty ?? o.qty) - newExe;
+
+//         return {
+//           ...o,
+//           qtyExe: newExe,
+//           qtyPending: newPending,
+//         };
+//       })
+//     );
+
+//     //
+//     // 🔥 REFRESH FROM BACKEND SO SPLIT ROWS APPEAR
+//     //
+//     await fetchOrders();
+
+//     //
+//     // Close modal
+//     //
+//     setQuickAssignOpen(false);
+//     setAssignStatus(null);
+//     setSelectedRows(new Set());
+
+//   } catch (error) {
+//     if (
+//     error?.name === "CanceledError" ||
+//     error?.code === "ERR_CANCELED"
+//   ) {
+//     console.log("⛔ Assign request cancelled by user");
+//     return; // 🔥 VERY IMPORTANT
+//   }
+
+//   // ❌ REAL ERROR
+//   console.error("❌ Error assigning order:", error);
+//     setAssignStatus({
+//       type: "error",
+//       message: "Server error while assigning.",
+//     });
+//   } finally {
+//     setIsAssigning(false);
+//     assignAbortRef.current = null;
+//   }
+// };
+
 const handleAssignOrder = async () => {
   if (isAssigning) return;
-
-     const controller = new AbortController();
-  assignAbortRef.current = controller;
-
-  setIsAssigning(true);
-
-  // 🔴 2️⃣ ONLY NOW do validations
-  if (!selectedOrder) {
-    assignAbortRef.current = null;
-    setIsAssigning(false);
-    return;
-  }
-
-  if (!validateQuickAssign()) {
-    assignAbortRef.current = null;
-    setIsAssigning(false);
-    return;
-  }
-
-  setIsAssigning(true);
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
 
+  setIsAssigning(true);
+
+  // 🔴 Cancel any previous request
+  const controller = new AbortController();
+  assignAbortRef.current = controller;
+
+  // 🔵 Show loading message
   setAssignStatus({
     type: "info",
     message: "Assigning order, please wait...",
@@ -1191,29 +1360,27 @@ const handleAssignOrder = async () => {
     const nextStepLabel = getStepLabel(nextStepKey);
     const currentStepLabel = getStepLabel(currentSteps);
 
-    //
+    // ---------------------------
     // 🔵 MAIN ASSIGNMENT
-    //
+    // ---------------------------
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
-    formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+    formData.append(
+      "totalQty",
+      String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+    );
     formData.append("executedQty", String(mainQty));
     formData.append("currentSteps", currentStepLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
-    // cancel previous request
-    // if (assignAbortRef.current) {
-    //   assignAbortRef.current.abort();
-    // }
-
-    // const controller = new AbortController();
-    // assignAbortRef.current = controller;
-
     const responseMain = await axios.post(
       `${API_URL}/assign-order`,
       formData,
-      { headers: { Authorization: `Bearer ${token}` }, signal: assignAbortRef.current?.signal }
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      }
     );
 
     const mainSuccess =
@@ -1228,15 +1395,18 @@ const handleAssignOrder = async () => {
       return;
     }
 
-    let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+    let successMessage = `Assigned ${mainQty} → ${nextStepLabel}`;
 
-    //
+    // ---------------------------
     // 🔵 SPLIT ASSIGNMENT
-    //
+    // ---------------------------
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+      formDataSplit.append(
+        "totalQty",
+        String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+      );
       formDataSplit.append("executedQty", String(splitQty));
       formDataSplit.append("currentSteps", currentStepLabel);
       formDataSplit.append("nextSteps", nextStepLabel);
@@ -1245,8 +1415,10 @@ const handleAssignOrder = async () => {
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
         formDataSplit,
-        {  headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal, }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        }
       );
 
       const splitSuccess =
@@ -1265,11 +1437,15 @@ const handleAssignOrder = async () => {
       }
     }
 
-    setAssignStatus({ type: "success", message: successMessage });
+    // ✅ SHOW SUCCESS MESSAGE (VISIBLE FOR 2s)
+    setAssignStatus({
+      type: "success",
+      message: `✔ ${successMessage}`,
+    });
 
-    //
-    // 🔥 DO NOT REMOVE THE ROW — UPDATE IT
-    //
+    // ---------------------------
+    // 🔥 UPDATE ROW (NO DELETE)
+    // ---------------------------
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id !== selectedOrder.id) return o;
@@ -1288,29 +1464,26 @@ const handleAssignOrder = async () => {
       })
     );
 
-    //
-    // 🔥 REFRESH FROM BACKEND SO SPLIT ROWS APPEAR
-    //
+    // 🔄 Sync with backend (important for split rows)
     await fetchOrders();
 
-    //
-    // Close modal
-    //
-    setQuickAssignOpen(false);
-    setAssignStatus(null);
-    setSelectedRows(new Set());
+    // ⏱️ Close popup AFTER 2 seconds
+    setTimeout(() => {
+      setQuickAssignOpen(false);
+      setAssignStatus(null);
+      setSelectedRows(new Set());
+    }, 1000);
 
-  } catch (error) {
+  } catch (error: any) {
     if (
-    error?.name === "CanceledError" ||
-    error?.code === "ERR_CANCELED"
-  ) {
-    console.log("⛔ Assign request cancelled by user");
-    return; // 🔥 VERY IMPORTANT
-  }
+      error?.name === "CanceledError" ||
+      error?.code === "ERR_CANCELED"
+    ) {
+      console.log("⛔ Assign request cancelled");
+      return;
+    }
 
-  // ❌ REAL ERROR
-  console.error("❌ Error assigning order:", error);
+    console.error("❌ Error assigning order:", error);
     setAssignStatus({
       type: "error",
       message: "Server error while assigning.",
@@ -1320,6 +1493,7 @@ const handleAssignOrder = async () => {
     assignAbortRef.current = null;
   }
 };
+
 
 
 
@@ -1555,7 +1729,11 @@ const handleAssignOrder = async () => {
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
-            style={{ scrollbarGutter: "stable" }}
+             style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
@@ -1563,7 +1741,7 @@ const handleAssignOrder = async () => {
               ) : (
                 <>
               <table className="min-w-full border-collapse">
-                <thead>
+                   <thead className="table-head sticky top-16 z-30 bg-white">
                   <tr>
                     {/* Select all sticky checkbox */}
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">
@@ -2119,86 +2297,110 @@ const handleAssignOrder = async () => {
 
         {/* Bin Card Dialog */}
         <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
             <DialogHeader>
-              <DialogTitle>Bin Card - Selected Orders</DialogTitle>
-              <DialogDescription>
-                Review selected orders and print bin card
+              <DialogTitle className="text-lg font-semibold text-gray-900">
+                Bin Card Preview
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-500">
+                This preview matches the printed bin card layout.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
+            <div className="py-6 space-y-8">
               {selectedOrdersData.map((order) => (
                 <div
                   key={order.id}
-                  className="border border-gray-200 rounded-lg p-6 space-y-4 bg-white"
+                  className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
                 >
-                  <div className="text-center pb-2 border-b border-gray-200">
-                    <p className="text-lg">
-                      <span className="text-gray-600">Assembly Line:</span>{" "}
-                      <span className="text-gray-900 font-bold text-xl">
-                        {order.assemblyLine}
+                  {/* COMPANY NAME */}
+                  <h1 className="text-center text-lg font-bold">
+                    G M Valve Pvt. Ltd.
+                  </h1>
+
+                  {/* ADDRESS */}
+                  <p className="mt-1 text-center text-[11px] leading-tight">
+                    Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+                    Village Metoda, Dist. Rajkot-360 021
+                  </p>
+
+                  {/* TAG */}
+                  <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+                    In Process Material Tag
+                  </div>
+
+                  {/* DATE / SOA / DOC */}
+                  <div className="mt-3 grid grid-cols-3 items-start text-sm">
+                    <div>
+                      <div>
+                        <span className="font-semibold">Date:</span>{" "}
+                        {order.assemblyDate}
+                      </div>
+                      <div>
+                        <span className="font-semibold">SOA:</span>{" "}
+                        {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                        Assembly Line: {order.assemblyLine}
                       </span>
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-500 text-sm">
-                        Assembly Date
-                      </Label>
-                      <p className="text-gray-900 mt-1">{order.assemblyDate}</p>
                     </div>
-                    <div>
-                      <Label className="text-gray-500 text-sm">
-                        GMSOA No - SR. NO.
-                      </Label>
-                      <p className="text-gray-900 mt-1">
-                        {order.gmsoaNo} - {order.soaSrNo}
-                      </p>
+
+                    <div className="text-right text-xs leading-tight">
+                      <div>GMV-L4-F-PRD 01 A</div>
+                      <div>(02/10.09.2020)</div>
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Item Description
-                    </Label>
-                    <p className="text-gray-900 mt-1">{order.product}</p>
+                  {/* PARTY */}
+                  <div className="mt-4 text-sm">
+                    <span className="font-semibold">Party:</span>
+                    <div className="mt-1">{order.party}</div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* ITEM */}
+                  <div className="mt-3 text-sm">
+                    <span className="font-semibold">Item:</span>
+                    <div className="mt-1 leading-snug">{order.product}</div>
+                  </div>
+
+                  {/* QTY & LOGO */}
+                  <div className="mt-4 flex justify-between text-sm">
                     <div>
-                      <Label className="text-gray-500 text-sm">QTY</Label>
-                      <p className="text-gray-900 mt-1">{order.totalQty}</p>
+                      <span className="font-semibold">QTY:</span> {order.qty}
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-sm">GM Logo</Label>
-                      <p className="text-gray-900 mt-1">{order.gmLogo}</p>
+                      <span className="font-semibold">Logo:</span> {order.gmLogo}
                     </div>
                   </div>
 
-                  <div className="pt-4 mt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <Label className="text-gray-500 text-sm whitespace-nowrap">
-                        Inspected by:
-                      </Label>
-                      <div className="border-b border-gray-400 flex-1 h-8"></div>
+                  {/* SPECIAL NOTE */}
+                  <div className="mt-4 text-sm">
+                    <span className="font-semibold">Special Note:</span>
+                    <div className="mt-1 h-5 border-b border-black">
+                      {order.specialNotes || ""}
                     </div>
+                  </div>
+
+                  {/* INSPECTED BY */}
+                  <div className="mt-6 inspected text-sm">
+                    <span className="font-semibold">Inspected by:</span>
+                    <div className="mt-1 h-6 border-b border-black"></div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-              <Button
-                variant="outline"
-                onClick={() => setBinCardDialogOpen(false)}
-              >
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3 border-t pt-4">
+              <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={handlePrintBinCard}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
+                className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
               >
                 <Printer className="h-4 w-4" />
                 Print

@@ -1203,12 +1203,14 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
 
   const currentSteps = "marking1"; 
 
-  const handleAssignOrder = async () => {
+const handleAssignOrder = async () => {
   if (isAssigning) return;
-  setIsAssigning(true);
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
 
+  setIsAssigning(true);
+
+  // 🔵 Show assigning message
   setAssignStatus({
     type: "info",
     message: "Assigning order, please wait...",
@@ -1227,24 +1229,32 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // Determine next step key + readable label
+    // ✅ CURRENT STAGE = MARKING 1
+    const currentSteps = "marking1";
+    const currentStepsLabel = getStepLabel(currentSteps);
+
+    // ✅ NEXT STAGE (dropdown > workflow default)
     const nextStepKey =
       quickAssignStep ||
-      (Array.isArray(nextSteps) ? nextSteps[0] : "marking1");
+      (Array.isArray(nextSteps) ? nextSteps[0] : "marking2");
 
     const nextStepLabel = getStepLabel(nextStepKey);
-     const currentStepsLabel = getStepLabel(currentSteps);
 
+    // ---------------------------
+    // MAIN ASSIGNMENT
+    // ---------------------------
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
-    formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+    formData.append(
+      "totalQty",
+      String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+    );
     formData.append("executedQty", String(mainQty));
     formData.append("currentSteps", currentStepsLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
 
-    console.log("📤 MAIN PAYLOAD:");
-    for (const p of formData.entries()) console.log(p[0], p[1]);
+    console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
 
     const responseMain = await axios.post(
       `${API_URL}/assign-order`,
@@ -1254,7 +1264,8 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
 
     const mainSuccess =
       responseMain.data?.Resp_code === "true" ||
-      responseMain.data?.Resp_code === true;
+      responseMain.data?.Resp_code === true ||
+      responseMain.data?.status === true;
 
     if (!mainSuccess) {
       setAssignStatus({
@@ -1266,17 +1277,22 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
 
     let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
+    // ---------------------------
+    // SPLIT ASSIGNMENT (OPTIONAL)
+    // ---------------------------
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
-      formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
+      formDataSplit.append(
+        "totalQty",
+        String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+      );
       formDataSplit.append("executedQty", String(splitQty));
+      formDataSplit.append("currentSteps", currentStepsLabel);
       formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
-      console.log("📤 SPLIT PAYLOAD:");
-      for (const p of formDataSplit.entries())
-        console.log("SPLIT:", p[0], p[1]);
+      console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
@@ -1286,7 +1302,8 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
 
       const splitSuccess =
         responseSplit.data?.Resp_code === "true" ||
-        responseSplit.data?.Resp_code === true;
+        responseSplit.data?.Resp_code === true ||
+        responseSplit.data?.status === true;
 
       if (splitSuccess) {
         successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
@@ -1299,14 +1316,25 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
         });
       }
     }
-    setAssignStatus({ type: "success", message: successMessage });
 
+    // ---------------------------
+    // ✅ SHOW SUCCESS MESSAGE
+    // ---------------------------
+    setAssignStatus({
+      type: "success",
+      message: successMessage,
+    });
+
+    // ---------------------------
+    // REMOVE ROW FROM CURRENT PAGE
+    // ---------------------------
     const makeKey = (o: AssemblyOrderData) =>
       (o.splittedCode || o.split_id)
         ? (o.splittedCode || o.split_id)
         : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
             .map((v) => v ?? "")
             .join("|");
+
     const selectedKey = makeKey(selectedOrder);
 
     setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
@@ -1316,9 +1344,13 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
       return copy;
     });
 
-    setQuickAssignOpen(false);
-    setAssignStatus(null);
-
+    // ---------------------------
+    // ⏱️ WAIT 1.5s → CLOSE POPUP
+    // ---------------------------
+    setTimeout(() => {
+      setQuickAssignOpen(false);
+      setAssignStatus(null);
+    }, 1000);
 
   } catch (error) {
     console.error("❌ Error assigning order:", error);
@@ -1330,6 +1362,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     setIsAssigning(false);
   }
 };
+
 
   // Upload file
   const handleUpload = async (e: React.FormEvent) => {
@@ -1530,7 +1563,11 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
-            style={{ scrollbarGutter: "stable" }}
+             style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
@@ -1538,7 +1575,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
               ) : (
                 <>
               <table className="min-w-full border-collapse">
-                <thead>
+                   <thead className="table-head sticky top-16 z-30 bg-white">
                   <tr>
                     {/* Select all sticky checkbox */}
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">

@@ -1381,8 +1381,13 @@ const splitLabel = getStepLabel(splitStep);
           return copy;
         });
 
+        setTimeout(() => {
       setQuickAssignOpen(false);
       setAssignStatus(null);
+    }, 1000);
+
+      // setQuickAssignOpen(false);
+      // setAssignStatus(null);
     } catch (error: any) {
       if (
     error?.name === "CanceledError" ||
@@ -1658,7 +1663,11 @@ const splitLabel = getStepLabel(splitStep);
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
           <div
-            ref={tableScrollRef}
+             style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}
             className="relative overflow-x-auto max-w-full"
             style={{ scrollbarGutter: "stable" }}
           >
@@ -1668,7 +1677,7 @@ const splitLabel = getStepLabel(splitStep);
               ) : (
                 <>
               <table className="min-w-full border-collapse">
-                <thead>
+                   <thead className="table-head sticky top-16 z-30 bg-white">
                   <tr>
                     {/* Select all sticky checkbox */}
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">

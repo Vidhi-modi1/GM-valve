@@ -1435,12 +1435,177 @@ const handleSaveRemarks = async () => {
 //   }
 // };
 
+// const handleAssignOrder = async () => {
+//   if (isAssigning) return;
+//   setIsAssigning(true);
+//   if (!selectedOrder) return;
+//   if (!validateQuickAssign()) return;
+
+//   setAssignStatus({
+//     type: "info",
+//     message: "Assigning order, please wait...",
+//   });
+
+//   try {
+//     const token = localStorage.getItem("token");
+//     if (!token) {
+//       setAssignStatus({
+//         type: "error",
+//         message: "Token missing. Please log in again.",
+//       });
+//       return;
+//     }
+
+//     // Current workflow stage for this page
+//     const currentStepKey = "assembly-d";
+//     const currentStepLabel = getStepLabel(currentStepKey);
+
+//     const mainQty = Number(quickAssignQty || 0);
+//     const splitQty = Number(splitAssignQty || 0);
+
+//     // Determine next step key
+//     const nextStepKey =
+//       quickAssignStep ||
+//       (Array.isArray(nextSteps) ? nextSteps[0] : "");
+
+//     const nextStepLabel = getStepLabel(nextStepKey);
+
+//     //
+//     // -----------------------------------
+//     // MAIN ASSIGNMENT
+//     // -----------------------------------
+//     //
+//     const formData = new FormData();
+//     formData.append("orderId", String(selectedOrder.id));
+//     formData.append(
+//       "totalQty",
+//       String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+//     );
+//     formData.append("executedQty", String(mainQty));
+//     formData.append("currentSteps", currentStepLabel);
+//     formData.append("nextSteps", nextStepLabel);
+//     formData.append("split_id", String(selectedOrder.split_id || ""));
+
+//     console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
+
+//     const responseMain = await axios.post(
+//       `${API_URL}/assign-order`,
+//       formData,
+//       { headers: { Authorization: `Bearer ${token}` } }
+//     );
+
+//     const mainSuccess =
+//       responseMain?.data?.Resp_code === "true" ||
+//       responseMain?.data?.Resp_code === true;
+
+//     if (!mainSuccess) {
+//       setAssignStatus({
+//         type: "error",
+//         message: responseMain?.data?.Resp_desc || "Main assignment failed.",
+//       });
+//       return;
+//     }
+
+//     let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+
+//     //
+//     // -----------------------------------
+//     // SPLIT ASSIGNMENT (IF ENABLED)
+//     // -----------------------------------
+//     //
+//     if (splitOrder && splitQty > 0) {
+//       const formDataSplit = new FormData();
+//       formDataSplit.append("orderId", String(selectedOrder.id));
+//       formDataSplit.append(
+//         "totalQty",
+//         String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
+//       );
+//       formDataSplit.append("executedQty", String(splitQty));
+//       formDataSplit.append("currentSteps", currentStepLabel);
+//       formDataSplit.append("nextSteps", nextStepLabel);
+//       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
+//       formDataSplit.append("splitOrder", "true");
+
+//       console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
+
+//       const responseSplit = await axios.post(
+//         `${API_URL}/assign-order`,
+//         formDataSplit,
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+
+//       const splitSuccess =
+//         responseSplit?.data?.Resp_code === "true" ||
+//         responseSplit?.data?.Resp_code === true;
+
+//       if (splitSuccess) {
+//         successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
+//       } else {
+//         setAssignStatus({
+//           type: "error",
+//           message:
+//             "Main assigned but split failed: " +
+//             (responseSplit?.data?.Resp_desc || "Unknown error"),
+//         });
+//       }
+//     }
+
+//     //
+//     // -----------------------------------
+//     // UPDATE LOCAL UI (NO ROW DELETE)
+//     // -----------------------------------
+//     //
+//     setOrders((prev) =>
+//       prev.map((o) => {
+//         if (o.id !== selectedOrder.id) return o;
+
+//         const oldExe = Number(o.qtyExe || 0);
+//         const additional = mainQty + (splitOrder ? splitQty : 0);
+
+//         const newExe = oldExe + additional;
+//         const total = Number(o.totalQty ?? o.qty ?? 0);
+//         const newPending = total - newExe;
+
+//         return {
+//           ...o,
+//           qtyExe: newExe,
+//           qtyPending: newPending,
+//         };
+//       })
+//     );
+
+//     //
+//     // -----------------------------------
+//     // REFRESH BACKEND (to show split rows)
+//     // -----------------------------------
+//     //
+//     await fetchOrders();
+
+//     //
+//     // CLOSE DIALOG
+//     //
+//     setAssignStatus({ type: "success", message: successMessage });
+//     setQuickAssignOpen(false);
+//     setAssignStatus(null);
+//   } catch (error) {
+//     console.error("❌ Error assigning order:", error);
+//     setAssignStatus({
+//       type: "error",
+//       message: "Server error while assigning.",
+//     });
+//   } finally {
+//     setIsAssigning(false);
+//   }
+// };
+
 const handleAssignOrder = async () => {
   if (isAssigning) return;
-  setIsAssigning(true);
   if (!selectedOrder) return;
   if (!validateQuickAssign()) return;
 
+  setIsAssigning(true);
+
+  // Show loading status
   setAssignStatus({
     type: "info",
     message: "Assigning order, please wait...",
@@ -1456,25 +1621,23 @@ const handleAssignOrder = async () => {
       return;
     }
 
-    // Current workflow stage for this page
+    // Current workflow stage
     const currentStepKey = "assembly-d";
     const currentStepLabel = getStepLabel(currentStepKey);
 
     const mainQty = Number(quickAssignQty || 0);
     const splitQty = Number(splitAssignQty || 0);
 
-    // Determine next step key
+    // Next step
     const nextStepKey =
       quickAssignStep ||
       (Array.isArray(nextSteps) ? nextSteps[0] : "");
 
     const nextStepLabel = getStepLabel(nextStepKey);
 
-    //
     // -----------------------------------
     // MAIN ASSIGNMENT
     // -----------------------------------
-    //
     const formData = new FormData();
     formData.append("orderId", String(selectedOrder.id));
     formData.append(
@@ -1485,8 +1648,6 @@ const handleAssignOrder = async () => {
     formData.append("currentSteps", currentStepLabel);
     formData.append("nextSteps", nextStepLabel);
     formData.append("split_id", String(selectedOrder.split_id || ""));
-
-    console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
 
     const responseMain = await axios.post(
       `${API_URL}/assign-order`,
@@ -1506,13 +1667,11 @@ const handleAssignOrder = async () => {
       return;
     }
 
-    let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
+    let successMessage = `Assigned ${mainQty} → ${nextStepLabel}`;
 
-    //
     // -----------------------------------
     // SPLIT ASSIGNMENT (IF ENABLED)
     // -----------------------------------
-    //
     if (splitOrder && splitQty > 0) {
       const formDataSplit = new FormData();
       formDataSplit.append("orderId", String(selectedOrder.id));
@@ -1525,8 +1684,6 @@ const handleAssignOrder = async () => {
       formDataSplit.append("nextSteps", nextStepLabel);
       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
       formDataSplit.append("splitOrder", "true");
-
-      console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
 
       const responseSplit = await axios.post(
         `${API_URL}/assign-order`,
@@ -1550,43 +1707,41 @@ const handleAssignOrder = async () => {
       }
     }
 
-    //
     // -----------------------------------
     // UPDATE LOCAL UI (NO ROW DELETE)
     // -----------------------------------
-    //
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id !== selectedOrder.id) return o;
 
         const oldExe = Number(o.qtyExe || 0);
-        const additional = mainQty + (splitOrder ? splitQty : 0);
-
-        const newExe = oldExe + additional;
+        const added = mainQty + (splitOrder ? splitQty : 0);
         const total = Number(o.totalQty ?? o.qty ?? 0);
-        const newPending = total - newExe;
 
         return {
           ...o,
-          qtyExe: newExe,
-          qtyPending: newPending,
+          qtyExe: oldExe + added,
+          qtyPending: total - (oldExe + added),
         };
       })
     );
 
-    //
-    // -----------------------------------
-    // REFRESH BACKEND (to show split rows)
-    // -----------------------------------
-    //
+    // Sync backend (important for split rows)
     await fetchOrders();
 
-    //
-    // CLOSE DIALOG
-    //
-    setAssignStatus({ type: "success", message: successMessage });
-    setQuickAssignOpen(false);
-    setAssignStatus(null);
+    // -----------------------------------
+    // ✅ SHOW SUCCESS → WAIT 2s → CLOSE
+    // -----------------------------------
+    setAssignStatus({
+      type: "success",
+      message: `✔ ${successMessage}`,
+    });
+
+    setTimeout(() => {
+      setQuickAssignOpen(false);
+      setAssignStatus(null);
+    }, 1000);
+
   } catch (error) {
     console.error("❌ Error assigning order:", error);
     setAssignStatus({
@@ -1597,6 +1752,7 @@ const handleAssignOrder = async () => {
     setIsAssigning(false);
   }
 };
+
 
 
   // Upload file
@@ -1830,7 +1986,11 @@ const handleAssignOrder = async () => {
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
-            style={{ scrollbarGutter: "stable" }}
+            style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
@@ -1838,7 +1998,7 @@ const handleAssignOrder = async () => {
               ) : (
                 <>
               <table className="min-w-full border-collapse">
-                <thead>
+                   <thead className="table-head sticky top-16 z-30 bg-white">
                   <tr>
                     {/* Select all sticky checkbox */}
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">

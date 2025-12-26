@@ -1441,8 +1441,10 @@ const handleAssignOrder = async () => {
       return copy;
     });
 
-    setQuickAssignOpen(false);
+    setTimeout(() => {
+      setQuickAssignOpen(false);
     setAssignStatus(null);
+  }, 1000);
   } catch (error: any) {
     console.error("❌ Error assigning order:", error);
     console.error("🔥 Backend Response:", error?.response?.data);
@@ -1694,7 +1696,11 @@ const handleAssignOrder = async () => {
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
-            style={{ scrollbarGutter: "stable" }}
+             style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
@@ -1702,7 +1708,7 @@ const handleAssignOrder = async () => {
               ) : (
                 <>
               <table className="min-w-full border-collapse">
-                <thead>
+                   <thead className="table-head sticky top-16 z-30 bg-white">
                   <tr>
                     {/* Select all sticky checkbox */}
                     <th className="sticky left-0 z-20 bg-white px-3 py-2 text-center border-r border-gray-200 w-12">

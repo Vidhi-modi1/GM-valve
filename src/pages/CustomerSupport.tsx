@@ -7,6 +7,8 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { API_URL } from '../config/api.ts';
+import { Label } from "../components/ui/label";
+
 import { getStepLabel, getAllWorkflowSteps } from '../config/workflowSteps';
 import {
   Select,
@@ -965,6 +967,7 @@ const getBackendStage = (stageKey: string) => {
       if (vNorm === 'ok') return 'OK';
       if (vNorm === 'pending') return 'pending';
       if (vNorm === 'in_progress' || vNorm === 'inprogress') return 'IN PROCESS';
+        if (vNorm === 'skip') return 'SKIP';
     }
     if (!order.workflowHistory) return '';
     // Normalize labels when comparing to workflowHistory entries
@@ -990,36 +993,84 @@ const getBackendStage = (stageKey: string) => {
     return '';
   };
 
+  // const renderStageCell = (status: string) => {
+  //   if (status === 'OK' || status === 'ok') {
+  //     return (
+  //       <div className="flex items-center justify-center">
+  //         <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
+  //           OK
+  //         </span>
+  //       </div>
+  //     );
+  //   }
+  //   if (status === 'IN PROCESS') {
+  //     return (
+  //       <div className="flex items-center justify-center">
+  //         <span className="px-2 py-1 bg-purple-100 text-purple-700 border-purple-200 rounded text-xs font-medium">
+  //           In Progress
+  //         </span>
+  //       </div>
+  //     );
+  //   }
+  //   if (status === 'pending') {
+  //     return (
+  //       <div className="flex items-center justify-center">
+  //         <span className="px-2 py-1 bg-blue-100 text-blue-700 border-blue-200 rounded text-xs font-medium">
+  //           Pending
+  //         </span>
+  //       </div>
+  //     );
+  //   }
+  //   return <div className="text-center text-gray-300">-</div>;
+  // };
+
   const renderStageCell = (status: string) => {
-    if (status === 'OK' || status === 'ok') {
-      return (
-        <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
-            OK
-          </span>
-        </div>
-      );
-    }
-    if (status === 'IN PROCESS') {
-      return (
-        <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-purple-100 text-purple-700 border-purple-200 rounded text-xs font-medium">
-            In Progress
-          </span>
-        </div>
-      );
-    }
-    if (status === 'pending') {
-      return (
-        <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 border-blue-200 rounded text-xs font-medium">
-            Pending
-          </span>
-        </div>
-      );
-    }
-    return <div className="text-center text-gray-300">-</div>;
-  };
+  const normalized = status?.toLowerCase();
+
+  if (normalized === 'ok') {
+    return (
+      <div className="flex items-center justify-center">
+        <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
+          OK
+        </span>
+      </div>
+    );
+  }
+
+  if (normalized === 'in process' || normalized === 'in_progress') {
+    return (
+      <div className="flex items-center justify-center">
+        <span className="px-2 py-1 bg-purple-100 text-purple-700 border border-purple-200 rounded text-xs font-medium">
+          In Progress
+        </span>
+      </div>
+    );
+  }
+
+  if (normalized === 'pending') {
+    return (
+      <div className="flex items-center justify-center">
+        <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
+          Pending
+        </span>
+      </div>
+    );
+  }
+
+  // ✅ NEW: Skip status
+  if (normalized === 'skip') {
+    return (
+      <div className="flex items-center justify-center">
+        <span className="px-2 py-1 bg-gray-100 text-gray-600 border border-gray-300 rounded text-xs font-medium">
+          Skip
+        </span>
+      </div>
+    );
+  }
+
+  return <div className="text-center text-gray-300">-</div>;
+};
+
 
   return (
     <>
@@ -1172,10 +1223,14 @@ const getBackendStage = (stageKey: string) => {
       </Card>
 
       {/* Orders Table */}
-      <Card className="bg-white/70 backdrop-blur-sm border-gray-200 overflow-hidden">
+      <Card className="bg-white/70 backdrop-blur-sm border-gray-200 overflow-hidden" style={{
+    maxHeight: "80vh",   // ✅ TABLE HEIGHT
+    overflowY: "auto",   // ✅ VERTICAL SCROLL
+    scrollbarGutter: "stable",
+  }}>
         <div className="overflow-x-auto"> 
           <table className="w-full">
-            <thead>
+            <thead className="table-head sticky top-16 z-30 bg-white">
               <tr className="bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 border-b border-gray-200">
                 <th className="px-4 py-3 text-center text-gray-700 sticky left-0 bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 z-10 ctm-opacity">Assembly Line</th>
                 <th className="px-4 py-3 text-gray-700 truncate text-center">SOA NO.</th>
@@ -1422,369 +1477,293 @@ const getBackendStage = (stageKey: string) => {
       </div>
 
       {/* Order Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="!max-w-6xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <Package className="h-6 w-6 text-[#174a9f]" />
-              Order Details - {selectedOrder?.uniqueCode}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
-              Comprehensive details of the selected order
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedOrder && (
-            <ScrollArea className="max-h-[70vh] pr-4">
-              <div className="space-y-6">
-                {/* Basic Information */}
-                <div>
-                  <h3 className="text-gray-900 mb-3 pb-2 border-b border-gray-200">Basic Information</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Order ID</p>
-                      <p className="text-gray-900">{selectedOrder.uniqueCode}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Current Stage</p>
-                      <Badge className={`${getStageColor(selectedOrder.currentStage)} border`}>
-                        {selectedOrder.currentStage}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Assembly Line</p>
-                      <p className="text-gray-900">{selectedOrder.assemblyLine}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">GMSOA NO.</p>
-                      <p className="text-gray-900">{selectedOrder.gmsoaNo}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">SOA SR NO.</p>
-                      <p className="text-gray-900">{selectedOrder.soaSrNo}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Assembly Date</p>
-                      <p className="text-gray-900">{selectedOrder.assemblyDate}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Customer Information */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">Customer Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <p className="text-sm text-gray-600">Party</p>
-                      <p className="text-gray-900">{selectedOrder.party}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Customer PO NO.</p>
-                      <p className="text-gray-900">{selectedOrder.customerPoNo}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Code NO.</p>
-                      <p className="text-gray-900">{selectedOrder.codeNo}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Product Information */}
-                <div>
-                  <h3 className="text-gray-900 mb-3 pb-2 border-b border-gray-200">Product Information</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600">Product</p>
-                      <p className="text-gray-900">{selectedOrder.product}</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Total Quantity</p>
-                        <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                          {selectedOrder.totalQty}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Qty Executed</p>
-                        <Badge className="bg-green-100 text-green-700 border-green-200">
-                          {selectedOrder.qtyExe}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Qty Pending</p>
-                        <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                          {selectedOrder.qtyPending}
-                        </Badge>
-                      </div>
-                       {/* <div>
-                          <Label className="text-gray-500 text-sm">
-                            Special notes
-                          </Label>
-                          <p className="text-gray-900 mt-1">
-                            {selectedOrder.special_notes || "-"}
-                          </p>
-                        </div> */}
-                    </div>
-                    {(editingDeliveryDate[selectedOrder.uniqueCode] || selectedOrder.expectedDeliveryDate) && (
-                      <div>
-                        <p className="text-sm text-gray-600">Expected Delivery Date</p>
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-sky-100 text-sky-700 border-sky-200">
-                            {new Date(editingDeliveryDate[selectedOrder.uniqueCode] || selectedOrder.expectedDeliveryDate || '').toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
-                          </Badge>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Manufacturing Details */}
-                <div>
-                  <h3 className="text-gray-900 mb-3 pb-2 border-b border-gray-200">Manufacturing Details</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Finished Valve</p>
-                      <p className="text-gray-900">{selectedOrder.finishedValve || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">GM Logo</p>
-                      <p className="text-gray-900">{selectedOrder.gmLogo}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Name Plate</p>
-                      <p className="text-gray-900">{selectedOrder.namePlate}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Inspection</p>
-                      <p className="text-gray-900">{selectedOrder.inspection}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Painting</p>
-                      <p className="text-gray-900">{selectedOrder.painting}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Alert Status</p>
-                      <Badge className={selectedOrder.alertStatus ? 'bg-red-100 text-red-700 border-red-200' : 'bg-green-100 text-green-700 border-green-200'}>
-                        {selectedOrder.alertStatus ? 'Urgent' : 'Normal'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Product Specifications */}
-                {(selectedOrder.productSpcl1 || selectedOrder.productSpcl2 || selectedOrder.productSpcl3) && (
-                  <div>
-                    <h3 className="text-gray-900 mb-3 pb-2 border-b border-gray-200">Product Specifications</h3>
-                    <div className="space-y-2">
-                      {selectedOrder.productSpcl1 && (
-                        <div>
-                          <p className="text-sm text-gray-600">Specification 1</p>
-                          <p className="text-gray-900">{selectedOrder.productSpcl1}</p>
-                        </div>
-                      )}
-                      {selectedOrder.productSpcl2 && (
-                        <div>
-                          <p className="text-sm text-gray-600">Specification 2</p>
-                          <p className="text-gray-900">{selectedOrder.productSpcl2}</p>
-                        </div>
-                      )}
-                      {selectedOrder.productSpcl3 && (
-                        <div>
-                          <p className="text-sm text-gray-600">Specification 3</p>
-                          <p className="text-gray-900">{selectedOrder.productSpcl3}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Workflow History */}
-                {selectedOrder.workflowHistory && selectedOrder.workflowHistory.length > 0 && (
-                  <div>
-                    <h3 className="text-gray-900 mb-3 pb-2 border-b border-gray-200">Workflow History</h3>
-                    <div className="space-y-3">
-                      {selectedOrder.workflowHistory.map((workflow, index) => (
-                        <div key={index} className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg relative">
-                          {(() => {
-                            // Calculate duration
-                            const enteredDate = new Date(workflow.enteredAt);
-                            const exitedDate = workflow.exitedAt ? new Date(workflow.exitedAt) : new Date();
-                            const durationMs = exitedDate.getTime() - enteredDate.getTime();
-                            const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-                            const durationDays = Math.floor(durationHours / 24);
-                            const remainingHours = durationHours % 24;
-                            
-                            let durationText = '';
-                            if (durationDays > 0) {
-                              durationText = `${durationDays}d ${remainingHours}h`;
-                            } else if (durationHours > 0) {
-                              const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-                              durationText = `${durationHours}h ${minutes}m`;
-                            } else {
-                              const minutes = Math.floor(durationMs / (1000 * 60));
-                              durationText = `${minutes}m`;
-                            }
-                            
-                            return (
-                              <Badge className="absolute top-2 right-2 bg-indigo-100 text-indigo-700 border-indigo-200">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {durationText}
-                              </Badge>
-                            );
-                          })()}
-                          <div className="flex-shrink-0 w-8 h-8 bg-[#174a9f] text-white rounded-full flex items-center justify-center text-sm">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge className={`${getStageColor(workflow.stage)} border`}>
-                                {workflow.stage}
-                              </Badge>
-                              <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                                Qty: {workflow.qtyProcessed}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              Entered: {workflow.enteredAt}
-                            </p>
-                            {workflow.exitedAt && (
-                              <p className="text-sm text-gray-600">
-                                Exited: {workflow.exitedAt}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Remarks */}
-                {selectedOrder.remarks && (
-                  <div>
-                    <h3 className="text-gray-900 mb-3 pb-2 border-b border-gray-200">Remarks</h3>
-                    <p className="text-gray-900 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                      {selectedOrder.remarks}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
-        </DialogContent>
-      </Dialog>
-
-{/* HISTORY DIALOG – TABLE VERSION */}
-<Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-  <DialogContent className="max-w-[800px] w-full modal-main overflow-y-auto rounded-xl shadow-lg">
-    
+      {/* Show Order Details Dialog */}
+<Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+  <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
     <DialogHeader>
-      <DialogTitle className="text-xl flex items-center gap-2">
-        <History className="h-5 w-5 text-[#174a9f]" />
-        Order History
-      </DialogTitle>
-      <DialogDescription className="text-gray-600">
-        Stage-by-stage workflow with timestamps and quantities.
+      <DialogTitle>Order Details</DialogTitle>
+      <DialogDescription>
+        Complete information for {selectedOrder?.uniqueCode}
       </DialogDescription>
     </DialogHeader>
 
-    {/* Table Container */}
-    <div className="border rounded-lg bg-white">
+    {selectedOrder && (
+      <div className="space-y-6 py-4">
 
-     
+        {/* ================= BASIC INFORMATION ================= */}
+        <div className="bg-blue-50/50 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 mb-3">
+            Basic Information
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-500 text-sm">Assembly Line</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.assemblyLine}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">SOA No.</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.gmsoaNo}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Sr. No.</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.soaSrNo}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Assembly Date</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.assemblyDate}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Unique Code</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.uniqueCode}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Splitted Code</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.splittedCode || "-"}
+              </p>
+            </div>
+          </div>
+        </div>
 
-      <div className="max-h-[60vh] overflow-y-auto">
-        <table className="w-full border-collapse">
-           {/* TABLE HEAD */}
-          <thead className="bg-gray-100 text-gray-700 text-sm border-b">
-            <tr>
-               <th className="px-4 py-3 text-left w-[25%]">Split Code</th>
-              <th className="px-4 py-3 text-left w-[40%]">Stage / Time</th>
-              <th className="px-4 py-3 text-center w-[20%]">Qty</th>
-              <th className="px-4 py-3 text-center w-[20%]">Assigned</th>
-              <th className="px-4 py-3 text-center w-[20%]">Duration</th>
-            </tr>
-          </thead>
-         <tbody className="text-sm">
-  {Object.keys(groupedHistory).length === 0 ? (
-    <tr>
-      <td colSpan={5} className="text-center text-gray-500 py-4">
-        No history found
-      </td>
-    </tr>
-  ) : (
-    Object.entries(groupedHistory).flatMap(
-      ([splitCode, rows]: any) =>
-        rows.map((h: any, i: number) => (
-          <tr
-            key={`${splitCode}-${i}`}
-            className="border-b hover:bg-blue-50/40 transition"
-          >
-            {/* ✅ SPLIT CODE – EVERY ROW */}
-            <td className="px-4 py-4 font-semibold text-blue-700">
-              {splitCode}
-            </td>
+        {/* ================= CUSTOMER & PRODUCT INFO ================= */}
+        <div className="bg-green-50/50 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 mb-3">
+            Customer & Product Information
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-500 text-sm">Party</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.party}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Customer PO No.</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.customerPoNo}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Code No</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.codeNo}</p>
+            </div>
+            <div className="col-span-2">
+              <Label className="text-gray-500 text-sm">Product</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.product}</p>
+            </div>
+          </div>
+        </div>
 
-            {/* Stage + Time */}
-            <td className="px-4 py-4 align-top">
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium border ${getStageColor(
-                  h.currentStage
-                )}`}
-              >
-                {h.currentStage}
-              </span>
+        {/* ================= QUANTITY INFO ================= */}
+        <div className="bg-purple-50/50 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 mb-3">
+            Quantity Information
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label className="text-gray-500 text-sm">Qty</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.qty}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Qty Exe.</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.qtyExe}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Qty Pending</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.qtyPending}</p>
+            </div>
+          </div>
+        </div>
 
-              <div className="text-xs text-gray-700 mt-1">
-                <div>{h.entered}</div>
-                {h.exited && <div>{h.exited}</div>}
-              </div>
-            </td>
+        {/* ================= PRODUCT SPECIFICATIONS ================= */}
+        <div className="bg-amber-50/50 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 mb-3">
+            Product Specifications
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-500 text-sm">Finished Valve</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.finishedValve || "-"}
+              </p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">GM Logo</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.gmLogo || "-"}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Name Plate</Label>
+              <p className="text-gray-900 mt-1">{selectedOrder.namePlate || "-"}</p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Product SPCL1</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.productSpcl1 || "-"}
+              </p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Product SPCL2</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.productSpcl2 || "-"}
+              </p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Special Notes</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.specialNotes || "-"}
+              </p>
+            </div>
+            <div className="col-span-2">
+              <Label className="text-gray-500 text-sm">Product SPCL3</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.productSpcl3 || "-"}
+              </p>
+            </div>
+          </div>
+        </div>
 
-            {/* Qty */}
-            <td className="px-4 py-4 text-center">
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
-                {h.qty}
-              </span>
-            </td>
+        {/* ================= ADDITIONAL INFO ================= */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 mb-3">
+            Additional Information
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-500 text-sm">Inspection</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.inspection || "-"}
+              </p>
+            </div>
+            <div>
+              <Label className="text-gray-500 text-sm">Painting</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.painting || "-"}
+              </p>
+            </div>
+            <div className="col-span-2">
+              <Label className="text-gray-500 text-sm">Remarks</Label>
+              <p className="text-gray-900 mt-1">
+                {selectedOrder.remarks || "-"}
+              </p>
+            </div>
+          </div>
+        </div>
 
-            {/* Assigned Qty */}
-            <td className="px-4 py-4 text-center">
-              {h.assigned_qty === "-" || h.assigned_qty === "0" || h.assigned_qty === 0 ? (
-                <span className="text-gray-400 font-medium">-</span>
-              ) : (
-                <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
-                  {h.assigned_qty}
-                </span>
-              )}
-            </td>
-
-            {/* Duration */}
-            <td className="px-4 py-4 text-center">
-              <span className="px-2 py-1 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-medium">
-                {h.duration || "-"}
-              </span>
-            </td>
-          </tr>
-        ))
-    )
-  )}
-</tbody>
-
-
-
-
-          
-        </table>
       </div>
+    )}
 
+    <div className="flex justify-end pt-4 border-t border-gray-100">
+      <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+        Close
+      </Button>
     </div>
   </DialogContent>
 </Dialog>
+
+
+      {/* HISTORY DIALOG – TABLE VERSION */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-[800px] w-full modal-main overflow-y-auto rounded-xl shadow-lg">
+          
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <History className="h-5 w-5 text-[#174a9f]" />
+              Order History
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Stage-by-stage workflow with timestamps and quantities.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Table Container */}
+          <div className="border rounded-lg bg-white">
+
+          
+
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full border-collapse">
+                {/* TABLE HEAD */}
+                <thead className="bg-gray-100 text-gray-700 text-sm border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left w-[25%]">Split Code</th>
+                    <th className="px-4 py-3 text-left w-[40%]">Stage / Time</th>
+                    <th className="px-4 py-3 text-center w-[20%]">Qty</th>
+                    <th className="px-4 py-3 text-center w-[20%]">Assigned</th>
+                    <th className="px-4 py-3 text-center w-[20%]">Duration</th>
+                  </tr>
+                </thead>
+              <tbody className="text-sm">
+        {Object.keys(groupedHistory).length === 0 ? (
+          <tr>
+            <td colSpan={5} className="text-center text-gray-500 py-4">
+              No history found
+            </td>
+          </tr>
+        ) : (
+          Object.entries(groupedHistory).flatMap(
+            ([splitCode, rows]: any) =>
+              rows.map((h: any, i: number) => (
+                <tr
+                  key={`${splitCode}-${i}`}
+                  className="border-b hover:bg-blue-50/40 transition"
+                >
+                  {/* ✅ SPLIT CODE – EVERY ROW */}
+                  <td className="px-4 py-4 font-semibold text-blue-700">
+                    {splitCode}
+                  </td>
+
+                  {/* Stage + Time */}
+                  <td className="px-4 py-4 align-top">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium border ${getStageColor(
+                        h.currentStage
+                      )}`}
+                    >
+                      {h.currentStage}
+                    </span>
+
+                    <div className="text-xs text-gray-700 mt-1">
+                      <div>{h.entered}</div>
+                      {h.exited && <div>{h.exited}</div>}
+                    </div>
+                  </td>
+
+                  {/* Qty */}
+                  <td className="px-4 py-4 text-center">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium">
+                      {h.qty}
+                    </span>
+                  </td>
+
+                  {/* Assigned Qty */}
+                  <td className="px-4 py-4 text-center">
+                    {h.assigned_qty === "-" || h.assigned_qty === "0" || h.assigned_qty === 0 ? (
+                      <span className="text-gray-400 font-medium">-</span>
+                    ) : (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded text-xs font-medium">
+                        {h.assigned_qty}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Duration */}
+                  <td className="px-4 py-4 text-center">
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-medium">
+                      {h.duration || "-"}
+                    </span>
+                  </td>
+                </tr>
+              ))
+          )
+        )}
+      </tbody>
+
+
+
+
+                
+              </table>
+            </div>
+
+          </div>
+        </DialogContent>
+      </Dialog>
 
       </div>
     </>
