@@ -1421,7 +1421,7 @@ const handleAssignOrder = async () => {
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Testing 1
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
             </div>

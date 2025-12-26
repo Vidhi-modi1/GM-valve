@@ -1685,11 +1685,11 @@ const handleAssignOrder = async () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
-            <div>
+            <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Assembly D
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
             </div>

@@ -1333,9 +1333,9 @@ const handleAssignOrder = async () => {
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
-          <div>
+          <div className="flex-row-main">
             <h1 className="text-gray-900 mb-2 text-2xl font-semibold">Stock Valve Store (SVS) Management</h1>
-            <p className="text-gray-600">Track and manage stock valve store orders and manufacturing workflow (Finished Valve = Yes)</p>
+            <p className="text-sm text-gray-600">Track and manage stock valve store orders and manufacturing workflow (Finished Valve = Yes)</p>
           </div>
 
           <div className="flex flex-col gap-4 w-full">
