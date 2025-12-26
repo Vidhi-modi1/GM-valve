@@ -303,7 +303,7 @@ if (Resp_code === "true") {
                 const headers = [
                   "Assembly Line",
                   "SOA No.",
-                  "SR. No.",
+                  "SR.No.",
                   "Assembly Date",
                   "Unique Code",
                   "Splitted Code",
@@ -363,7 +363,7 @@ if (Resp_code === "true") {
             const headers = [
               "Assembly Line",
                   "SOA No.",
-                  "SR. No.",
+                  "SR.No.",
                   "Assembly Date",
                   "Unique Code",
                   "Splitted Code",
