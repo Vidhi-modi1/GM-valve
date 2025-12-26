@@ -104,6 +104,26 @@ export function OrderFilters({
     return "Select date";
   };
 
+  const currentYear = new Date().getFullYear();
+
+const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
+
+const months = [
+  { value: 0, label: "January" },
+  { value: 1, label: "February" },
+  { value: 2, label: "March" },
+  { value: 3, label: "April" },
+  { value: 4, label: "May" },
+  { value: 5, label: "June" },
+  { value: 6, label: "July" },
+  { value: 7, label: "August" },
+  { value: 8, label: "September" },
+  { value: 9, label: "October" },
+  { value: 10, label: "November" },
+  { value: 11, label: "December" },
+];
+
+
   return (
     <div className="bg-white border border-[#174a9f]/20 rounded-xl p-5 shadow-sm">
       {/* 🔍 SEARCH */}
@@ -162,11 +182,27 @@ export function OrderFilters({
               <label className="text-xs text-[#174a9f]/70 pl-1">Date Filter Type</label>
               <Select
                 value={dateFilterMode}
-                onValueChange={(v: DateFilterMode) => {
-                  setDateFilterMode(v);
-                  setDateFrom(undefined);
-                  setDateTo(undefined);
-                }}
+               onValueChange={(v: DateFilterMode) => {
+  setDateFilterMode(v);
+
+  if (v === "year") {
+    const d = new Date(currentYear, 0, 1);
+    setDateFrom(d);
+    setDateTo(new Date(currentYear, 11, 31));
+  }
+
+  if (v === "month") {
+    const d = new Date(currentYear, new Date().getMonth(), 1);
+    setDateFrom(d);
+    setDateTo(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+  }
+
+  if (v === "range") {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  }
+}}
+
               >
                 <SelectTrigger className="h-10 bg-white/90 backdrop-blur-sm border-2 border-[#174a9f]/20 hover:border-[#174a9f]/40 focus:border-[#174a9f] transition-all duration-200 shadow-sm hover:shadow-md">
                   <SelectValue />
@@ -181,171 +217,171 @@ export function OrderFilters({
 
             {/* DATE PICKER */}
            <div className="space-y-1.5">
-                           <label className="text-xs text-[#174a9f]/70 pl-1">
-                             {dateFilterMode === 'year' && 'Select Year'}
-                             {dateFilterMode === 'month' && 'Select Month'}
-                             {dateFilterMode === 'range' && 'Select Date Range'}
-                           </label>
-                           
-                           <Popover>
-                             <PopoverTrigger asChild>
-                               <Button
-                                 variant="outline"
-                                 className="h-10 w-full justify-start text-left bg-white/90 backdrop-blur-sm border-2 border-[#174a9f]/20 hover:border-[#174a9f]/40 hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md"
-                               >
-                                 <CalendarIcon className="mr-2 h-4 w-4 text-[#174a9f]/70" />
-                                 <span className={!dateFrom && !dateTo ? "text-gray-500" : ""}>
-                                   {getDateDisplayText()}
-                                 </span>
-                               </Button>
-                             </PopoverTrigger>
-                           <PopoverContent className="w-auto p-0 border-2 border-[#174a9f]/20" align="start">
-                             {dateFilterMode === 'year' && (
-                               <div className="p-4 space-y-2">
-                                 <div className="text-sm text-[#174a9f] mb-3">Select Year</div>
-                                 <div className="grid grid-cols-2 gap-2">
-                                   {years.map(year => (
-                                     <Button
-                                       key={year}
-                                       variant="outline"
-                                       className={`h-10 ${
-                                         dateFrom && format(dateFrom, 'yyyy') === year.toString()
-                                           ? 'bg-[#174a9f] text-white hover:bg-[#174a9f]/90'
-                                           : 'hover:bg-[#174a9f]/10'
-                                       }`}
-                                       onClick={() => {
-                                         const yearDate = new Date(year, 0, 1);
-                                         setDateFrom(yearDate);
-                                         setDateTo(new Date(year, 11, 31));
-                                       }}
-                                     >
-                                       {year}
-                                     </Button>
-                                   ))}
-                                 </div>
-                               </div>
-                             )}
-                             
-                             {dateFilterMode === 'month' && (
-                               <div className="p-4 space-y-3">
-                                 <div className="text-sm text-[#174a9f] mb-2">Select Month & Year</div>
-                                 <Select
-                                   value={dateFrom ? format(dateFrom, 'yyyy') : currentYear.toString()}
-                                   onValueChange={(yearStr) => {
-                                     const year = parseInt(yearStr);
-                                     const month = dateFrom ? dateFrom.getMonth() : 0;
-                                     const newDate = new Date(year, month, 1);
-                                     setDateFrom(newDate);
-                                     const lastDay = new Date(year, month + 1, 0).getDate();
-                                     setDateTo(new Date(year, month, lastDay));
-                                   }}
-                                 >
-                                   <SelectTrigger className="w-full">
-                                     <SelectValue />
-                                   </SelectTrigger>
-                                   <SelectContent>
-                                     {years.map(year => (
-                                       <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                     ))}
-                                   </SelectContent>
-                                 </Select>
-                                 <div className="grid grid-cols-3 gap-2">
-                                   {months.map(({ value, label }) => {
-                                     const year = dateFrom ? dateFrom.getFullYear() : currentYear;
-                                     const isSelected = dateFrom && 
-                                       dateFrom.getMonth() === value && 
-                                       dateFrom.getFullYear() === year;
-                                     
-                                     return (
-                                       <Button
-                                         key={value}
-                                         variant="outline"
-                                         className={`h-9 text-xs ${
-                                           isSelected
-                                             ? 'bg-[#174a9f] text-white hover:bg-[#174a9f]/90'
-                                             : 'hover:bg-[#174a9f]/10'
-                                         }`}
-                                         onClick={() => {
-                                           const newDate = new Date(year, value, 1);
-                                           setDateFrom(newDate);
-                                           const lastDay = new Date(year, value + 1, 0).getDate();
-                                           setDateTo(new Date(year, value, lastDay));
-                                         }}
-                                       >
-                                         {label.slice(0, 3)}
-                                       </Button>
-                                     );
-                                   })}
-                                 </div>
-                               </div>
-                             )}
-                             
-                             {/* {dateFilterMode === 'range' && (
-                               <div className="p-4">
-                                 <div className="text-sm text-[#174a9f] mb-4">Select Date Range</div>
-                                 <div className="flex gap-4">
-                                   <div className="space-y-2">
-                                     <div className="text-xs text-[#174a9f]/70 px-1">Start Date</div>
-                                     <Calendar
-                                       mode="single"
-                                       selected={dateFrom}
-                                       onSelect={setDateFrom}
-                                       initialFocus
-                                     />
-                                   </div>
-                                   <div className="space-y-2">
-                                     <div className="text-xs text-[#174a9f]/70 px-1">End Date</div>
-                                     <Calendar
-                                       mode="single"
-                                       selected={dateTo}
-                                       onSelect={setDateTo}
-                                       disabled={(date) => dateFrom ? date < dateFrom : false}
-                                     />
-                                   </div>
-                                 </div>
-                               </div>
-                             )} */}
-                             {dateFilterMode === 'range' && (
-             <div className="p-4">
-               <div className="text-sm text-[#174a9f] mb-4">Select Date Range</div>
-           
-               <div className="flex gap-4">
-                 {/* Start Date */}
-                 <div className="space-y-2">
-                   <div className="text-xs text-[#174a9f]/70 px-1">Start Date</div>
-                   <Calendar
-                     mode="single"
-                     selected={dateFrom}
-                     onSelect={setDateFrom}
-                     initialFocus
-                     defaultMonth={dateFrom ?? new Date()}
-                   />
-                 </div>
-           
-                 {/* End Date */}
-                 <div className="space-y-2">
-                   <div className="text-xs text-[#174a9f]/70 px-1">End Date</div>
-                   <Calendar
-                     mode="single"
-                     selected={dateTo}
-                     onSelect={setDateTo}
-                     disabled={date => dateFrom ? date < dateFrom : false}
-                     defaultMonth={
-                       dateTo 
-                         ? dateTo 
-                         : dateFrom 
-                           ? new Date(dateFrom.getFullYear(), dateFrom.getMonth() + 1, 1)
-                           : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
-                     }
-                   />
-                 </div>
-               </div>
-             </div>
-           )}
-           
-                           </PopoverContent>
-                         </Popover>
-                       </div>
+                <label className="text-xs text-[#174a9f]/70 pl-1">
+                  {dateFilterMode === 'year' && 'Select Year'}
+                  {dateFilterMode === 'month' && 'Select Month'}
+                  {dateFilterMode === 'range' && 'Select Date Range'}
+                </label>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-10 w-full justify-start text-left bg-white/90 backdrop-blur-sm border-2 border-[#174a9f]/20 hover:border-[#174a9f]/40 hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-[#174a9f]/70" />
+                      <span className={!dateFrom && !dateTo ? "text-gray-500" : ""}>
+                        {getDateDisplayText()}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 border-2 border-[#174a9f]/20" align="start">
+                  {dateFilterMode === 'year' && (
+                    <div className="p-4 space-y-2">
+                      <div className="text-sm text-[#174a9f] mb-3">Select Year</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {years.map(year => (
+                          <Button
+                            key={year}
+                            variant="outline"
+                            className={`h-10 ${
+                              dateFrom && format(dateFrom, 'yyyy') === year.toString()
+                                ? 'bg-[#174a9f] text-white hover:bg-[#174a9f]/90'
+                                : 'hover:bg-[#174a9f]/10'
+                            }`}
+                            onClick={() => {
+                              const yearDate = new Date(year, 0, 1);
+                              setDateFrom(yearDate);
+                              setDateTo(new Date(year, 11, 31));
+                            }}
+                          >
+                            {year}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {dateFilterMode === 'month' && (
+                    <div className="p-4 space-y-3">
+                      <div className="text-sm text-[#174a9f] mb-2">Select Month & Year</div>
+                      <Select
+                        value={dateFrom ? format(dateFrom, 'yyyy') : currentYear.toString()}
+                        onValueChange={(yearStr) => {
+                          const year = parseInt(yearStr);
+                          const month = dateFrom ? dateFrom.getMonth() : 0;
+                          const newDate = new Date(year, month, 1);
+                          setDateFrom(newDate);
+                          const lastDay = new Date(year, month + 1, 0).getDate();
+                          setDateTo(new Date(year, month, lastDay));
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map(year => (
+                            <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="grid grid-cols-3 gap-2">
+                        {months.map(({ value, label }) => {
+                          const year = dateFrom ? dateFrom.getFullYear() : currentYear;
+                          const isSelected = dateFrom && 
+                            dateFrom.getMonth() === value && 
+                            dateFrom.getFullYear() === year;
+                          
+                          return (
+                            <Button
+                              key={value}
+                              variant="outline"
+                              className={`h-9 text-xs ${
+                                isSelected
+                                  ? 'bg-[#174a9f] text-white hover:bg-[#174a9f]/90'
+                                  : 'hover:bg-[#174a9f]/10'
+                              }`}
+                              onClick={() => {
+                                const newDate = new Date(year, value, 1);
+                                setDateFrom(newDate);
+                                const lastDay = new Date(year, value + 1, 0).getDate();
+                                setDateTo(new Date(year, value, lastDay));
+                              }}
+                            >
+                              {label.slice(0, 3)}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* {dateFilterMode === 'range' && (
+                    <div className="p-4">
+                      <div className="text-sm text-[#174a9f] mb-4">Select Date Range</div>
+                      <div className="flex gap-4">
+                        <div className="space-y-2">
+                          <div className="text-xs text-[#174a9f]/70 px-1">Start Date</div>
+                          <Calendar
+                            mode="single"
+                            selected={dateFrom}
+                            onSelect={setDateFrom}
+                            initialFocus
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-xs text-[#174a9f]/70 px-1">End Date</div>
+                          <Calendar
+                            mode="single"
+                            selected={dateTo}
+                            onSelect={setDateTo}
+                            disabled={(date) => dateFrom ? date < dateFrom : false}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )} */}
+                  {dateFilterMode === 'range' && (
+  <div className="p-4">
+    <div className="text-sm text-[#174a9f] mb-4">Select Date Range</div>
+
+    <div className="flex gap-4">
+      {/* Start Date */}
+      <div className="space-y-2">
+        <div className="text-xs text-[#174a9f]/70 px-1">Start Date</div>
+        <Calendar
+          mode="single"
+          selected={dateFrom}
+          onSelect={setDateFrom}
+          initialFocus
+          defaultMonth={dateFrom ?? new Date()}
+        />
+      </div>
+
+      {/* End Date */}
+      <div className="space-y-2">
+        <div className="text-xs text-[#174a9f]/70 px-1">End Date</div>
+        <Calendar
+          mode="single"
+          selected={dateTo}
+          onSelect={setDateTo}
+          disabled={date => dateFrom ? date < dateFrom : false}
+          defaultMonth={
+            dateTo 
+              ? dateTo 
+              : dateFrom 
+                ? new Date(dateFrom.getFullYear(), dateFrom.getMonth() + 1, 1)
+                : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+          }
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* CLEAR */}
