@@ -1,6 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Siren, Eye, MessageSquarePlus, Download, ArrowLeft, Printer } from "lucide-react";
+import {
+  Siren,
+  Eye,
+  MessageSquarePlus,
+  Download,
+  ArrowLeft,
+  Printer,
+} from "lucide-react";
 
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -71,7 +78,9 @@ export function PackagingPage() {
   const token = localStorage.getItem("token");
 
   const [orders, setOrders] = useState<PackagingOrderData[]>([]);
-  const [fullOrders, setFullOrders] = useState<PackagingOrderData[] | null>(null);
+  const [fullOrders, setFullOrders] = useState<PackagingOrderData[] | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +94,9 @@ export function PackagingPage() {
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
-  const [dateFilterMode, setDateFilterMode] = useState<"year" | "month" | "range">("range");
+  const [dateFilterMode, setDateFilterMode] = useState<
+    "year" | "month" | "range"
+  >("range");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -97,7 +108,9 @@ export function PackagingPage() {
   );
   const [remarksText, setRemarksText] = useState("");
   const [viewDetailsDialogOpen, setViewDetailsDialogOpen] = useState(false);
-  const [viewedOrder, setViewedOrder] = useState<PackagingOrderData | null>(null);
+  const [viewedOrder, setViewedOrder] = useState<PackagingOrderData | null>(
+    null
+  );
 
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -112,57 +125,69 @@ export function PackagingPage() {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const ok = res.data?.status === true || res.data?.status === "true" || Array.isArray(res.data?.data);
+      const ok =
+        res.data?.status === true ||
+        res.data?.status === "true" ||
+        Array.isArray(res.data?.data);
       if (ok && Array.isArray(res.data.data)) {
-        const mapped: PackagingOrderData[] = res.data.data.map((item: any, index: number) => ({
-          id: String(item.id),
-          assemblyLine: item.assembly_no || "",
-          gmsoaNo: item.soa_no || "",
-          soaSrNo: item.soa_sr_no || "",
-          assemblyDate: item.assembly_date || "",
-          uniqueCode: item.unique_code || item.order_no || "",
-          splittedCode: item.split_code || item.splitted_code || "",
-          split_id: item.split_id || item.split_code || item.splitted_code || "",
-          party: item.party_name || item.party || "",
-          customerPoNo: item.customer_po_no || "",
-          codeNo: item.code_no || "",
-          product: item.product || "",
-          totalQty: Number(item.totalQty || item.total_qty || item.qty || item.po_qty || 0),
-          qtyExe: Number(item.qty_executed || item.assigned_qty || 0),
-          qtyPending: Number(item.qty_pending || item.remaining_qty || 0),
-          finishedValve: item.finished_valve || "",
-          gmLogo: item.gm_logo || "",
-          namePlate: item.name_plate || "",
-          productSpcl1: item.product_spc1 || "",
-          productSpcl2: item.product_spc2 || "",
-          productSpcl3: item.product_spc3 || "",
-          inspection: item.inspection || "",
-          painting: item.painting || "",
-          remarks: item.remarks || "",
-          specialNotes: item.special_notes || item.special_note || "",
-          alertStatus:
-            item.is_urgent === true ||
-            item.is_urgent === "true" ||
-            item.alert_status === true ||
-            item.alert_status === "true" ||
-            item.urgent === 1 ||
-            item.urgent === "1",
-          packaging:
-            item.is_packaging === 1 ||
-            item.is_packaging === "1" ||
-            item.packaging === 1 ||
-            item.packaging === "1"
-              ? 1
-              : 0,
-          oclNo: item.ocl_no || "",
-          completedDate: item.completed_date || "",
-          originalIndex: index,
-        }));
+        const mapped: PackagingOrderData[] = res.data.data.map(
+          (item: any, index: number) => ({
+            id: String(item.id),
+            assemblyLine: item.assembly_no || "",
+            gmsoaNo: item.soa_no || "",
+            soaSrNo: item.soa_sr_no || "",
+            assemblyDate: item.assembly_date || "",
+            uniqueCode: item.unique_code || item.order_no || "",
+            splittedCode: item.split_code || item.splitted_code || "",
+            split_id:
+              item.split_id || item.split_code || item.splitted_code || "",
+            party: item.party_name || item.party || "",
+            customerPoNo: item.customer_po_no || "",
+            codeNo: item.code_no || "",
+            product: item.product || "",
+            totalQty: Number(
+              item.totalQty || item.total_qty || item.qty || item.po_qty || 0
+            ),
+            qtyExe: Number(item.qty_executed || item.assigned_qty || 0),
+            qtyPending: Number(item.qty_pending || item.remaining_qty || 0),
+            finishedValve: item.finished_valve || "",
+            gmLogo: item.gm_logo || "",
+            namePlate: item.name_plate || "",
+            productSpcl1: item.product_spc1 || "",
+            productSpcl2: item.product_spc2 || "",
+            productSpcl3: item.product_spc3 || "",
+            inspection: item.inspection || "",
+            painting: item.painting || "",
+            remarks: item.remarks || "",
+            specialNotes: item.special_notes || item.special_note || "",
+            alertStatus:
+              item.is_urgent === true ||
+              item.is_urgent === "true" ||
+              item.alert_status === true ||
+              item.alert_status === "true" ||
+              item.urgent === 1 ||
+              item.urgent === "1",
+            packaging:
+              item.is_packaging === 1 ||
+              item.is_packaging === "1" ||
+              item.packaging === 1 ||
+              item.packaging === "1"
+                ? 1
+                : 0,
+            oclNo: item.ocl_no || "",
+            completedDate: item.completed_date || "",
+            originalIndex: index,
+          })
+        );
         setOrders(mapped);
         setFullOrders(mapped);
       } else {
         setOrders([]);
-        setError(res?.data?.message || res?.data?.Resp_desc || "Failed to fetch packaging orders");
+        setError(
+          res?.data?.message ||
+            res?.data?.Resp_desc ||
+            "Failed to fetch packaging orders"
+        );
       }
     } catch (err: any) {
       setError("Error fetching packaging orders");
@@ -205,14 +230,21 @@ export function PackagingPage() {
   const filteredOrders = useMemo(() => {
     let filtered = orders.slice();
     if (showUrgentOnly) {
-      filtered = filtered.filter((o) => getAlertStatus(String(o.id)) || o.alertStatus);
+      filtered = filtered.filter(
+        (o) => getAlertStatus(String(o.id)) || o.alertStatus
+      );
     }
     if (showRemarksOnly) {
-      filtered = filtered.filter((o) => typeof o.remarks === "string" && o.remarks.trim().length > 0);
+      filtered = filtered.filter(
+        (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
+      );
     }
-    if (assemblyLineFilter !== "all") filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
-    if (gmsoaFilter !== "all") filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
-    if (partyFilter !== "all") filtered = filtered.filter((o) => o.party === partyFilter);
+    if (assemblyLineFilter !== "all")
+      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
+    if (gmsoaFilter !== "all")
+      filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
+    if (partyFilter !== "all")
+      filtered = filtered.filter((o) => o.party === partyFilter);
     if (dateFrom || dateTo) {
       filtered = filtered.filter((order) => {
         if (!order.assemblyDate || order.assemblyDate === "HOLD") return false;
@@ -237,10 +269,14 @@ export function PackagingPage() {
           return orderDate.getFullYear() === dateFrom.getFullYear();
         }
         if (dateFilterMode === "month" && dateFrom) {
-          return orderDate.getFullYear() === dateFrom.getFullYear() && orderDate.getMonth() === dateFrom.getMonth();
+          return (
+            orderDate.getFullYear() === dateFrom.getFullYear() &&
+            orderDate.getMonth() === dateFrom.getMonth()
+          );
         }
         if (dateFilterMode === "range") {
-          if (dateFrom && dateTo) return orderDate >= dateFrom && orderDate <= dateTo;
+          if (dateFrom && dateTo)
+            return orderDate >= dateFrom && orderDate <= dateTo;
           if (dateFrom) return orderDate >= dateFrom;
           if (dateTo) return orderDate <= dateTo;
         }
@@ -287,14 +323,14 @@ export function PackagingPage() {
     return filteredOrders.slice(start, start + perPage);
   }, [filteredOrders, page, perPage]);
 
-  
-
   /* ================= SELECTION ================= */
 
   const rowKey = (o: PackagingOrderData) =>
     o.splittedCode || o.split_id
       ? o.splittedCode || o.split_id
-      : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine].map((v) => v ?? "").join("|");
+      : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+          .map((v) => v ?? "")
+          .join("|");
 
   const toggleRowSelection = (key: string) => {
     setSelectedRows((prev) => {
@@ -311,12 +347,12 @@ export function PackagingPage() {
       setSelectedRows(new Set(filteredOrders.map(rowKey)));
     }
   };
-const selectedOrdersData = useMemo(
-  () => orders.filter((o) => selectedRows.has(rowKey(o))),
-  [orders, selectedRows]
-);
+  const selectedOrdersData = useMemo(
+    () => orders.filter((o) => selectedRows.has(rowKey(o))),
+    [orders, selectedRows]
+  );
 
-   const [binCardDialogOpen, setBinCardDialogOpen] = useState(false);
+  const [binCardDialogOpen, setBinCardDialogOpen] = useState(false);
   const handleShowBinCard = () => setBinCardDialogOpen(true);
 
   const handlePrintBinCard = () => {
@@ -333,7 +369,9 @@ const selectedOrdersData = useMemo(
             <h3 class="tag-title process-border">In Process Material Tag</h3>
             <div class="meta">
               <div class="meta-item">
-                <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+                <div><span class="label">Date:</span> ${
+                  order.assemblyDate
+                }</div>
                 <div>
                   <span class="label">SOA:</span>
                   ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
@@ -352,15 +390,23 @@ const selectedOrdersData = useMemo(
                 <span class="label">Party:</span><p>${order.party}</p>
               </div>
               <div clas="description item-label-description">
-                <span class="label item-label">Item:</span><p>${order.product}</p>
+                <span class="label item-label">Item:</span><p>${
+                  order.product
+                }</p>
               </div>
             </div>
             <div class="qty-logo">
               <div class="meta meta-logo">
-                <div class="meta-qty"><span class="label">QTY:</span> ${order.totalQty}</div>
-                <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+                <div class="meta-qty"><span class="label">QTY:</span> ${
+                  order.totalQty
+                }</div>
+                <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
+                  order.gmLogo
+                }</div>
               </div>
-              <div class="detail-items"><span class="label ">Special Note:</span> <span>${order.specialNotes || ""}</span></div>
+              <div class="detail-items"><span class="label ">Special Note:</span> <span>${
+                order.specialNotes || ""
+              }</span></div>
             </div>
             <div class="inspect">
               <span class="label">Inspected by:</span>
@@ -438,7 +484,8 @@ const selectedOrdersData = useMemo(
   };
 
   // Reflect whether every visible row is currently selected
-  const allRowsSelected = filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
+  const allRowsSelected =
+    filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
   /* ================= EXPORT ================= */
 
@@ -511,8 +558,6 @@ const selectedOrdersData = useMemo(
     }
   };
 
-  
-
   /* ================= UI ================= */
 
   return (
@@ -531,22 +576,26 @@ const selectedOrdersData = useMemo(
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
             <div className="flex-row-main">
-              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">Packaging</h1>
-              <p className="text-sm text-gray-600">Completed and packaged orders</p>
+              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
+                Packaging
+              </h1>
+              <p className="text-sm text-gray-600">
+                Completed and packaged orders
+              </p>
             </div>
             <div className="flex gap-4 w-full justify-end">
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 <div className="flex items-center gap-4">
                   <Button
-                                  onClick={handleShowBinCard}
-                                  variant="outline"
-                                  disabled={selectedRows.size === 0}
-                                  className="flex items-center gap-2 ctm-btn-disable"
-                                >
-                                  <Printer className="h-4 w-4" />
-                                  Print Bin Card
-                                </Button>
-                 
+                    onClick={handleShowBinCard}
+                    variant="outline"
+                    disabled={selectedRows.size === 0}
+                    className="flex items-center gap-2 ctm-btn-disable"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print Bin Card
+                  </Button>
+
                   {/* <Button
                     onClick={() => setShowUrgentOnly(!showUrgentOnly)}
                     className={`btn-urgent flex items-center gap-2 ${
@@ -565,7 +614,6 @@ const selectedOrdersData = useMemo(
                 </div>
               </div>
 
-              
               <Button
                 disabled={filteredOrders.length === 0}
                 onClick={handleExport}
@@ -584,28 +632,28 @@ const selectedOrdersData = useMemo(
             </div>
           </div>
           <div className="mt-4">
-             <Button
+            <Button
               variant="outline"
-                onClick={() => {
-                  try {
-                    const s = localStorage.getItem("user");
-                    const u = s ? JSON.parse(s) : null;
-                    const rawRole = u?.role?.name || u?.role || "";
-                    const role = String(rawRole || "").toLowerCase();
-                    if (role.includes("planning")) {
-                      navigate("/planning");
-                    } else {
-                      navigate("/dispatch");
-                    }
-                  } catch {
+              onClick={() => {
+                try {
+                  const s = localStorage.getItem("user");
+                  const u = s ? JSON.parse(s) : null;
+                  const rawRole = u?.role?.name || u?.role || "";
+                  const role = String(rawRole || "").toLowerCase();
+                  if (role.includes("planning")) {
+                    navigate("/planning");
+                  } else {
                     navigate("/dispatch");
                   }
-                }}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                    Back to Dispatch
-              </Button>
+                } catch {
+                  navigate("/dispatch");
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dispatch
+            </Button>
           </div>
           <div className="mt-4">
             <OrderFilters
@@ -630,7 +678,11 @@ const selectedOrdersData = useMemo(
                 setDateTo(undefined);
               }}
               hasActiveFilters={
-                assemblyLineFilter !== "all" || gmsoaFilter !== "all" || partyFilter !== "all" || !!dateFrom || !!dateTo
+                assemblyLineFilter !== "all" ||
+                gmsoaFilter !== "all" ||
+                partyFilter !== "all" ||
+                !!dateFrom ||
+                !!dateTo
               }
             />
           </div>
@@ -639,7 +691,11 @@ const selectedOrdersData = useMemo(
           <div
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
-            style={{ maxHeight: "80vh", overflowY: "auto", scrollbarGutter: "stable" }}
+            style={{
+              maxHeight: "80vh",
+              overflowY: "auto",
+              scrollbarGutter: "stable",
+            }}
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
@@ -660,7 +716,13 @@ const selectedOrdersData = useMemo(
                             className="peer rounded border p-0.5"
                             aria-label="Select all rows"
                           >
-                            <div className={`w-4 h-4 ${allRowsSelected ? "bg-blue-600" : "bg-white border"}`} />
+                            <div
+                              className={`w-4 h-4 ${
+                                allRowsSelected
+                                  ? "bg-blue-600"
+                                  : "bg-white border"
+                              }`}
+                            />
                           </button>
                         </th>
                         <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
@@ -672,7 +734,13 @@ const selectedOrdersData = useMemo(
                         <th
                           className="sticky left-274 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-24 cursor-pointer select-none"
                           onClick={() =>
-                            setSoaSort((prev) => (prev === "asc" ? "desc" : prev === "desc" ? null : "asc"))
+                            setSoaSort((prev) =>
+                              prev === "asc"
+                                ? "desc"
+                                : prev === "desc"
+                                ? null
+                                : "asc"
+                            )
                           }
                         >
                           Sr.No.
@@ -727,7 +795,10 @@ const selectedOrdersData = useMemo(
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           PRODUCT SPCL2
                         </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ width: "400px" }}>
+                        <th
+                          className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                          style={{ width: "400px" }}
+                        >
                           PRODUCT SPCL3
                         </th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
@@ -740,11 +811,11 @@ const selectedOrdersData = useMemo(
                           remarks
                         </th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                          OCL
+                          OCL Number
                         </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        {/* <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           Completed Date
-                        </th>
+                        </th> */}
                         <th className="sticky right-0 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
                           Actions
                         </th>
@@ -764,12 +835,17 @@ const selectedOrdersData = useMemo(
                           <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                             <Checkbox
                               checked={selectedRows.has(rowKey(order))}
-                              onCheckedChange={() => toggleRowSelection(rowKey(order))}
+                              onCheckedChange={() =>
+                                toggleRowSelection(rowKey(order))
+                              }
                               aria-label={`Select row ${order.id}`}
                             />
                           </td>
                           <td className="sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap text-center border-r border-gray-200 w-20">
-                            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                            <Badge
+                              variant="outline"
+                              className="bg-gray-50 text-gray-700 border-gray-200"
+                            >
                               {order.assemblyLine}
                             </Badge>
                           </td>
@@ -800,7 +876,11 @@ const selectedOrdersData = useMemo(
                             {order.codeNo}
                           </td>
                           <td className="px-3 py-2 text-center text-sm text-gray-900 w-80">
-                            <div className="line-clamp-2" style={{ width: "300px" }} title={order.product}>
+                            <div
+                              className="line-clamp-2"
+                              style={{ width: "300px" }}
+                              title={order.product}
+                            >
                               {order.product}
                             </div>
                           </td>
@@ -823,7 +903,11 @@ const selectedOrdersData = useMemo(
                             {order.namePlate}
                           </td>
                           <td className="px-3 py-2 text-center text-sm text-gray-900">
-                            <div className="line-clamp-2" style={{ width: "200px" }} title={order.specialNotes}>
+                            <div
+                              className="line-clamp-2"
+                              style={{ width: "200px" }}
+                              title={order.specialNotes}
+                            >
                               {order.specialNotes || "-"}
                             </div>
                           </td>
@@ -833,8 +917,13 @@ const selectedOrdersData = useMemo(
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.productSpcl2}
                           </td>
-                          <td className="px-3 py-2 text-center text-sm text-gray-900" style={{ width: "400px" }}>
-                            <div className="line-clamp-2">{order.productSpcl3}</div>
+                          <td
+                            className="px-3 py-2 text-center text-sm text-gray-900"
+                            style={{ width: "400px" }}
+                          >
+                            <div className="line-clamp-2">
+                              {order.productSpcl3}
+                            </div>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.inspection}
@@ -849,12 +938,18 @@ const selectedOrdersData = useMemo(
                                 variant="ghost"
                                 title={order.remarks || "Add / Edit Remarks"}
                                 className={`h-7 w-7 p-0 ${
-                                  order.remarks?.trim() ? "bg-[#174a9f] hover:bg-[#123a7f]" : "hover:bg-[#d1e2f3]"
+                                  order.remarks?.trim()
+                                    ? "bg-[#174a9f] hover:bg-[#123a7f]"
+                                    : "hover:bg-[#d1e2f3]"
                                 }`}
                                 onClick={() => openRemarks(order)}
                               >
                                 <MessageSquarePlus
-                                  className={`h-4 w-4 ${order.remarks?.trim() ? "text-white" : "text-blue-600"}`}
+                                  className={`h-4 w-4 ${
+                                    order.remarks?.trim()
+                                      ? "text-white"
+                                      : "text-blue-600"
+                                  }`}
                                 />
                               </Button>
                               {order.remarks?.trim() && (
@@ -867,9 +962,9 @@ const selectedOrdersData = useMemo(
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.oclNo || "-"}
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
+                          {/* <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.completedDate || "-"}
-                          </td>
+                          </td> */}
                           <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 whitespace-nowrap border-l border-gray-200">
                             <div className="flex items-center space-x-1">
                               <Button
@@ -877,7 +972,10 @@ const selectedOrdersData = useMemo(
                                 variant="ghost"
                                 className="h-7 w-7 p-0 hover:bg-blue-100"
                                 title="View Details"
-                                onClick={() => setViewedOrder(order) || setViewDetailsDialogOpen(true)}
+                                onClick={() =>
+                                  setViewedOrder(order) ||
+                                  setViewDetailsDialogOpen(true)
+                                }
                               >
                                 <Eye className="h-4 w-4 text-blue-600" />
                               </Button>
@@ -885,14 +983,18 @@ const selectedOrdersData = useMemo(
                                 size="sm"
                                 variant="ghost"
                                 className={`h-7 w-7 p-0 transition-all duration-200 ${
-                                  order.alertStatus ? "bg-red-100 border border-red-200 shadow-sm" : "hover:bg-red-50"
+                                  order.alertStatus
+                                    ? "bg-red-100 border border-red-200 shadow-sm"
+                                    : "hover:bg-red-50"
                                 }`}
                                 title={"Urgent status is read-only"}
                                 disabled
                               >
                                 <Siren
                                   className={`h-4 w-4 ${
-                                    order.alertStatus ? "text-red-600 animate-siren-pulse" : "text-gray-400"
+                                    order.alertStatus
+                                      ? "text-red-600 animate-siren-pulse"
+                                      : "text-gray-400"
                                   }`}
                                 />
                               </Button>
@@ -903,7 +1005,9 @@ const selectedOrdersData = useMemo(
                     </tbody>
                   </table>
                   {filteredOrders.length === 0 && (
-                    <div className="p-6 text-center text-gray-500">No orders found.</div>
+                    <div className="p-6 text-center text-gray-500">
+                      No orders found.
+                    </div>
                   )}
                 </>
               )}
@@ -914,7 +1018,10 @@ const selectedOrdersData = useMemo(
           page={page}
           perPage={perPage}
           total={filteredOrders.length}
-          lastPage={Math.max(1, Math.ceil(filteredOrders.length / Math.max(perPage, 1)))}
+          lastPage={Math.max(
+            1,
+            Math.ceil(filteredOrders.length / Math.max(perPage, 1))
+          )}
           onChangePage={setPage}
           onChangePerPage={setPerPage}
           disabled={loading}
@@ -940,16 +1047,24 @@ const selectedOrdersData = useMemo(
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>Complete information for {viewedOrder?.uniqueCode}</DialogDescription>
+            <DialogDescription>
+              Complete information for {viewedOrder?.uniqueCode}
+            </DialogDescription>
           </DialogHeader>
           {viewedOrder && (
             <div className="space-y-6 py-4">
               <div className="bg-blue-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Basic Information</h3>
+                <h3 className="font-medium text-gray-900 mb-3">
+                  Basic Information
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-500 text-sm">Assembly Line</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.assemblyLine}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Assembly Line
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.assemblyLine}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">SOA No.</Label>
@@ -960,29 +1075,45 @@ const selectedOrdersData = useMemo(
                     <p className="text-gray-900 mt-1">{viewedOrder.soaSrNo}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">Assembly Date</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.assemblyDate}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Assembly Date
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.assemblyDate}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">Unique Code</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.uniqueCode}</p>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.uniqueCode}
+                    </p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">Splitted Code</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.splittedCode || "-"}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Splitted Code
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.splittedCode || "-"}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="bg-green-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Customer & Product Information</h3>
+                <h3 className="font-medium text-gray-900 mb-3">
+                  Customer & Product Information
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-500 text-sm">Party</Label>
                     <p className="text-gray-900 mt-1">{viewedOrder.party}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">Customer PO No.</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.customerPoNo}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Customer PO No.
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.customerPoNo}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">Code No</Label>
@@ -995,7 +1126,9 @@ const selectedOrdersData = useMemo(
                 </div>
               </div>
               <div className="bg-purple-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Quantity Information</h3>
+                <h3 className="font-medium text-gray-900 mb-3">
+                  Quantity Information
+                </h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label className="text-gray-500 text-sm">Qty</Label>
@@ -1007,16 +1140,24 @@ const selectedOrdersData = useMemo(
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">Qty Pending</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.qtyPending}</p>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.qtyPending}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="bg-amber-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Product Specifications</h3>
+                <h3 className="font-medium text-gray-900 mb-3">
+                  Product Specifications
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-500 text-sm">Finished Valve</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.finishedValve || "-"}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Finished Valve
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.finishedValve || "-"}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">GM Logo</Label>
@@ -1024,24 +1165,38 @@ const selectedOrdersData = useMemo(
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">Name Plate</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.namePlate}</p>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.namePlate}
+                    </p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">Special notes</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.specialNotes || "-"}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Special notes
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.specialNotes || "-"}
+                    </p>
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-gray-500 text-sm">Product SPCL3</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.productSpcl3 || "-"}</p>
+                    <Label className="text-gray-500 text-sm">
+                      Product SPCL3
+                    </Label>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.productSpcl3 || "-"}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Additional Information</h3>
+                <h3 className="font-medium text-gray-900 mb-3">
+                  Additional Information
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-500 text-sm">Inspection</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.inspection}</p>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.inspection}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-500 text-sm">Painting</Label>
@@ -1049,130 +1204,139 @@ const selectedOrdersData = useMemo(
                   </div>
                   <div className="col-span-2">
                     <Label className="text-gray-500 text-sm">Remarks</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.remarks || "No remarks"}</p>
+                    <p className="text-gray-900 mt-1">
+                      {viewedOrder.remarks || "No remarks"}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
           )}
           <div className="flex justify-end pt-4 border-t border-gray-100">
-            <Button variant="outline" onClick={() => setViewDetailsDialogOpen(false)}>Close</Button>
+            <Button
+              variant="outline"
+              onClick={() => setViewDetailsDialogOpen(false)}
+            >
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-               {/* Bin Card Dialog */}
-                           <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-                                   <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
-                                     <DialogHeader>
-                                       <DialogTitle className="text-lg font-semibold text-gray-900">
-                                         Bin Card Preview
-                                       </DialogTitle>
-                                       <DialogDescription className="text-sm text-gray-500">
-                                         This preview matches the printed bin card layout.
-                                       </DialogDescription>
-                                     </DialogHeader>
-                         
-                                     <div className="py-6 space-y-8">
-                                       {selectedOrdersData.map((order) => (
-                                         <div
-                                           key={order.id}
-                                           className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
-                                         >
-                                           {/* COMPANY NAME */}
-                                           <h1 className="text-center text-lg font-bold">
-                                             G M Valve Pvt. Ltd.
-                                           </h1>
-                         
-                                           {/* ADDRESS */}
-                                           <p className="mt-1 text-center text-[11px] leading-tight">
-                                             Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-                                             Village Metoda, Dist. Rajkot-360 021
-                                           </p>
-                         
-                                           {/* TAG */}
-                                           <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
-                                             In Process Material Tag
-                                           </div>
-                         
-                                           {/* DATE / SOA / DOC */}
-                                           <div className="mt-3 grid grid-cols-3 items-start text-sm">
-                                             <div>
-                                               <div>
-                                                 <span className="font-semibold">Date:</span>{" "}
-                                                 {order.assemblyDate}
-                                               </div>
-                                               <div>
-                                                 <span className="font-semibold">SOA:</span>{" "}
-                                                 {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
-                                               </div>
-                                             </div>
-                         
-                                             <div className="flex justify-center">
-                                               <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
-                                                 Assembly Line: {order.assemblyLine}
-                                               </span>
-                                             </div>
-                         
-                                             <div className="text-right text-xs leading-tight">
-                                               <div>GMV-L4-F-PRD 01 A</div>
-                                               <div>(02/10.09.2020)</div>
-                                             </div>
-                                           </div>
-                         
-                                           {/* PARTY */}
-                                           <div className="mt-4 text-sm flex gap-2 items-center">
-                                             <span className="font-semibold">Party:</span>
-                                             <div className="mt-1">{order.party}</div>
-                                           </div>
-                         
-                                           {/* ITEM */}
-                                           <div className="mt-4 text-sm flex gap-2 items-start">
-                                             <span className="font-semibold">Item:</span>
-                                             <div className="mt-1 leading-snug">{order.product}</div>
-                                           </div>
-                         
-                                           {/* QTY & LOGO */}
-                                           <div className="mt-4 flex justify-between text-sm">
-                                             <div>
-                                               <span className="font-semibold">QTY:</span> {order.qty}
-                                             </div>
-                                             <div>
-                                               <span className="font-semibold">Logo:</span> {order.gmLogo}
-                                             </div>
-                                           </div>
-                         
-                                           {/* SPECIAL NOTE */}
-                                           <div className="mt-4 text-sm flex gap-2 items-center">
-                                             <span className="font-semibold">Special Note:</span>
-                                             <div className="mt-1 h-5">
-                                               {order.specialNotes || ""}
-                                             </div>
-                                           </div>
-                         
-                                           {/* INSPECTED BY */}
-                                           <div className="mt-6 inspected text-sm">
-                                             <span className="font-semibold">Inspected by:</span>
-                                             <div className="mt-1 h-6 border-b border-black"></div>
-                                           </div>
-                                         </div>
-                                       ))}
-                                     </div>
-                         
-                                     {/* ACTIONS */}
-                                     <div className="flex justify-end gap-3 border-t pt-4">
-                                       <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
-                                         Cancel
-                                       </Button>
-                                       <Button
-                                         onClick={handlePrintBinCard}
-                                         className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
-                                       >
-                                         <Printer className="h-4 w-4" />
-                                         Print
-                                       </Button>
-                                     </div>
-                                   </DialogContent>
-                                 </Dialog>
+      {/* Bin Card Dialog */}
+      <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+        <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900">
+              Bin Card Preview
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">
+              This preview matches the printed bin card layout.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6 space-y-8">
+            {selectedOrdersData.map((order) => (
+              <div
+                key={order.id}
+                className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
+              >
+                {/* COMPANY NAME */}
+                <h1 className="text-center text-lg font-bold">
+                  G M Valve Pvt. Ltd.
+                </h1>
+
+                {/* ADDRESS */}
+                <p className="mt-1 text-center text-[11px] leading-tight">
+                  Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+                  Village Metoda, Dist. Rajkot-360 021
+                </p>
+
+                {/* TAG */}
+                <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+                  In Process Material Tag
+                </div>
+
+                {/* DATE / SOA / DOC */}
+                <div className="mt-3 grid grid-cols-3 items-start text-sm">
+                  <div>
+                    <div>
+                      <span className="font-semibold">Date:</span>{" "}
+                      {order.assemblyDate}
+                    </div>
+                    <div>
+                      <span className="font-semibold">SOA:</span>{" "}
+                      {String(order.gmsoaNo).replace(/^SOA/i, "")}-
+                      {order.soaSrNo}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center">
+                    <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                      Assembly Line: {order.assemblyLine}
+                    </span>
+                  </div>
+
+                  <div className="text-right text-xs leading-tight">
+                    <div>GMV-L4-F-PRD 01 A</div>
+                    <div>(02/10.09.2020)</div>
+                  </div>
+                </div>
+
+                {/* PARTY */}
+                <div className="mt-4 text-sm flex gap-2 items-center">
+                  <span className="font-semibold">Party:</span>
+                  <div className="mt-1">{order.party}</div>
+                </div>
+
+                {/* ITEM */}
+                <div className="mt-4 text-sm flex gap-2 items-start">
+                  <span className="font-semibold">Item:</span>
+                  <div className="mt-1 leading-snug">{order.product}</div>
+                </div>
+
+                {/* QTY & LOGO */}
+                <div className="mt-4 flex justify-between text-sm">
+                  <div>
+                    <span className="font-semibold">QTY:</span> {order.qty}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Logo:</span> {order.gmLogo}
+                  </div>
+                </div>
+
+                {/* SPECIAL NOTE */}
+                <div className="mt-4 text-sm flex gap-2 items-center">
+                  <span className="font-semibold">Special Note:</span>
+                  <div className="mt-1 h-5">{order.specialNotes || ""}</div>
+                </div>
+
+                {/* INSPECTED BY */}
+                <div className="mt-6 inspected text-sm">
+                  <span className="font-semibold">Inspected by:</span>
+                  <div className="mt-1 h-6 border-b border-black"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-3 border-t pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setBinCardDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePrintBinCard}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
+            >
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
