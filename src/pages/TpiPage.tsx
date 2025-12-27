@@ -430,16 +430,19 @@ const useGlobalSearch = useMemo(() => {
   return words.slice(0, wordLimit).join(" ") + "...";
 };
 
-const rowKey = (o: AssemblyOrderData) =>
-  o.splittedCode || o.split_id
-    ? o.splittedCode || o.split_id
-    : [
-        o.uniqueCode,
-        o.soaSrNo,
-        o.gmsoaNo,
-        o.codeNo,
-        o.assemblyLine
-      ].join("|");
+// const rowKey = (o: AssemblyOrderData) =>
+//   o.splittedCode || o.split_id
+//     ? o.splittedCode || o.split_id
+//     : [
+//         o.uniqueCode,
+//         o.soaSrNo,
+//         o.gmsoaNo,
+//         o.codeNo,
+//         o.assemblyLine
+//       ].join("|");
+
+const rowKey = (o: AssemblyOrderData) => o.id;
+
 
   // selection helpers
 const toggleRowSelection = (key: string) => {
@@ -453,7 +456,8 @@ const toggleRowSelection = (key: string) => {
 
 const toggleSelectAll = () => {
   setSelectedRows((prev) => {
-    const visibleKeys = paginatedOrders.map(o => rowKey(o));
+const visibleKeys = paginatedOrders.map(o => o.id);
+
 
     const allVisibleSelected = visibleKeys.every(k => prev.has(k));
 
@@ -475,9 +479,11 @@ const toggleSelectAll = () => {
 const allRowsSelected = useMemo(() => {
   if (paginatedOrders.length === 0) return false;
 
-  return paginatedOrders.every(o =>
-    selectedRows.has(rowKey(o))
-  );
+ return paginatedOrders.every(o =>
+  selectedRows.has(o.id)
+
+);
+
 }, [paginatedOrders, selectedRows]);
 
 
@@ -903,9 +909,10 @@ const handlePrintBinCard = () => {
   //   };
   // }, [selectedRows, filteredOrders]);
 const selectedTotals = useMemo(() => {
-  const selectedData = filteredOrders.filter(o =>
-    selectedRows.has(rowKey(o))
-  );
+const selectedData = filteredOrders.filter(o =>
+  selectedRows.has(o.id)
+);
+
 
   return {
     count: selectedData.length,
@@ -929,7 +936,7 @@ const handleExport = () => {
   }
 
   const dataToExport = hasSelection
-    ? filteredOrders.filter((o) => selectedRows.has(rowKey(o)))
+    ? filteredOrders.filter((o) => selectedRows.has(o.id))
     : filteredOrders;
 
   if (!dataToExport.length) {
@@ -1840,8 +1847,9 @@ const handleAssignOrder = async () => {
   ].join("-")} className="group hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                        <Checkbox
-  checked={selectedRows.has(rowKey(order))}
-  onCheckedChange={() => toggleRowSelection(rowKey(order))}
+checked={selectedRows.has(order.id)}
+onCheckedChange={() => toggleRowSelection(order.id)}
+
   aria-label={`Select row ${rowKey(order)}`}
 />
 
@@ -2224,13 +2232,13 @@ const handleAssignOrder = async () => {
                                      </div>
                    
                                      {/* PARTY */}
-                                     <div className="mt-4 text-sm">
+                                     <div className="mt-4 text-sm flex gap-2 items-center">
                                        <span className="font-semibold">Party:</span>
                                        <div className="mt-1">{order.party}</div>
                                      </div>
                    
                                      {/* ITEM */}
-                                     <div className="mt-3 text-sm">
+                                     <div className="mt-4 text-sm flex gap-2 items-start">
                                        <span className="font-semibold">Item:</span>
                                        <div className="mt-1 leading-snug">{order.product}</div>
                                      </div>
@@ -2246,9 +2254,9 @@ const handleAssignOrder = async () => {
                                      </div>
                    
                                      {/* SPECIAL NOTE */}
-                                     <div className="mt-4 text-sm">
+                                     <div className="mt-4 text-sm flex gap-2 items-center">
                                        <span className="font-semibold">Special Note:</span>
-                                       <div className="mt-1 h-5 border-b border-black">
+                                       <div className="mt-1 h-5">
                                          {order.specialNotes || ""}
                                        </div>
                                      </div>

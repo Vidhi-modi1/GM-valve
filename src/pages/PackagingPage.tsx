@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Siren, Eye, MessageSquarePlus, Download } from "lucide-react";
+import { Siren, Eye, MessageSquarePlus, Download,ArrowLeft } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import {
@@ -407,26 +407,7 @@ export function PackagingPage() {
             <div className="flex gap-4 w-full justify-end">
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 <div className="flex items-center gap-4">
-                  <Button
-                    onClick={() => {
-                      try {
-                        const s = localStorage.getItem("user");
-                        const u = s ? JSON.parse(s) : null;
-                        const rawRole = u?.role?.name || u?.role || "";
-                        const role = String(rawRole || "").toLowerCase();
-                        if (role.includes("planning")) {
-                          navigate("/planning");
-                        } else {
-                          navigate("/dispatch");
-                        }
-                      } catch {
-                        navigate("/dispatch");
-                      }
-                    }}
-                    className="bg-gradient-to-r bg-btn-gradient from-gray-600 to-gray-700 text-white shadow-md transition-all"
-                  >
-                    Back to Dispatch
-                  </Button>
+                 
                   <Button
                     onClick={() => setShowUrgentOnly(!showUrgentOnly)}
                     className={`btn-urgent flex items-center gap-2 ${
@@ -444,6 +425,8 @@ export function PackagingPage() {
                   </Button>
                 </div>
               </div>
+
+              
               <Button
                 disabled={filteredOrders.length === 0}
                 onClick={handleExport}
@@ -461,6 +444,29 @@ export function PackagingPage() {
               </Button>
             </div>
           </div>
+          <div className="mt-4">
+             <Button
+                onClick={() => {
+                  try {
+                    const s = localStorage.getItem("user");
+                    const u = s ? JSON.parse(s) : null;
+                    const rawRole = u?.role?.name || u?.role || "";
+                    const role = String(rawRole || "").toLowerCase();
+                    if (role.includes("planning")) {
+                      navigate("/planning");
+                    } else {
+                      navigate("/dispatch");
+                    }
+                  } catch {
+                    navigate("/dispatch");
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                    Back to Dispatch
+              </Button>
+              </div>
           <div className="mt-4">
             <OrderFilters
               currentStage="default"

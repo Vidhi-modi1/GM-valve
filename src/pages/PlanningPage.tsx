@@ -2124,13 +2124,13 @@ useEffect(() => {
                   </div>
 
                   {/* PARTY */}
-                  <div className="mt-4 text-sm">
+                  <div className="mt-4 text-sm flex gap-2 items-center">
                     <span className="font-semibold">Party:</span>
                     <div className="mt-1">{order.party}</div>
                   </div>
 
                   {/* ITEM */}
-                  <div className="mt-3 text-sm">
+                 <div className="mt-4 text-sm flex gap-2 items-start">
                     <span className="font-semibold">Item:</span>
                     <div className="mt-1 leading-snug">{order.product}</div>
                   </div>
@@ -2146,9 +2146,9 @@ useEffect(() => {
                   </div>
 
                   {/* SPECIAL NOTE */}
-                  <div className="mt-4 text-sm">
+                  <div className="mt-4 text-sm flex gap-2 items-center">
                     <span className="font-semibold">Special Note:</span>
-                    <div className="mt-1 h-5 border-b border-black">
+                    <div className="mt-1 h-5">
                       {order.specialNotes || ""}
                     </div>
                   </div>
