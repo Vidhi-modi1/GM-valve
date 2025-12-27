@@ -25,6 +25,7 @@ import { DashboardHeader } from "../components/dashboard-header.tsx";
 // Local normalized order type (avoid components import)
 interface OrderData {
   id: string;
+  specialNotes: string;
   assemblyLine: string;
   gmsoaNo: string;
   soaSrNo: string;
@@ -202,6 +203,7 @@ const stageKey = normalizeStageKey(rawStage);
     finishedValve: item.finished_valve || '',
     gmLogo: item.gm_logo || '',
     namePlate: item.name_plate || '',
+     specialNotes: item.special_notes || item.special_note || "",
     productSpcl1: item.product_spc1 || '',
     productSpcl2: item.product_spc2 || '',
     productSpcl3: item.product_spc3 || '',
@@ -1659,7 +1661,7 @@ const getBackendStage = (stageKey: string) => {
 
       {/* HISTORY DIALOG – TABLE VERSION */}
       <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-        <DialogContent className="max-w-[800px] w-full modal-main overflow-y-auto rounded-xl shadow-lg">
+        <DialogContent className="max-w-[800px] w-full modal-main overflow-y-auto rounded-xl shadow-lg flex flex-col">
           
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
@@ -1673,9 +1675,6 @@ const getBackendStage = (stageKey: string) => {
 
           {/* Table Container */}
           <div className="border rounded-lg bg-white">
-
-          
-
             <div className="max-h-[60vh] overflow-y-auto">
               <table className="w-full border-collapse">
                 {/* TABLE HEAD */}
