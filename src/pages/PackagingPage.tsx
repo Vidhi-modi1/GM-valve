@@ -1040,188 +1040,230 @@ export function PackagingPage() {
           <Button onClick={saveRemarks}>Save</Button>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={viewDetailsDialogOpen}
-        onOpenChange={setViewDetailsDialogOpen}
-      >
-        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>
-              Complete information for {viewedOrder?.uniqueCode}
-            </DialogDescription>
-          </DialogHeader>
-          {viewedOrder && (
-            <div className="space-y-6 py-4">
-              <div className="bg-blue-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">
-                  Basic Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Assembly Line
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.assemblyLine}
-                    </p>
+
+       {/* View Order Details Dialog */}
+              <Dialog
+                open={viewDetailsDialogOpen}
+                onOpenChange={setViewDetailsDialogOpen}
+              >
+                <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Order Details</DialogTitle>
+                    <DialogDescription>
+                      Complete information for {viewedOrder?.uniqueCode}
+                    </DialogDescription>
+                  </DialogHeader>
+      
+                  {viewedOrder && (
+                    <div className="space-y-6 py-4">
+                      <div className="bg-blue-50/50 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-3">
+                          Basic Information
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Assembly Line
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.assemblyLine}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">SOA No.</Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.gmsoaNo}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">Sr. No.</Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.soaSrNo}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Assembly Date
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.assemblyDate}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Unique Code
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.uniqueCode}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Splitted Code
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.splittedCode || "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+      
+                      <div className="bg-green-50/50 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-3">
+                          Customer & Product Information
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-500 text-sm">Party</Label>
+                            <p className="text-gray-900 mt-1">{viewedOrder.party}</p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Customer PO No.
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.customerPoNo}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">Code No</Label>
+                            <p className="text-gray-900 mt-1">{viewedOrder.codeNo}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-gray-500 text-sm">Product</Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.product}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+      
+                      <div className="bg-purple-50/50 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-3">
+                          Quantity Information
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-gray-500 text-sm">Qty</Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.totalQty}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">Qty Exe.</Label>
+                            <p className="text-gray-900 mt-1">{viewedOrder.qtyExe}</p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Qty Pending
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.qtyPending}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+      
+                      <div className="bg-amber-50/50 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-3">
+                          Product Specifications
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Finished Valve
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.finishedValve || "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">GM Logo</Label>
+                            <p className="text-gray-900 mt-1">{viewedOrder.gmLogo}</p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Name Plate
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.namePlate}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Product SPCL1
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.productSpcl1 || "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Product SPCL2
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.productSpcl2 || "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Special notes
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.specialNotes || "-"}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-gray-500 text-sm">
+                              Product SPCL3
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.productSpcl3 || "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+      
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900 mb-3">
+                          Additional Information
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-500 text-sm">
+                              Inspection
+                            </Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.inspection}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-500 text-sm">Painting</Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.painting}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-gray-500 text-sm">Remarks</Label>
+                            <p className="text-gray-900 mt-1">
+                              {viewedOrder.remarks || "No remarks"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+      
+                  <div className="flex justify-end pt-4 border-t border-gray-100">
+                    <Button
+                      variant="outline"
+                      onClick={() => setViewDetailsDialogOpen(false)}
+                    >
+                      Close
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">SOA No.</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.gmsoaNo}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Sr. No.</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.soaSrNo}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Assembly Date
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.assemblyDate}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Unique Code</Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.uniqueCode}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Splitted Code
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.splittedCode || "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-green-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">
-                  Customer & Product Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">Party</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.party}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Customer PO No.
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.customerPoNo}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Code No</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.codeNo}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-gray-500 text-sm">Product</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.product}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-purple-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">
-                  Quantity Information
-                </h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">Qty</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.totalQty}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Qty Exe.</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.qtyExe}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Qty Pending</Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.qtyPending}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-amber-50/50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">
-                  Product Specifications
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Finished Valve
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.finishedValve || "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">GM Logo</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.gmLogo}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Name Plate</Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.namePlate}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">
-                      Special notes
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.specialNotes || "-"}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-gray-500 text-sm">
-                      Product SPCL3
-                    </Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.productSpcl3 || "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">
-                  Additional Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-500 text-sm">Inspection</Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.inspection}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 text-sm">Painting</Label>
-                    <p className="text-gray-900 mt-1">{viewedOrder.painting}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-gray-500 text-sm">Remarks</Label>
-                    <p className="text-gray-900 mt-1">
-                      {viewedOrder.remarks || "No remarks"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end pt-4 border-t border-gray-100">
-            <Button
-              variant="outline"
-              onClick={() => setViewDetailsDialogOpen(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+                </DialogContent>
+              </Dialog>
       {/* Bin Card Dialog */}
       <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
         <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
