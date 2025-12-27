@@ -7,9 +7,21 @@ import { DashboardHeader } from "../components/dashboard-header";
 import TablePagination from "../components/table-pagination";
 import { API_URL } from "../config/api";
 import { getStepLabel } from "../config/workflowSteps";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
-import { Eye, Download, Printer, MessageSquarePlus, ArrowLeft } from "lucide-react";
+import {
+  Eye,
+  Download,
+  Printer,
+  MessageSquarePlus,
+  ArrowLeft,
+} from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -52,7 +64,9 @@ export default function SvsStock() {
 
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
-  const [dateFilterMode, setDateFilterMode] = useState<"year" | "month" | "range">("range");
+  const [dateFilterMode, setDateFilterMode] = useState<
+    "year" | "month" | "range"
+  >("range");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -85,31 +99,31 @@ export default function SvsStock() {
 
       if (ok && Array.isArray(res.data.data)) {
         const mapped = res.data.data.map((o: any) => ({
-  id: String(o.id),
-  assemblyLine: o.assembly_no || "",
-  gmsoaNo: o.soa_no || "",
-  soaSrNo: o.soa_sr_no || "",
-  assemblyDate: o.assembly_date || "",
-  uniqueCode: o.unique_code || "",
-  splittedCode: o.split_code || "",
-  party: o.party_name || "",
-  customerPoNo: o.customer_po_no || "",
-  codeNo: o.code_no || "",
-  product: o.product || "",
-  totalQty: Number(o.totalQty || o.qty || 0),
-  qtyExe: Number(o.qty_executed || 0),
-  qtyPending: Number(o.qty_pending || 0),
-  finishedValve: o.finished_valve || "",
-  gmLogo: o.gm_logo || "",
-  namePlate: o.name_plate || "",
-  specialNotes: o.special_notes || "",
-  productSpcl1: o.product_spc1 || "",
-  productSpcl2: o.product_spc2 || "",
-  productSpcl3: o.product_spc3 || "",
-  inspection: o.inspection || "",
-  painting: o.painting || "",
-  remarks: o.remarks || "",
-}));
+          id: String(o.id),
+          assemblyLine: o.assembly_no || "",
+          gmsoaNo: o.soa_no || "",
+          soaSrNo: o.soa_sr_no || "",
+          assemblyDate: o.assembly_date || "",
+          uniqueCode: o.unique_code || "",
+          splittedCode: o.split_code || "",
+          party: o.party_name || "",
+          customerPoNo: o.customer_po_no || "",
+          codeNo: o.code_no || "",
+          product: o.product || "",
+          totalQty: Number(o.totalQty || o.qty || 0),
+          qtyExe: Number(o.qty_executed || 0),
+          qtyPending: Number(o.qty_pending || 0),
+          finishedValve: o.finished_valve || "",
+          gmLogo: o.gm_logo || "",
+          namePlate: o.name_plate || "",
+          specialNotes: o.special_notes || "",
+          productSpcl1: o.product_spc1 || "",
+          productSpcl2: o.product_spc2 || "",
+          productSpcl3: o.product_spc3 || "",
+          inspection: o.inspection || "",
+          painting: o.painting || "",
+          remarks: o.remarks || "",
+        }));
 
         setOrders(mapped);
       } else {
@@ -191,7 +205,8 @@ export default function SvsStock() {
     });
   };
 
-  const allRowsSelected = filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
+  const allRowsSelected =
+    filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
   const selectedOrdersData = orders.filter((o) => selectedRows.has(o.id));
 
@@ -211,7 +226,9 @@ export default function SvsStock() {
             <h3 class="tag-title process-border">In Process Material Tag</h3>
             <div class="meta">
               <div class="meta-item">
-                <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+                <div><span class="label">Date:</span> ${
+                  order.assemblyDate
+                }</div>
                 <div>
                   <span class="label">SOA:</span>
                   ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
@@ -230,15 +247,23 @@ export default function SvsStock() {
                 <span class="label">Party:</span><p>${order.party}</p>
               </div>
               <div clas="description item-label-description">
-                <span class="label item-label">Item:</span><p>${order.product}</p>
+                <span class="label item-label">Item:</span><p>${
+                  order.product
+                }</p>
               </div>
             </div>
             <div class="qty-logo">
               <div class="meta meta-logo">
-                <div class="meta-qty"><span class="label">QTY:</span> ${order.totalQty}</div>
-                <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+                <div class="meta-qty"><span class="label">QTY:</span> ${
+                  order.totalQty
+                }</div>
+                <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
+                  order.gmLogo
+                }</div>
               </div>
-              <div class="detail-items"><span class="label ">Special Note:</span> <span>${order.specialNotes || ""}</span></div>
+              <div class="detail-items"><span class="label ">Special Note:</span> <span>${
+                order.specialNotes || ""
+              }</span></div>
             </div>
             <div class="inspect">
               <span class="label">Inspected by:</span>
@@ -342,18 +367,18 @@ export default function SvsStock() {
 
   const exportToExcel = (data: StockOrder[]) => {
     const exportData = data.map((order, index) => ({
-      "No": index + 1,
+      No: index + 1,
       "Assembly Line": order.assemblyLine,
       "GMSOA No": order.gmsoaNo,
       "SOA Sr No": order.soaSrNo,
       "Assembly Date": order.assemblyDate,
       "Unique Code": order.uniqueCode,
       "Splitted Code": order.splittedCode || "-",
-      "Party": order.party,
+      Party: order.party,
       "Customer PO No": order.customerPoNo,
       "Code No": order.codeNo,
-      "Product": order.product,
-      "Qty": order.totalQty,
+      Product: order.product,
+      Qty: order.totalQty,
       "Qty Executed": order.qtyExe,
       "Qty Pending": order.qtyPending,
       "Finished Valve": order.finishedValve,
@@ -363,9 +388,9 @@ export default function SvsStock() {
       "Product Special 1": order.productSpcl1,
       "Product Special 2": order.productSpcl2,
       "Product Special 3": order.productSpcl3,
-      "Inspection": order.inspection,
-      "Painting": order.painting,
-      "Remarks": order.remarks || "",
+      Inspection: order.inspection,
+      Painting: order.painting,
+      Remarks: order.remarks || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -611,8 +636,11 @@ export default function SvsStock() {
                     </thead>
 
                     <tbody className="divide-y divide-gray-200">
-                     {paginatedOrders.map((order, index) => (
-                        <tr key={`${order.id}-${order.soaSrNo}-${order.uniqueCode}-${index}`} className="group hover:bg-gray-50">
+                      {paginatedOrders.map((order, index) => (
+                        <tr
+                          key={`${order.id}-${order.soaSrNo}-${order.uniqueCode}-${index}`}
+                          className="group hover:bg-gray-50"
+                        >
                           <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                             <Checkbox
                               checked={selectedRows.has(order.id)}
@@ -777,8 +805,6 @@ export default function SvsStock() {
           </div>
         </div>
 
-        
-
         <TablePagination
           page={page}
           perPage={perPage}
@@ -793,119 +819,121 @@ export default function SvsStock() {
         />
       </div>
 
-  {/* Bin Card Dialog */}
-                     <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
-                             <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
-                               <DialogHeader>
-                                 <DialogTitle className="text-lg font-semibold text-gray-900">
-                                   Bin Card Preview
-                                 </DialogTitle>
-                                 <DialogDescription className="text-sm text-gray-500">
-                                   This preview matches the printed bin card layout.
-                                 </DialogDescription>
-                               </DialogHeader>
-                   
-                               <div className="py-6 space-y-8">
-                                 {selectedOrdersData.map((order) => (
-                                   <div
-                                     key={order.id}
-                                     className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
-                                   >
-                                     {/* COMPANY NAME */}
-                                     <h1 className="text-center text-lg font-bold">
-                                       G M Valve Pvt. Ltd.
-                                     </h1>
-                   
-                                     {/* ADDRESS */}
-                                     <p className="mt-1 text-center text-[11px] leading-tight">
-                                       Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-                                       Village Metoda, Dist. Rajkot-360 021
-                                     </p>
-                   
-                                     {/* TAG */}
-                                     <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
-                                       In Process Material Tag
-                                     </div>
-                   
-                                     {/* DATE / SOA / DOC */}
-                                     <div className="mt-3 grid grid-cols-3 items-start text-sm">
-                                       <div>
-                                         <div>
-                                           <span className="font-semibold">Date:</span>{" "}
-                                           {order.assemblyDate}
-                                         </div>
-                                         <div>
-                                           <span className="font-semibold">SOA:</span>{" "}
-                                           {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
-                                         </div>
-                                       </div>
-                   
-                                       <div className="flex justify-center">
-                                         <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
-                                           Assembly Line: {order.assemblyLine}
-                                         </span>
-                                       </div>
-                   
-                                       <div className="text-right text-xs leading-tight">
-                                         <div>GMV-L4-F-PRD 01 A</div>
-                                         <div>(02/10.09.2020)</div>
-                                       </div>
-                                     </div>
-                   
-                                     {/* PARTY */}
-                                     <div className="mt-4 text-sm flex gap-2 items-center">
-                                       <span className="font-semibold">Party:</span>
-                                       <div className="mt-1">{order.party}</div>
-                                     </div>
-                   
-                                     {/* ITEM */}
-                                     <div className="mt-4 text-sm flex gap-2 items-center">
-                                       <span className="font-semibold">Item:</span>
-                                       <div className="mt-1 leading-snug">{order.product}</div>
-                                     </div>
-                   
-                                     {/* QTY & LOGO */}
-                                     <div className="mt-4 flex justify-between text-sm">
-                                       <div>
-                                         <span className="font-semibold">QTY:</span> {order.qty}
-                                       </div>
-                                       <div>
-                                         <span className="font-semibold">Logo:</span> {order.gmLogo}
-                                       </div>
-                                     </div>
-                   
-                                     {/* SPECIAL NOTE */}
-                                     <div className="mt-4 text-sm flex gap-2 items-center">
-                                       <span className="font-semibold">Special Note:</span>
-                                       <div className="mt-1 h-5">
-                                         {order.specialNotes || ""}
-                                       </div>
-                                     </div>
-                   
-                                     {/* INSPECTED BY */}
-                                     <div className="mt-6 inspected text-sm">
-                                       <span className="font-semibold">Inspected by:</span>
-                                       <div className="mt-1 h-6 border-b border-black"></div>
-                                     </div>
-                                   </div>
-                                 ))}
-                               </div>
-                   
-                               {/* ACTIONS */}
-                               <div className="flex justify-end gap-3 border-t pt-4">
-                                 <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
-                                   Cancel
-                                 </Button>
-                                 <Button
-                                   onClick={handlePrintBinCard}
-                                   className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
-                                 >
-                                   <Printer className="h-4 w-4" />
-                                   Print
-                                 </Button>
-                               </div>
-                             </DialogContent>
-                           </Dialog>
+      {/* Bin Card Dialog */}
+      <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+        <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900">
+              Bin Card Preview
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">
+              This preview matches the printed bin card layout.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6 space-y-8">
+            {selectedOrdersData.map((order) => (
+              <div
+                key={order.id}
+                className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
+              >
+                {/* COMPANY NAME */}
+                <h1 className="text-center text-lg font-bold">
+                  G M Valve Pvt. Ltd.
+                </h1>
+
+                {/* ADDRESS */}
+                <p className="mt-1 text-center text-[11px] leading-tight">
+                  Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+                  Village Metoda, Dist. Rajkot-360 021
+                </p>
+
+                {/* TAG */}
+                <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+                  In Process Material Tag
+                </div>
+
+                {/* DATE / SOA / DOC */}
+                <div className="mt-3 grid grid-cols-3 items-start text-sm">
+                  <div>
+                    <div>
+                      <span className="font-semibold">Date:</span>{" "}
+                      {order.assemblyDate}
+                    </div>
+                    <div>
+                      <span className="font-semibold">SOA:</span>{" "}
+                      {String(order.gmsoaNo).replace(/^SOA/i, "")}-
+                      {order.soaSrNo}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center">
+                    <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                      Assembly Line: {order.assemblyLine}
+                    </span>
+                  </div>
+
+                  <div className="text-right text-xs leading-tight">
+                    <div>GMV-L4-F-PRD 01 A</div>
+                    <div>(02/10.09.2020)</div>
+                  </div>
+                </div>
+
+                {/* PARTY */}
+                <div className="mt-4 text-sm flex gap-2 items-center">
+                  <span className="font-semibold">Party:</span>
+                  <div className="mt-1">{order.party}</div>
+                </div>
+
+                {/* ITEM */}
+                <div className="mt-4 text-sm flex gap-2 items-center">
+                  <span className="font-semibold">Item:</span>
+                  <div className="mt-1 leading-snug">{order.product}</div>
+                </div>
+
+                {/* QTY & LOGO */}
+                <div className="mt-4 flex justify-between text-sm">
+                  <div>
+                    <span className="font-semibold">QTY:</span> {order.qty}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Logo:</span> {order.gmLogo}
+                  </div>
+                </div>
+
+                {/* SPECIAL NOTE */}
+                <div className="mt-4 text-sm flex gap-2 items-center">
+                  <span className="font-semibold">Special Note:</span>
+                  <div className="mt-1 h-5">{order.specialNotes || ""}</div>
+                </div>
+
+                {/* INSPECTED BY */}
+                <div className="mt-6 inspected text-sm">
+                  <span className="font-semibold">Inspected by:</span>
+                  <div className="mt-1 h-6 border-b border-black"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-3 border-t pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setBinCardDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePrintBinCard}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
+            >
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* View Order Details Dialog */}
       <Dialog
@@ -940,9 +968,7 @@ export default function SvsStock() {
                     <p className="text-gray-900 mt-1">{viewedOrder.gmsoaNo}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">
-                      Sr. No.
-                    </Label>
+                    <Label className="text-gray-500 text-sm">Sr. No.</Label>
                     <p className="text-gray-900 mt-1">{viewedOrder.soaSrNo}</p>
                   </div>
                   <div>
@@ -954,9 +980,7 @@ export default function SvsStock() {
                     </p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">
-                      Unique Code
-                    </Label>
+                    <Label className="text-gray-500 text-sm">Unique Code</Label>
                     <p className="text-gray-900 mt-1">
                       {viewedOrder.uniqueCode}
                     </p>
@@ -1014,9 +1038,7 @@ export default function SvsStock() {
                     <p className="text-gray-900 mt-1">{viewedOrder.qtyExe}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 text-sm">
-                      Qty Pending
-                    </Label>
+                    <Label className="text-gray-500 text-sm">Qty Pending</Label>
                     <p className="text-gray-900 mt-1">
                       {viewedOrder.qtyPending}
                     </p>

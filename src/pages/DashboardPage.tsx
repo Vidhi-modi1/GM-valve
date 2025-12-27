@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { Package, Clock, TrendingUp, CheckCircle2, RefreshCw } from "lucide-react";
+import {
+  Package,
+  Clock,
+  TrendingUp,
+  CheckCircle2,
+  RefreshCw,
+} from "lucide-react";
 
 import { ModernStatCard } from "../components/modern-stat-card";
 import { Card } from "../components/ui/card";
@@ -27,7 +33,10 @@ import TpiPage from "./TpiPage";
 
 import DispatchPage from "./DispatchPage";
 import { API_URL } from "../config/api";
-import { StatCardSkeleton, CardLoadingSkeleton } from "../components/loading-skeleton";
+import {
+  StatCardSkeleton,
+  CardLoadingSkeleton,
+} from "../components/loading-skeleton";
 
 type SummaryRecord = Record<string, number>;
 
@@ -40,14 +49,12 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [selectedDate, setSelectedDate] = useState(""); // yyyy-mm-dd
-const [displayDate, setDisplayDate] = useState("");   // dd-mm-yyyy
-
-
-
+  const [displayDate, setDisplayDate] = useState(""); // dd-mm-yyyy
 
   const getCurrentUserRole = () => {
     try {
-      const s = localStorage.getItem("user") || localStorage.getItem("userData");
+      const s =
+        localStorage.getItem("user") || localStorage.getItem("userData");
       if (!s) return "";
       const u = JSON.parse(s);
       const rawRole = typeof u?.role === "object" ? u.role?.name : u?.role;
@@ -93,7 +100,8 @@ const [displayDate, setDisplayDate] = useState("");   // dd-mm-yyyy
 
     const counts = data.counts ?? data;
     if (counts && typeof counts === "object") {
-      if (counts.totalOrders != null) out.totalOrders = Number(counts.totalOrders) || 0;
+      if (counts.totalOrders != null)
+        out.totalOrders = Number(counts.totalOrders) || 0;
 
       const pairs: [string, string][] = [
         ["pendingMaterialIssue", "materialIssue"],
@@ -116,24 +124,23 @@ const [displayDate, setDisplayDate] = useState("");   // dd-mm-yyyy
         ["efficiency", "efficiency"],
         ["pendingDispatch", "dispatch"],
       ];
-      
+
       for (const [src, dest] of pairs) {
         if (counts[src] != null) out[dest] = Number(counts[src]) || 0;
       }
 
       // ----------- Add comparison values (dynamic % changes) -----------
-if (counts.totalOrdersCompare != null)
-  out.totalOrdersCompare = counts.totalOrdersCompare;
+      if (counts.totalOrdersCompare != null)
+        out.totalOrdersCompare = counts.totalOrdersCompare;
 
-if (counts.inProgressCompare != null)
-  out.inProgressCompare = counts.inProgressCompare;
+      if (counts.inProgressCompare != null)
+        out.inProgressCompare = counts.inProgressCompare;
 
-if (counts.completedCompare != null)
-  out.completedCompare = counts.completedCompare;
+      if (counts.completedCompare != null)
+        out.completedCompare = counts.completedCompare;
 
-if (counts.efficiencyCompare != null)
-  out.efficiencyCompare = counts.efficiencyCompare;
-
+      if (counts.efficiencyCompare != null)
+        out.efficiencyCompare = counts.efficiencyCompare;
     }
 
     if (data.stages && Array.isArray(data.stages)) {
@@ -154,33 +161,32 @@ if (counts.efficiencyCompare != null)
   };
 
   /* ---------- FETCH SUMMARY ---------- */
-async function fetchSummary(isRefresh = false, dateArg?: string) {
-  const token = localStorage.getItem("token");
-  const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
-  headers["Content-Type"] = "application/json";
+  async function fetchSummary(isRefresh = false, dateArg?: string) {
+    const token = localStorage.getItem("token");
+    const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
+    headers["Content-Type"] = "application/json";
 
-  try {
-    if (isRefresh) setIsRefreshing(true);
-    else setIsLoadingSummary(true);
+    try {
+      if (isRefresh) setIsRefreshing(true);
+      else setIsLoadingSummary(true);
 
-    // ❌ REMOVE THIS LINE
-    // setSummary({});
+      // ❌ REMOVE THIS LINE
+      // setSummary({});
 
-    const payload = dateArg ? { assemblyDate: dateArg } : {};
-    const res = await axios.post(ORDER_COUNTS_ENDPOINT, payload, { headers });
-    setSummary(normalizeResponse(res.data));
-
-  } catch (err) {
-    console.error("Dashboard summary error:", err);
-  } finally {
-    if (isRefresh) setIsRefreshing(false);
-    else setIsLoadingSummary(false);
+      const payload = dateArg ? { assemblyDate: dateArg } : {};
+      const res = await axios.post(ORDER_COUNTS_ENDPOINT, payload, { headers });
+      setSummary(normalizeResponse(res.data));
+    } catch (err) {
+      console.error("Dashboard summary error:", err);
+    } finally {
+      if (isRefresh) setIsRefreshing(false);
+      else setIsLoadingSummary(false);
+    }
   }
-}
 
   /* ---------- POLLING & INITIAL LOAD ---------- */
   useEffect(() => {
-    if (didFetchOnce.current) return;  // avoid double fetch
+    if (didFetchOnce.current) return; // avoid double fetch
     didFetchOnce.current = true;
 
     fetchSummary(false, selectedDate || undefined);
@@ -192,7 +198,6 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
       }
     };
   }, []);
-
 
   /* ---------- PRETTY NAMES ---------- */
   const prettyName = (k: string) => {
@@ -212,7 +217,8 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
     };
 
     if (map[k]) return map[k];
-    if (k.startsWith("assembly")) return "Assembly Line " + k.slice(-1).toUpperCase();
+    if (k.startsWith("assembly"))
+      return "Assembly Line " + k.slice(-1).toUpperCase();
     return k;
   };
 
@@ -287,29 +293,30 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
               <Package className="h-6 w-6 text-white" />
             </div>
             Dashboard Overview
-          <button
-            className="ml-4 flex items-center px-3 py-1 border rounded-md"
-            onClick={() => {
-              if (pollRef.current) {
-                clearInterval(pollRef.current);
-                pollRef.current = null;
-              }
+            <button
+              className="ml-4 flex items-center px-3 py-1 border rounded-md"
+              onClick={() => {
+                if (pollRef.current) {
+                  clearInterval(pollRef.current);
+                  pollRef.current = null;
+                }
 
-              // Refresh the data using the currently selected date
-              fetchSummary(true, selectedDate || undefined);
-            }}
-          >
-  <RefreshCw className="h-4 w-4 mr-1" />
-  Refresh
-</button>
-
+                // Refresh the data using the currently selected date
+                fetchSummary(true, selectedDate || undefined);
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </button>
           </h1>
-          <p className="text-gray-600 mt-1">Real-time insights into your manufacturing operations</p>
+          <p className="text-gray-600 mt-1">
+            Real-time insights into your manufacturing operations
+          </p>
         </div>
 
         <>
           {isLoadingSummary || isRefreshing ? (
-             <div className="text-center font-700">
+            <div className="text-center font-700">
               {/* <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -323,7 +330,10 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
                 value={totalOrders}
                 icon={Package}
                 gradient="blue"
-                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
+                change={{
+                  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+                  positive: true,
+                }}
                 trend={[30, 40, 50, 60, 80]}
               />
               <ModernStatCard
@@ -331,7 +341,10 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
                 value={summary.inProgress ?? 0}
                 icon={Clock}
                 gradient="orange"
-                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
+                change={{
+                  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+                  positive: true,
+                }}
                 trend={[20, 30, 40, 60, 75]}
               />
               <ModernStatCard
@@ -339,7 +352,10 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
                 value={summary.completed ?? 0}
                 icon={CheckCircle2}
                 gradient="green"
-                change={{ value: `${summary.totalOrdersCompare ?? "+0%"}`, positive: true }}
+                change={{
+                  value: `${summary.totalOrdersCompare ?? "+0%"}`,
+                  positive: true,
+                }}
                 trend={[40, 50, 70, 90, 100]}
               />
               {/* <ModernStatCard
@@ -355,14 +371,14 @@ async function fetchSummary(isRefresh = false, dateArg?: string) {
         </>
 
         {/* ---------------- Stage-wise Cards ---------------- */}
-     <div>
-  <div className="flex items-center justify-between">
-    <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
-      <Clock className="h-5 w-5 text-[#174a9f]" />
-      Stage-wise Pending Quantity
-    </h2>
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
+              <Clock className="h-5 w-5 text-[#174a9f]" />
+              Stage-wise Pending Quantity
+            </h2>
 
-{/* <input
+            {/* <input
   type="date"
   value={selectedDate}   // blank by default
   // onChange={(e) => {
@@ -391,51 +407,50 @@ onChange={(e) => {
 
   className="border px-3 py-1 rounded-md shadow-sm"
 /> */}
+          </div>
 
-
-  </div>
-
-  {/* ❗Loading affects ONLY the cards, NOT the date input */}
-  {isLoadingSummary || isRefreshing ? (
-    <div className="text-center font-700">Loading...</div>
-  ) : (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-      {stageOrder.map((k) => {
-        const c = stageColor[k];
-        return (
-          <Card
-            key={k}
-            className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
-            // onClick={() => setCurrentPage(stageToPageKey(k))}
-          >
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <div className={`p-2 rounded-lg bg-${c}-100`}>
-                  <Package className={`h-4 w-4 text-${c}-600`} />
-                </div>
-                <Badge className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}>
-                  Pending
-                </Badge>
-              </div>
-              <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-              <p className={`text-xl font-semibold text-${c}-900`}>{summary[k] ?? 0}</p>
+          {/* ❗Loading affects ONLY the cards, NOT the date input */}
+          {isLoadingSummary || isRefreshing ? (
+            <div className="text-center font-700">Loading...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {stageOrder.map((k) => {
+                const c = stageColor[k];
+                return (
+                  <Card
+                    key={k}
+                    className={`p-4 rounded-xl border bg-gradient-to-br from-${c}-50 to-white border-${c}-200 hover:-translate-y-1 hover:shadow-lg transition`}
+                    // onClick={() => setCurrentPage(stageToPageKey(k))}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className={`p-2 rounded-lg bg-${c}-100`}>
+                          <Package className={`h-4 w-4 text-${c}-600`} />
+                        </div>
+                        <Badge
+                          className={`bg-${c}-100 text-${c}-700 border-${c}-200 text-xs`}
+                        >
+                          Pending
+                        </Badge>
+                      </div>
+                      <p className="text-gray-700 text-xs">{prettyName(k)}</p>
+                      <p className={`text-xl font-semibold text-${c}-900`}>
+                        {summary[k] ?? 0}
+                      </p>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
-          </Card>
-        );
-      })}
-    </div>
-  )}
-</div>
-
+          )}
+        </div>
 
         {/* ---------------- Assembly Cards ---------------- */}
         <div>
-
           <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
             <Clock className="text-[#174a9f] pt-5 mt-5" />
             Assembly Line-wise Pending Quantity
           </h2>
-
 
           {isLoadingSummary || isRefreshing ? (
             // <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -445,9 +460,7 @@ onChange={(e) => {
             //   <CardLoadingSkeleton />
             //   <CardLoadingSkeleton />
             // </div>
-            <div className="text-center font-700">
-              Loading....
-            </div>
+            <div className="text-center font-700">Loading....</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {assemblyOrder.map((k) => (
@@ -461,10 +474,14 @@ onChange={(e) => {
                       <div className="p-2 rounded-lg bg-purple-100">
                         <Package className="h-4 w-4 text-purple-600" />
                       </div>
-                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">Pending</Badge>
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
+                        Pending
+                      </Badge>
                     </div>
                     <p className="text-gray-700 text-xs">{prettyName(k)}</p>
-                    <p className="text-xl font-semibold text-purple-900">{summary[k] ?? 0}</p>
+                    <p className="text-xl font-semibold text-purple-900">
+                      {summary[k] ?? 0}
+                    </p>
                   </div>
                 </Card>
               ))}

@@ -28,7 +28,8 @@ const DashboardPage: React.FC = () => {
 
     if (storedUser) {
       const user = JSON.parse(storedUser);
-      const userRole = user.role?.name?.toLowerCase?.() || user.role?.toLowerCase?.() || null;
+      const userRole =
+        user.role?.name?.toLowerCase?.() || user.role?.toLowerCase?.() || null;
 
       setRole(userRole);
       setUserName(user.name || "User");
@@ -54,14 +55,14 @@ const DashboardPage: React.FC = () => {
         return "SemiQC";
       case "phosphating-qc":
         return "PhosphatingQC";
-       case "assembly-a":
-    return "Assembly-A";
-  case "assembly-b":
-    return "Assembly-B";
-  case "assembly-c":
-    return "Assembly-C";
-  case "assembly-d":
-    return "Assembly-D";
+      case "assembly-a":
+        return "Assembly-A";
+      case "assembly-b":
+        return "Assembly-B";
+      case "assembly-c":
+        return "Assembly-C";
+      case "assembly-d":
+        return "Assembly-D";
       case "testing":
         return "Testing";
       case "marking":
@@ -95,7 +96,7 @@ const DashboardPage: React.FC = () => {
     switch (role) {
       case "planning":
         return <PlanningPage />;
-         case "material-issue":
+      case "material-issue":
         return <MaterialIssuePage />;
       // case "material-issue":
       //   return <MaterialIssuePage />;
@@ -121,7 +122,9 @@ const DashboardPage: React.FC = () => {
         return (
           <div className="text-center py-20 text-gray-600">
             <h2 className="text-xl font-semibold">Welcome, {userName}</h2>
-            <p className="mt-2">Select a module from the top navigation to begin.</p>
+            <p className="mt-2">
+              Select a module from the top navigation to begin.
+            </p>
           </div>
         );
     }

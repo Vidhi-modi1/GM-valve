@@ -40,7 +40,7 @@ import TablePagination from "../components/table-pagination";
 interface AssemblyOrderData {
   id: string;
   assemblyLine: string;
-  specialNotes: string; 
+  specialNotes: string;
   gmsoaNo: string;
   soaSrNo: string;
   assemblyDate: string;
@@ -58,7 +58,7 @@ interface AssemblyOrderData {
   finishedValve: string;
   gmLogo: string;
   namePlate: string;
-  
+
   productSpcl1: string;
   productSpcl2: string;
   productSpcl3: string;
@@ -295,11 +295,10 @@ export function PlanningPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage, useGlobalSearch]);
 
-const parseSoaSrNo = (val: string) => {
-  const n = parseInt(val, 10);
-  return isNaN(n) ? 0 : n;
-};
-
+  const parseSoaSrNo = (val: string) => {
+    const n = parseInt(val, 10);
+    return isNaN(n) ? 0 : n;
+  };
 
   const fetchAllPages = async () => {
     try {
@@ -561,22 +560,21 @@ const parseSoaSrNo = (val: string) => {
       );
     }
 
-// ✅ SOA SR NO SORT
-if (soaSort) {
-  filtered = [...filtered].sort((a, b) => {
-    const aNo = parseSoaSrNo(a.soaSrNo);
-    const bNo = parseSoaSrNo(b.soaSrNo);
+    // ✅ SOA SR NO SORT
+    if (soaSort) {
+      filtered = [...filtered].sort((a, b) => {
+        const aNo = parseSoaSrNo(a.soaSrNo);
+        const bNo = parseSoaSrNo(b.soaSrNo);
 
-    return soaSort === "asc" ? aNo - bNo : bNo - aNo;
-  });
-}
-
+        return soaSort === "asc" ? aNo - bNo : bNo - aNo;
+      });
+    }
 
     return filtered;
   }, [
     orders,
     fullOrders,
-     useGlobalSearch,
+    useGlobalSearch,
     localSearchTerm,
     showUrgentOnly,
     showRemarksOnly,
@@ -626,18 +624,15 @@ if (soaSort) {
   };
 
   const selectedTotals = useMemo(() => {
-  const selectedData = filteredOrders.filter((o) =>
-    selectedRows.has(o.id)
-  );
+    const selectedData = filteredOrders.filter((o) => selectedRows.has(o.id));
 
-  return {
-    count: selectedData.length,
-    qty: selectedData.reduce((sum, o) => sum + (o.qty || 0), 0),
-    qtyExe: selectedData.reduce((sum, o) => sum + (o.qtyExe || 0), 0),
-    qtyPending: selectedData.reduce((sum, o) => sum + (o.qtyPending || 0), 0),
-  };
-}, [selectedRows, filteredOrders]);
-
+    return {
+      count: selectedData.length,
+      qty: selectedData.reduce((sum, o) => sum + (o.qty || 0), 0),
+      qtyExe: selectedData.reduce((sum, o) => sum + (o.qtyExe || 0), 0),
+      qtyPending: selectedData.reduce((sum, o) => sum + (o.qtyPending || 0), 0),
+    };
+  }, [selectedRows, filteredOrders]);
 
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
@@ -1000,154 +995,148 @@ if (soaSort) {
     }, 300);
   };
 
-// const handleExport = () => {
-//   // 1️⃣ If rows selected → export only those
-//   const dataToExport =
-//     selectedRows.size > 0
-//       ? filteredOrders.filter((o) => selectedRows.has(o.id))
-//       : filteredOrders; // 2️⃣ else export ALL filtered data
+  // const handleExport = () => {
+  //   // 1️⃣ If rows selected → export only those
+  //   const dataToExport =
+  //     selectedRows.size > 0
+  //       ? filteredOrders.filter((o) => selectedRows.has(o.id))
+  //       : filteredOrders; // 2️⃣ else export ALL filtered data
 
-//   if (!dataToExport || dataToExport.length === 0) {
-//     alert("No data available to export");
-//     return;
-//   }
+  //   if (!dataToExport || dataToExport.length === 0) {
+  //     alert("No data available to export");
+  //     return;
+  //   }
 
-//   const exportData = dataToExport.map((order, index) => ({
-//     "No": index + 1,
-//     "Assembly Line": order.assemblyLine,
-//     "GMSOA No": order.gmsoaNo,
-//     "SOA Sr No": order.soaSrNo,
-//     "Assembly Date": order.assemblyDate,
-//     "Unique Code": order.uniqueCode,
-//     "Splitted Code": order.splittedCode || "-",
-//     "Party": order.party,
-//     "Customer PO No": order.customerPoNo,
-//     "Code No": order.codeNo,
-//     "Product": order.product,
-//     "PO Qty": order.poQty,
-//     "Qty": order.qty,
-//     "Qty Executed": order.qtyExe,
-//     "Qty Pending": order.qtyPending,
-//     "Finished Valve": order.finishedValve,
-//     "GM Logo": order.gmLogo,
-//     "Name Plate": order.namePlate,
-//     "Special Notes": order.specialNotes || "-",
-//     "Product Special 1": order.productSpcl1,
-//     "Product Special 2": order.productSpcl2,
-//     "Product Special 3": order.productSpcl3,
-//     "Inspection": order.inspection,
-//     "Painting": order.painting,
-//     "Remarks": order.remarks || "",
-//   }));
+  //   const exportData = dataToExport.map((order, index) => ({
+  //     "No": index + 1,
+  //     "Assembly Line": order.assemblyLine,
+  //     "GMSOA No": order.gmsoaNo,
+  //     "SOA Sr No": order.soaSrNo,
+  //     "Assembly Date": order.assemblyDate,
+  //     "Unique Code": order.uniqueCode,
+  //     "Splitted Code": order.splittedCode || "-",
+  //     "Party": order.party,
+  //     "Customer PO No": order.customerPoNo,
+  //     "Code No": order.codeNo,
+  //     "Product": order.product,
+  //     "PO Qty": order.poQty,
+  //     "Qty": order.qty,
+  //     "Qty Executed": order.qtyExe,
+  //     "Qty Pending": order.qtyPending,
+  //     "Finished Valve": order.finishedValve,
+  //     "GM Logo": order.gmLogo,
+  //     "Name Plate": order.namePlate,
+  //     "Special Notes": order.specialNotes || "-",
+  //     "Product Special 1": order.productSpcl1,
+  //     "Product Special 2": order.productSpcl2,
+  //     "Product Special 3": order.productSpcl3,
+  //     "Inspection": order.inspection,
+  //     "Painting": order.painting,
+  //     "Remarks": order.remarks || "",
+  //   }));
 
-//   const worksheet = XLSX.utils.json_to_sheet(exportData);
-//   const workbook = XLSX.utils.book_new();
-//   XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
+  //   const worksheet = XLSX.utils.json_to_sheet(exportData);
+  //   const workbook = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Planning Orders");
 
-//   const excelBuffer = XLSX.write(workbook, {
-//     bookType: "xlsx",
-//     type: "array",
-//   });
+  //   const excelBuffer = XLSX.write(workbook, {
+  //     bookType: "xlsx",
+  //     type: "array",
+  //   });
 
-//   saveAs(
-//     new Blob([excelBuffer], { type: "application/octet-stream" }),
-//     `Planning_Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
-//   );
-// };
+  //   saveAs(
+  //     new Blob([excelBuffer], { type: "application/octet-stream" }),
+  //     `Planning_Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
+  //   );
+  // };
 
-const handleExport = () => {
-  // ✅ Only allow export when "Urgent Only" or "Remarks Only" is active,
-  // or when the user has explicitly selected rows.
-  const isUrgentMode = showUrgentOnly === true;
-  const isRemarksMode = showRemarksOnly === true;
-  const hasSelection = selectedRows.size > 0;
+  const handleExport = () => {
+    // ✅ Only allow export when "Urgent Only" or "Remarks Only" is active,
+    // or when the user has explicitly selected rows.
+    const isUrgentMode = showUrgentOnly === true;
+    const isRemarksMode = showRemarksOnly === true;
+    const hasSelection = selectedRows.size > 0;
 
-  if (!isUrgentMode && !isRemarksMode && !hasSelection) {
-    // alert(
-    //   "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
-    // );
-    return;
-  }
+    if (!isUrgentMode && !isRemarksMode && !hasSelection) {
+      // alert(
+      //   "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+      // );
+      return;
+    }
 
-  let dataToExport: AssemblyOrderData[] = [];
+    let dataToExport: AssemblyOrderData[] = [];
 
-  // 1️⃣ If user selected rows → export ONLY selected rows
-  if (hasSelection) {
-    dataToExport = filteredOrders.filter((o) => selectedRows.has(o.id));
-  } else {
-    // 2️⃣ Else → export the CURRENT filtered result (Urgent / Remarks)
-    dataToExport = filteredOrders;
-  }
+    // 1️⃣ If user selected rows → export ONLY selected rows
+    if (hasSelection) {
+      dataToExport = filteredOrders.filter((o) => selectedRows.has(o.id));
+    } else {
+      // 2️⃣ Else → export the CURRENT filtered result (Urgent / Remarks)
+      dataToExport = filteredOrders;
+    }
 
-  if (!dataToExport || dataToExport.length === 0) {
-    alert("No data available to export");
-    return;
-  }
+    if (!dataToExport || dataToExport.length === 0) {
+      alert("No data available to export");
+      return;
+    }
 
-  exportToExcel(dataToExport);
-};
+    exportToExcel(dataToExport);
+  };
 
+  const handleExportAll = () => {
+    // Always export EVERYTHING (ignore filters & selection)
+    const allData = fullOrders && fullOrders.length > 0 ? fullOrders : orders;
 
+    if (!allData || allData.length === 0) {
+      alert("No data available to export");
+      return;
+    }
 
-const handleExportAll = () => {
-  // Always export EVERYTHING (ignore filters & selection)
-  const allData =
-    fullOrders && fullOrders.length > 0 ? fullOrders : orders;
+    exportToExcel(allData);
+  };
 
-  if (!allData || allData.length === 0) {
-    alert("No data available to export");
-    return;
-  }
+  const exportToExcel = (data: AssemblyOrderData[]) => {
+    const exportData = data.map((order, index) => ({
+      No: index + 1,
+      "Assembly Line": order.assemblyLine,
+      "GMSOA No": order.gmsoaNo,
+      "SOA Sr No": order.soaSrNo,
+      "Assembly Date": order.assemblyDate,
+      "Unique Code": order.uniqueCode,
+      "Splitted Code": order.splittedCode || "-",
+      Party: order.party,
+      "Customer PO No": order.customerPoNo,
+      "Code No": order.codeNo,
+      Product: order.product,
+      "PO Qty": order.poQty,
+      Qty: order.qty,
+      "Qty Executed": order.qtyExe,
+      "Qty Pending": order.qtyPending,
+      "Finished Valve": order.finishedValve,
+      "GM Logo": order.gmLogo,
+      "Name Plate": order.namePlate,
+      "Special Notes": order.specialNotes || "",
+      "Product Special 1": order.productSpcl1,
+      "Product Special 2": order.productSpcl2,
+      "Product Special 3": order.productSpcl3,
+      Inspection: order.inspection,
+      Painting: order.painting,
+      Remarks: order.remarks || "",
+    }));
 
-  exportToExcel(allData);
-};
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
 
-const exportToExcel = (data: AssemblyOrderData[]) => {
-  const exportData = data.map((order, index) => ({
-    "No": index + 1,
-    "Assembly Line": order.assemblyLine,
-    "GMSOA No": order.gmsoaNo,
-    "SOA Sr No": order.soaSrNo,
-    "Assembly Date": order.assemblyDate,
-    "Unique Code": order.uniqueCode,
-    "Splitted Code": order.splittedCode || "-",
-    "Party": order.party,
-    "Customer PO No": order.customerPoNo,
-    "Code No": order.codeNo,
-    "Product": order.product,
-    "PO Qty": order.poQty,
-    "Qty": order.qty,
-    "Qty Executed": order.qtyExe,
-    "Qty Pending": order.qtyPending,
-    "Finished Valve": order.finishedValve,
-    "GM Logo": order.gmLogo,
-    "Name Plate": order.namePlate,
-    "Special Notes": order.specialNotes || "",
-    "Product Special 1": order.productSpcl1,
-    "Product Special 2": order.productSpcl2,
-    "Product Special 3": order.productSpcl3,
-    "Inspection": order.inspection,
-    "Painting": order.painting,
-    "Remarks": order.remarks || "",
-  }));
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
 
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: "xlsx",
-    type: "array",
-  });
-
-  saveAs(
-    new Blob([excelBuffer], { type: "application/octet-stream" }),
-    `Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
-  );
-};
-
-
-  
+    saveAs(
+      new Blob([excelBuffer], { type: "application/octet-stream" }),
+      `Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  };
 
   // View details
   const handleViewDetails = (order: AssemblyOrderData) => {
@@ -1496,20 +1485,19 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
   };
 
   // Clear filters
-const clearFilters = () => {
-  setLocalSearchTerm("");   // 🔥 REQUIRED
-  setAssemblyLineFilter("all");
-  setGmsoaFilter("all");
-  setPartyFilter("all");
-  setDateFilterMode("range");
-  setDateFrom(undefined);
-  setDateTo(undefined);
-};
+  const clearFilters = () => {
+    setLocalSearchTerm(""); // 🔥 REQUIRED
+    setAssemblyLineFilter("all");
+    setGmsoaFilter("all");
+    setPartyFilter("all");
+    setDateFilterMode("range");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
-useEffect(() => {
-  console.log("🔍 SEARCH TERM:", localSearchTerm);
-}, [localSearchTerm]);
-  
+  useEffect(() => {
+    console.log("🔍 SEARCH TERM:", localSearchTerm);
+  }, [localSearchTerm]);
 
   // UI render
   return (
@@ -1526,7 +1514,8 @@ useEffect(() => {
                 Orders Management
               </h1>
               <p className="text-sm text-gray-600">
-                Track and manage assembly line orders and manufacturing workflow.
+                Track and manage assembly line orders and manufacturing
+                workflow.
               </p>
             </div>
 
@@ -1592,7 +1581,7 @@ useEffect(() => {
               Export Data
             </Button>
 
-             <Button
+            <Button
               onClick={handleExportAll}
               className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
@@ -1604,8 +1593,8 @@ useEffect(() => {
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
-             searchTerm={localSearchTerm}
-  setSearchTerm={setLocalSearchTerm}
+              searchTerm={localSearchTerm}
+              setSearchTerm={setLocalSearchTerm}
               currentStage="default"
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
@@ -1666,10 +1655,10 @@ useEffect(() => {
             ref={tableScrollRef}
             className="relative overflow-x-auto max-w-full"
             style={{
-    maxHeight: "80vh",   // ✅ TABLE HEIGHT
-    overflowY: "auto",   // ✅ VERTICAL SCROLL
-    scrollbarGutter: "stable",
-  }}
+              maxHeight: "80vh", // ✅ TABLE HEIGHT
+              overflowY: "auto", // ✅ VERTICAL SCROLL
+              scrollbarGutter: "stable",
+            }}
           >
             <div className="inline-block min-w-full align-middle table-sticky">
               {loading && orders.length === 0 ? (
@@ -1725,7 +1714,11 @@ useEffect(() => {
                                     border-r border-gray-200 min-w-24 cursor-pointer select-none"
                           onClick={() =>
                             setSoaSort((prev) =>
-                              prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
+                              prev === "asc"
+                                ? "desc"
+                                : prev === "desc"
+                                ? null
+                                : "asc"
                             )
                           }
                         >
@@ -2034,22 +2027,25 @@ useEffect(() => {
         </div>
 
         {selectedTotals.count > 0 && (
-  <div className="border-t bg-gray-50 px-6 py-3 flex flex-wrap gap-6 justify-end text-sm font-semibold">
-    <div>
-      Selected Rows: <span className="text-blue-700">{selectedTotals.count}</span>
-    </div>
-    <div>
-      Total Qty: <span className="text-gray-900">{selectedTotals.qty}</span>
-    </div>
-    <div>
-      Qty Executed: <span className="text-green-700">{selectedTotals.qtyExe}</span>
-    </div>
-    <div>
-      Qty Pending: <span className="text-red-600">{selectedTotals.qtyPending}</span>
-    </div>
-  </div>
-)}
-
+          <div className="border-t bg-gray-50 px-6 py-3 flex flex-wrap gap-6 justify-end text-sm font-semibold">
+            <div>
+              Selected Rows:{" "}
+              <span className="text-blue-700">{selectedTotals.count}</span>
+            </div>
+            <div>
+              Total Qty:{" "}
+              <span className="text-gray-900">{selectedTotals.qty}</span>
+            </div>
+            <div>
+              Qty Executed:{" "}
+              <span className="text-green-700">{selectedTotals.qtyExe}</span>
+            </div>
+            <div>
+              Qty Pending:{" "}
+              <span className="text-red-600">{selectedTotals.qtyPending}</span>
+            </div>
+          </div>
+        )}
 
         <TablePagination
           page={page}
@@ -2089,8 +2085,8 @@ useEffect(() => {
 
                   {/* ADDRESS */}
                   <p className="mt-1 text-center text-[11px] leading-tight">
-                    Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-                    Village Metoda, Dist. Rajkot-360 021
+                    Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C.
+                    Lodhika, Village Metoda, Dist. Rajkot-360 021
                   </p>
 
                   {/* TAG */}
@@ -2107,7 +2103,8 @@ useEffect(() => {
                       </div>
                       <div>
                         <span className="font-semibold">SOA:</span>{" "}
-                        {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
+                        {String(order.gmsoaNo).replace(/^SOA/i, "")}-
+                        {order.soaSrNo}
                       </div>
                     </div>
 
@@ -2130,7 +2127,7 @@ useEffect(() => {
                   </div>
 
                   {/* ITEM */}
-                 <div className="mt-4 text-sm flex gap-2 items-start">
+                  <div className="mt-4 text-sm flex gap-2 items-start">
                     <span className="font-semibold">Item:</span>
                     <div className="mt-1 leading-snug">{order.product}</div>
                   </div>
@@ -2141,16 +2138,15 @@ useEffect(() => {
                       <span className="font-semibold">QTY:</span> {order.qty}
                     </div>
                     <div>
-                      <span className="font-semibold">Logo:</span> {order.gmLogo}
+                      <span className="font-semibold">Logo:</span>{" "}
+                      {order.gmLogo}
                     </div>
                   </div>
 
                   {/* SPECIAL NOTE */}
                   <div className="mt-4 text-sm flex gap-2 items-center">
                     <span className="font-semibold">Special Note:</span>
-                    <div className="mt-1 h-5">
-                      {order.specialNotes || ""}
-                    </div>
+                    <div className="mt-1 h-5">{order.specialNotes || ""}</div>
                   </div>
 
                   {/* INSPECTED BY */}
@@ -2164,7 +2160,10 @@ useEffect(() => {
 
             {/* ACTIONS */}
             <div className="flex justify-end gap-3 border-t pt-4">
-              <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setBinCardDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
@@ -2177,7 +2176,6 @@ useEffect(() => {
             </div>
           </DialogContent>
         </Dialog>
-
 
         {/* View Order Details Dialog */}
         <Dialog
@@ -2214,9 +2212,7 @@ useEffect(() => {
                       </p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-sm">
-                        Sr. No.
-                      </Label>
+                      <Label className="text-gray-500 text-sm">Sr. No.</Label>
                       <p className="text-gray-900 mt-1">
                         {viewedOrder.soaSrNo}
                       </p>
@@ -2327,7 +2323,7 @@ useEffect(() => {
                         {viewedOrder.namePlate}
                       </p>
                     </div>
-                    
+
                     <div>
                       <Label className="text-gray-500 text-sm">
                         Product SPCL1
@@ -2336,7 +2332,7 @@ useEffect(() => {
                         {viewedOrder.productSpcl1 || "-"}
                       </p>
                     </div>
-                   
+
                     <div>
                       <Label className="text-gray-500 text-sm">
                         Product SPCL2
@@ -2345,7 +2341,7 @@ useEffect(() => {
                         {viewedOrder.productSpcl2 || "-"}
                       </p>
                     </div>
-                     <div>
+                    <div>
                       <Label className="text-gray-500 text-sm">
                         Special notes
                       </Label>
@@ -2361,7 +2357,6 @@ useEffect(() => {
                         {viewedOrder.productSpcl3 || "-"}
                       </p>
                     </div>
-                     
                   </div>
                 </div>
 
