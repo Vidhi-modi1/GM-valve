@@ -1682,7 +1682,7 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     )
   }
 >
-  Sr. No.
+  Sr.No.
   {soaSort === "asc" && " ▲"}
   {soaSort === "desc" && " ▼"}
 </th>

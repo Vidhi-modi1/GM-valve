@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Siren, Eye, MessageSquarePlus, Download,ArrowLeft } from "lucide-react";
+import { Siren, Eye, MessageSquarePlus, Download, ArrowLeft, Printer } from "lucide-react";
+
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import {
@@ -286,6 +287,8 @@ export function PackagingPage() {
     return filteredOrders.slice(start, start + perPage);
   }, [filteredOrders, page, perPage]);
 
+  
+
   /* ================= SELECTION ================= */
 
   const rowKey = (o: PackagingOrderData) =>
@@ -307,6 +310,131 @@ export function PackagingPage() {
     } else {
       setSelectedRows(new Set(filteredOrders.map(rowKey)));
     }
+  };
+const selectedOrdersData = useMemo(
+  () => orders.filter((o) => selectedRows.has(rowKey(o))),
+  [orders, selectedRows]
+);
+
+   const [binCardDialogOpen, setBinCardDialogOpen] = useState(false);
+  const handleShowBinCard = () => setBinCardDialogOpen(true);
+
+  const handlePrintBinCard = () => {
+    const cards = selectedOrdersData
+      .map(
+        (order) => `
+        <div class="bin-card">
+          <div class="content">
+            <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+            <h6 class="company-address">
+              Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+              Village Metoda, Dist. Rajkot-360 021
+            </h6>
+            <h3 class="tag-title process-border">In Process Material Tag</h3>
+            <div class="meta">
+              <div class="meta-item">
+                <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+                <div>
+                  <span class="label">SOA:</span>
+                  ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+                </div>
+              </div>
+              <div class="title assembly-title">
+                <p>Assembly Line: ${order.assemblyLine}</p>
+              </div>
+              <div class="meta-item">
+                <p>GMV-L4-F-PRD 01 A</p>
+                <p>(02/10.09.2020)</p>
+              </div>
+            </div>
+            <div class="desc">
+              <div clas="description party-desc">
+                <span class="label">Party:</span><p>${order.party}</p>
+              </div>
+              <div clas="description item-label-description">
+                <span class="label item-label">Item:</span><p>${order.product}</p>
+              </div>
+            </div>
+            <div class="qty-logo">
+              <div class="meta meta-logo">
+                <div class="meta-qty"><span class="label">QTY:</span> ${order.totalQty}</div>
+                <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${order.gmLogo}</div>
+              </div>
+              <div class="detail-items"><span class="label ">Special Note:</span> <span>${order.specialNotes || ""}</span></div>
+            </div>
+            <div class="inspect">
+              <span class="label">Inspected by:</span>
+              <div class="inspect-line"></div>
+            </div>
+          </div>
+        </div>`
+      )
+      .join("");
+
+    const html = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Bin Card</title>
+        <style>
+          @page { size: 130mm 85mm; margin: 0; }
+          html, body { width: 130mm; height: 85mm; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+          .item-label, .party-desc { padding-bottom: 2mm; }
+          .item-label { line-height: 1.8em; }
+          .bin-card { width: 130mm; height: 85mm; padding: 6mm; box-sizing: border-box; page-break-after: always; }
+          .item-label-description { padding-top: 50px; }
+          .meta-qty { width: 50%; }
+          .process-border { border-top:1px solid #000; border-bottom:1px solid #000; padding-top: 1.5mm; padding-bottom: 1.5mm; }
+          .detail-logo { padding-bottom: 0.9mm; }
+          .description { padding-bottom: 2mm; }
+          .content { width: 100%; height: 100%; border: 1.5px solid #000; border-radius: 10px; padding-top: 2mm; padding-bottom: 4mm; padding-left: 6mm; padding-right: 6mm; box-sizing: border-box; display: flex; flex-direction: column; }
+          .meta-item { padding-top: 2mm; }
+          p { margin: 0; }
+          .company-name { font-size: 12px; font-weight: 700; text-align: center; margin: 0 0 1mm; }
+          .assembly-title p { border: 1px solid #000; display: inline-block; padding-top: 1mm; padding-bottom: 0.9mm; padding-left: 1mm; padding-right: 1mm; }
+          .company-address { font-size: 8px; font-weight: 400; text-align: center; line-height: 1.2; margin: 0 0 1.2mm; }
+          .tag-title { font-size: 11px; font-weight: 700; text-align: center; margin: 0 0 1.5mm; }
+          .doc-row { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 0.5mm; }
+          .title { text-align: center; font-size: 11px; font-weight: 700; margin-top: 0; margin-bottom: 0.5mm; }
+          .title-line { border-bottom: 1px solid #000; margin-bottom: 1.5mm; margin-top: 0.5mm; }
+          .meta { font-size: 10px; line-height: 1.25; margin-bottom: 0.8mm; display: flex; align-items: center; justify-content: space-between; }
+          .meta div { margin-bottom: 0.5mm; }
+          .desc { font-size: 9px; margin-bottom: 0.8mm; }
+          .desc p { padding-bottom: 0.6mm; }
+          .desc span { display: block; padding-bottom: 0.1mm; }
+          .desc .label { display: block; font-size: 10px; margin-bottom: 0.8mm; margin-top: 0.8mm; }
+          .desc .text { word-break: break-word; }
+          .qty-logo { font-size: 10px; line-height: 1.3; margin-bottom: 0.4mm; margin-top: 0.8mm; }
+          .inspect { margin-top: auto; font-size: 10px; }
+          .inspect-line { height: 3mm; border-bottom: 1px solid #000; }
+          .label { font-weight: 600; }
+        </style>
+      </head>
+      <body>${cards}</body>
+    </html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 500);
+    }, 300);
   };
 
   // Reflect whether every visible row is currently selected
@@ -383,6 +511,8 @@ export function PackagingPage() {
     }
   };
 
+  
+
   /* ================= UI ================= */
 
   return (
@@ -407,8 +537,17 @@ export function PackagingPage() {
             <div className="flex gap-4 w-full justify-end">
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 <div className="flex items-center gap-4">
-                 
                   <Button
+                                  onClick={handleShowBinCard}
+                                  variant="outline"
+                                  disabled={selectedRows.size === 0}
+                                  className="flex items-center gap-2 ctm-btn-disable"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                  Print Bin Card
+                                </Button>
+                 
+                  {/* <Button
                     onClick={() => setShowUrgentOnly(!showUrgentOnly)}
                     className={`btn-urgent flex items-center gap-2 ${
                       showUrgentOnly ? "bg-red-600 text-white" : "bg-red-50 text-red-700"
@@ -422,7 +561,7 @@ export function PackagingPage() {
                     className="bg-btn-gradient text-white shadow-md transition-all btn-remark"
                   >
                     {showRemarksOnly ? "Show All Projects" : "Remarks only"}
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
 
@@ -435,17 +574,18 @@ export function PackagingPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Export Data
               </Button>
-              <Button
+              {/* <Button
                 onClick={handleExportAll}
                 className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export all Data
-              </Button>
+              </Button> */}
             </div>
           </div>
           <div className="mt-4">
              <Button
+              variant="outline"
                 onClick={() => {
                   try {
                     const s = localStorage.getItem("user");
@@ -466,7 +606,7 @@ export function PackagingPage() {
                 <ArrowLeft className="h-4 w-4" />
                     Back to Dispatch
               </Button>
-              </div>
+          </div>
           <div className="mt-4">
             <OrderFilters
               currentStage="default"
@@ -503,7 +643,9 @@ export function PackagingPage() {
           >
             <div className="inline-block min-w-full align-middle">
               {loading && orders.length === 0 ? (
-                <div className="p-10 text-center text-gray-600">Loading...</div>
+                <div className="p-10 text-center text-gray-600 ctm-load">
+                  Loading...
+                </div>
               ) : (
                 <>
                   <table className="min-w-full border-collapse">
@@ -533,7 +675,7 @@ export function PackagingPage() {
                             setSoaSort((prev) => (prev === "asc" ? "desc" : prev === "desc" ? null : "asc"))
                           }
                         >
-                          Sr. No.
+                          Sr.No.
                           {soaSort === "asc" && " ▲"}
                           {soaSort === "desc" && " ▼"}
                         </th>
@@ -918,6 +1060,119 @@ export function PackagingPage() {
           </div>
         </DialogContent>
       </Dialog>
+               {/* Bin Card Dialog */}
+                           <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
+                                   <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
+                                     <DialogHeader>
+                                       <DialogTitle className="text-lg font-semibold text-gray-900">
+                                         Bin Card Preview
+                                       </DialogTitle>
+                                       <DialogDescription className="text-sm text-gray-500">
+                                         This preview matches the printed bin card layout.
+                                       </DialogDescription>
+                                     </DialogHeader>
+                         
+                                     <div className="py-6 space-y-8">
+                                       {selectedOrdersData.map((order) => (
+                                         <div
+                                           key={order.id}
+                                           className="mx-auto w-full max-w-[640px] rounded-[16px] border-2 border-black bg-white px-6 py-5 dialog-inline"
+                                         >
+                                           {/* COMPANY NAME */}
+                                           <h1 className="text-center text-lg font-bold">
+                                             G M Valve Pvt. Ltd.
+                                           </h1>
+                         
+                                           {/* ADDRESS */}
+                                           <p className="mt-1 text-center text-[11px] leading-tight">
+                                             Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+                                             Village Metoda, Dist. Rajkot-360 021
+                                           </p>
+                         
+                                           {/* TAG */}
+                                           <div className="mt-3 border-y-2 border-black py-1 text-center text-sm font-semibold">
+                                             In Process Material Tag
+                                           </div>
+                         
+                                           {/* DATE / SOA / DOC */}
+                                           <div className="mt-3 grid grid-cols-3 items-start text-sm">
+                                             <div>
+                                               <div>
+                                                 <span className="font-semibold">Date:</span>{" "}
+                                                 {order.assemblyDate}
+                                               </div>
+                                               <div>
+                                                 <span className="font-semibold">SOA:</span>{" "}
+                                                 {String(order.gmsoaNo).replace(/^SOA/i, "")}-{order.soaSrNo}
+                                               </div>
+                                             </div>
+                         
+                                             <div className="flex justify-center">
+                                               <span className="border-2 border-black px-3 py-1 text-sm font-semibold">
+                                                 Assembly Line: {order.assemblyLine}
+                                               </span>
+                                             </div>
+                         
+                                             <div className="text-right text-xs leading-tight">
+                                               <div>GMV-L4-F-PRD 01 A</div>
+                                               <div>(02/10.09.2020)</div>
+                                             </div>
+                                           </div>
+                         
+                                           {/* PARTY */}
+                                           <div className="mt-4 text-sm flex gap-2 items-center">
+                                             <span className="font-semibold">Party:</span>
+                                             <div className="mt-1">{order.party}</div>
+                                           </div>
+                         
+                                           {/* ITEM */}
+                                           <div className="mt-4 text-sm flex gap-2 items-start">
+                                             <span className="font-semibold">Item:</span>
+                                             <div className="mt-1 leading-snug">{order.product}</div>
+                                           </div>
+                         
+                                           {/* QTY & LOGO */}
+                                           <div className="mt-4 flex justify-between text-sm">
+                                             <div>
+                                               <span className="font-semibold">QTY:</span> {order.qty}
+                                             </div>
+                                             <div>
+                                               <span className="font-semibold">Logo:</span> {order.gmLogo}
+                                             </div>
+                                           </div>
+                         
+                                           {/* SPECIAL NOTE */}
+                                           <div className="mt-4 text-sm flex gap-2 items-center">
+                                             <span className="font-semibold">Special Note:</span>
+                                             <div className="mt-1 h-5">
+                                               {order.specialNotes || ""}
+                                             </div>
+                                           </div>
+                         
+                                           {/* INSPECTED BY */}
+                                           <div className="mt-6 inspected text-sm">
+                                             <span className="font-semibold">Inspected by:</span>
+                                             <div className="mt-1 h-6 border-b border-black"></div>
+                                           </div>
+                                         </div>
+                                       ))}
+                                     </div>
+                         
+                                     {/* ACTIONS */}
+                                     <div className="flex justify-end gap-3 border-t pt-4">
+                                       <Button variant="outline" onClick={() => setBinCardDialogOpen(false)}>
+                                         Cancel
+                                       </Button>
+                                       <Button
+                                         onClick={handlePrintBinCard}
+                                         className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md"
+                                       >
+                                         <Printer className="h-4 w-4" />
+                                         Print
+                                       </Button>
+                                     </div>
+                                   </DialogContent>
+                                 </Dialog>
     </>
   );
 }

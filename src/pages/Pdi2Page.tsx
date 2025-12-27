@@ -1714,7 +1714,7 @@ const splitLabel = getStepLabel(splitStep);
     )
   }
 >
-  Sr. No.
+  Sr.No.
   {soaSort === "asc" && " ▲"}
   {soaSort === "desc" && " ▼"}
 </th>

@@ -1729,7 +1729,7 @@ useEffect(() => {
                             )
                           }
                         >
-                          SR. No.
+                          SR.No.
                           {soaSort === "asc" && " ▲"}
                           {soaSort === "desc" && " ▼"}
                         </th>

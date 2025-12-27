@@ -535,7 +535,7 @@ export default function SvsStock() {
                             )
                           }
                         >
-                          Sr. No.
+                          Sr.No.
                           {soaSort === "asc" && " ▲"}
                           {soaSort === "desc" && " ▼"}
                         </th>

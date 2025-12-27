@@ -1234,7 +1234,7 @@ const getBackendStage = (stageKey: string) => {
               <tr className="bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 border-b border-gray-200">
                 <th className="px-4 py-3 text-center text-gray-700 sticky left-0 bg-gradient-to-r from-[#174a9f]/10 to-indigo-50/50 z-10 ctm-opacity">Assembly Line</th>
                 <th className="px-4 py-3 text-gray-700 truncate text-center">SOA NO.</th>
-                <th className="px-4 py-3 text-gray-700 text-center truncate">SR NO.</th>
+                <th className="px-4 py-3 text-gray-700 text-center truncate">SR.NO.</th>
                 <th className="px-4 py-3 text-center text-gray-700 truncate text-center">Assembly Date</th>
                 <th className="px-4 py-3 text-gray-700 truncate text-center">Unique Code</th>
                 <th className="px-4 py-3 text-gray-700 truncate text-center">Party</th>
