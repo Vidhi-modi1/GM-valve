@@ -157,6 +157,7 @@ const [packagingOrder, setPackagingOrder] = useState<any>(null);
 const [oclNo, setOclNo] = useState("");
 const [isSubmittingPackaging, setIsSubmittingPackaging] = useState(false);
 const [packagingToast, setPackagingToast] = useState(false);
+const [showPackagingPopup, setShowPackagingPopup] = useState(false);
 
 // const handlePackagingCheckbox = async (
   
@@ -213,6 +214,10 @@ const handlePackagingCheckbox = async (
   try {
     const token = localStorage.getItem("token");
 
+    // Show immediate 1-second dialog when checked
+    setShowPackagingPopup(true);
+    setTimeout(() => setShowPackagingPopup(false), 2000);
+
     const fd = new FormData();
     fd.append("split_id", String(order.split_id));
     fd.append("packaging", "1");
@@ -227,7 +232,7 @@ const handlePackagingCheckbox = async (
 
     // ✅ SHOW TOAST
     setPackagingToast(true);
-    setTimeout(() => setPackagingToast(false), 2000);
+    setTimeout(() => setPackagingToast(false), 1000);
 
   } catch (err) {
     console.error("Packaging toggle failed", err);
@@ -1555,12 +1560,12 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
                     <Download className="h-4 w-4 mr-2" />
                     Export all Data
                   </Button>
-{/* <Button
+<Button
   className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white shadow-lg hover:shadow-xl"
-  onClick={() => navigate("/packging")}
+  onClick={() => navigate("/packaging")}
 >
   Completed Projects
-</Button> */}
+</Button>
           </div>
 
           {/* Filters */}
@@ -1960,17 +1965,16 @@ const exportToExcel = (data: AssemblyOrderData[]) => {
     title="Toggle Packaging"
   />
 
-  {packagingToast && (
-  <div className="
-    fixed bottom-6 right-6 z-[9999]
-    bg-green-600 text-white
-    px-5 py-3 rounded-lg shadow-lg
-    text-sm font-semibold
-    animate-fade-in
-  ">
-    ✔ Moved to Packaging successfully
-  </div>
-)}
+  {showPackagingPopup && (
+    <Dialog open={showPackagingPopup} onOpenChange={setShowPackagingPopup}>
+      <DialogContent className="max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>moved to packginng</DialogTitle>
+          <DialogDescription></DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  )}
 
 
   {order.packaging === 1 && (

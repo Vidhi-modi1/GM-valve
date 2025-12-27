@@ -6536,6 +6536,14 @@ table {
 .table-head {
   position: sticky !important;
   top: 0 !important;
+  z-index: 99;
+}
+
+div[role="dialog"] {
+  z-index: 99999;
+}
+
+div[data-slot="dialog-overlay"]  {
   z-index: 999;
 }
 

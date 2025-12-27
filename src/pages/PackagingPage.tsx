@@ -21,6 +21,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { DashboardHeader } from "../components/dashboard-header";
 import TablePagination from "../components/table-pagination";
+import { useNavigate } from "react-router-dom";
 
 interface PackagingOrderData {
   id: string;
@@ -55,7 +56,16 @@ interface PackagingOrderData {
   originalIndex: number;
 }
 
-export function PackgingPage() {
+// Local helper to safely truncate by word count
+const truncateWords = (text: string, maxWords: number): string => {
+  if (!text) return "";
+  const words = String(text).trim().split(/\s+/);
+  if (words.length <= maxWords) return text;
+  return words.slice(0, maxWords).join(" ") + "...";
+};
+
+export function PackagingPage() {
+  const navigate = useNavigate();
   const { updateRemark, getRemark, getAlertStatus } = useOrderContext();
   const token = localStorage.getItem("token");
 
@@ -101,10 +111,7 @@ export function PackgingPage() {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const ok =
-        res.data?.Resp_code === true ||
-        res.data?.Resp_code === "true" ||
-        res.data?.Resp_code === "RCS";
+      const ok = res.data?.status === true || res.data?.status === "true" || Array.isArray(res.data?.data);
       if (ok && Array.isArray(res.data.data)) {
         const mapped: PackagingOrderData[] = res.data.data.map((item: any, index: number) => ({
           id: String(item.id),
@@ -113,15 +120,15 @@ export function PackgingPage() {
           soaSrNo: item.soa_sr_no || "",
           assemblyDate: item.assembly_date || "",
           uniqueCode: item.unique_code || item.order_no || "",
-          splittedCode: item.splitted_code || "",
-          split_id: item.split_id || item.splitted_code || "",
+          splittedCode: item.split_code || item.splitted_code || "",
+          split_id: item.split_id || item.split_code || item.splitted_code || "",
           party: item.party_name || item.party || "",
           customerPoNo: item.customer_po_no || "",
           codeNo: item.code_no || "",
           product: item.product || "",
-          totalQty: Number(item.total_qty || item.totalQty || item.qty || 0),
-          qtyExe: Number(item.qty_executed || 0),
-          qtyPending: Number(item.qty_pending || 0),
+          totalQty: Number(item.totalQty || item.total_qty || item.qty || item.po_qty || 0),
+          qtyExe: Number(item.qty_executed || item.assigned_qty || 0),
+          qtyPending: Number(item.qty_pending || item.remaining_qty || 0),
           finishedValve: item.finished_valve || "",
           gmLogo: item.gm_logo || "",
           namePlate: item.name_plate || "",
@@ -139,7 +146,13 @@ export function PackgingPage() {
             item.alert_status === "true" ||
             item.urgent === 1 ||
             item.urgent === "1",
-          packaging: item.packaging === 1 || item.packaging === "1" ? 1 : 0,
+          packaging:
+            item.is_packaging === 1 ||
+            item.is_packaging === "1" ||
+            item.packaging === 1 ||
+            item.packaging === "1"
+              ? 1
+              : 0,
           oclNo: item.ocl_no || "",
           completedDate: item.completed_date || "",
           originalIndex: index,
@@ -148,7 +161,7 @@ export function PackgingPage() {
         setFullOrders(mapped);
       } else {
         setOrders([]);
-        setError(res?.data?.Resp_desc || "Failed to fetch packaging orders");
+        setError(res?.data?.message || res?.data?.Resp_desc || "Failed to fetch packaging orders");
       }
     } catch (err: any) {
       setError("Error fetching packaging orders");
@@ -296,6 +309,9 @@ export function PackgingPage() {
     }
   };
 
+  // Reflect whether every visible row is currently selected
+  const allRowsSelected = filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
+
   /* ================= EXPORT ================= */
 
   const exportToExcel = (data: PackagingOrderData[]) => {
@@ -388,9 +404,29 @@ export function PackgingPage() {
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">Packaging</h1>
               <p className="text-sm text-gray-600">Completed and packaged orders</p>
             </div>
-            <div className="flex flex-col gap-4 w-full">
+            <div className="flex gap-4 w-full justify-end">
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
                 <div className="flex items-center gap-4">
+                  <Button
+                    onClick={() => {
+                      try {
+                        const s = localStorage.getItem("user");
+                        const u = s ? JSON.parse(s) : null;
+                        const rawRole = u?.role?.name || u?.role || "";
+                        const role = String(rawRole || "").toLowerCase();
+                        if (role.includes("planning")) {
+                          navigate("/planning");
+                        } else {
+                          navigate("/dispatch");
+                        }
+                      } catch {
+                        navigate("/dispatch");
+                      }
+                    }}
+                    className="bg-gradient-to-r bg-btn-gradient from-gray-600 to-gray-700 text-white shadow-md transition-all"
+                  >
+                    Back to Dispatch
+                  </Button>
                   <Button
                     onClick={() => setShowUrgentOnly(!showUrgentOnly)}
                     className={`btn-urgent flex items-center gap-2 ${
@@ -879,4 +915,4 @@ export function PackgingPage() {
     </>
   );
 }
-export default PackgingPage;
+export default PackagingPage;
