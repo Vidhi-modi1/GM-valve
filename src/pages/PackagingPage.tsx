@@ -479,10 +479,10 @@ const selectedOrdersData = useMemo(
   };
 
   const handleExport = () => {
-    if (!showUrgentOnly && !showRemarksOnly && selectedRows.size === 0) {
-      alert("Export allowed only for Urgent / Remarks / Selected rows");
-      return;
-    }
+    // if (!showUrgentOnly && !showRemarksOnly && selectedRows.size === 0) {
+    //   alert("Export allowed only for Urgent / Remarks / Selected rows");
+    //   return;
+    // }
 
     const data =
       selectedRows.size > 0

@@ -401,8 +401,9 @@ const useGlobalSearch = useMemo(() => {
     //   return true;
     // });
     const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
+   const makeRowKey = (o: AssemblyOrderData) =>
+  o.splittedCode || o.split_id || o.uniqueCode || o.id;
+
     filtered = filtered.filter((o) => {
       const key = makeRowKey(o);
       if (seen.has(key)) return false;
@@ -474,24 +475,29 @@ const useGlobalSearch = useMemo(() => {
 };
 
   // selection helpers
-  const toggleRowSelection = (orderId: string) => {
-    setSelectedRows((prev) => {
-      const copy = new Set(prev);
-      if (copy.has(orderId)) copy.delete(orderId);
-      else copy.add(orderId);
-      return copy;
-    });
-  };
+const toggleRowSelection = (key: string) => {
+  setSelectedRows((prev) => {
+    const copy = new Set(prev);
+    copy.has(key) ? copy.delete(key) : copy.add(key);
+    return copy;
+  });
+};
 
-  const toggleSelectAll = () => {
-    setSelectedRows((prev) => {
-      if (prev.size === filteredOrders.length) return new Set();
-      return new Set(filteredOrders.map((o) => o.id));
-    });
-  };
 
-  const allRowsSelected =
-    filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
+const toggleSelectAll = () => {
+  setSelectedRows((prev) => {
+    const allKeys = filteredOrders.map(makeRowKey);
+    const allSelected = allKeys.every((k) => prev.has(k));
+
+    return allSelected ? new Set() : new Set(allKeys);
+  });
+};
+
+
+const allRowsSelected =
+  filteredOrders.length > 0 &&
+  filteredOrders.every((o) => selectedRows.has(makeRowKey(o)));
+
 
   // Quick Assign logic (local; you can replace with API calls as needed)
   // const handleQuickAssign = (order: AssemblyOrderData) => {
@@ -909,9 +915,9 @@ const handleExport = () => {
   const hasSelection = selectedRows.size > 0;
 
   if (!isUrgentMode && !isRemarksMode && !hasSelection) {
-    alert(
-      "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
-    );
+    // alert(
+    //   "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+    // );
     return;
   }
 

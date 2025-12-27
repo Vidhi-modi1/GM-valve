@@ -856,9 +856,9 @@ const handleExport = () => {
   const hasSelection = selectedRows.size > 0;
 
   if (!isUrgentMode && !isRemarksMode && !hasSelection) {
-    alert(
-      "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
-    );
+    // alert(
+    //   "Export is available only for Urgent or Remarks views. Use 'Export All' for the complete list."
+    // );
     return;
   }
 
