@@ -402,9 +402,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           </span>
         </label> */}
 
-        <a href="#" className="text-sm text-[#174a9f] hover:underline">
+        {/* <a href="#" className="text-sm text-[#174a9f] hover:underline">
           Forgot Password?
-        </a>
+        </a> */}
       </div>
 
       {/* Button */}
