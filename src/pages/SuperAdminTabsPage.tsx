@@ -33,20 +33,38 @@ const SuperAdminTabsPage: React.FC = () => {
     }
   });
 
-
   const tabs = useMemo(
     () => [
-      { key: "dashboard", label: "Dashboard", component: (
-        <DashboardPage onLogout={() => { try { localStorage.clear(); } catch {} window.location.href = "/login"; }} />
-      ) },
+      {
+        key: "dashboard",
+        label: "Dashboard",
+        component: (
+          <DashboardPage
+            onLogout={() => {
+              try {
+                localStorage.clear();
+              } catch {}
+              window.location.href = "/login";
+            }}
+          />
+        ),
+      },
       { key: "planning", label: "Planning", component: <PlanningPage /> },
-      { key: "material-issue", label: "Material Issue", component: <MaterialIssuePage /> },
+      {
+        key: "material-issue",
+        label: "Material Issue",
+        component: <MaterialIssuePage />,
+      },
       { key: "semi-qc", label: "Semi QC", component: <SemiQcPage /> },
-      { key: "phosphating", label: "Phosphating", component: <PhosphatingPage /> },
-       { key: "assembly-a", label: "Assembly A", component: <AssemblyAPage /> },
-       { key: "assembly-b", label: "Assembly B", component: <AssemblyBPage /> },
-       { key: "assembly-c", label: "Assembly C", component: <AssemblyCPage /> },
-       { key: "assembly-d", label: "Assembly D", component: <AssemblyDPage /> },
+      {
+        key: "phosphating",
+        label: "Phosphating",
+        component: <PhosphatingPage />,
+      },
+      { key: "assembly-a", label: "Assembly A", component: <AssemblyAPage /> },
+      { key: "assembly-b", label: "Assembly B", component: <AssemblyBPage /> },
+      { key: "assembly-c", label: "Assembly C", component: <AssemblyCPage /> },
+      { key: "assembly-d", label: "Assembly D", component: <AssemblyDPage /> },
       // { key: "assembly", label: "Assembly", component: <AssemblyPage /> },
       { key: "testing1", label: "Testing 1", component: <Testing1Page /> },
       { key: "testing2", label: "Testing 2", component: <Testing2Page /> },
@@ -57,7 +75,11 @@ const SuperAdminTabsPage: React.FC = () => {
       { key: "pdi2", label: "PDI 2", component: <Pdi2Page /> },
       { key: "tpi", label: "TPI", component: <TpiPage /> },
       { key: "dispatch", label: "Dispatch", component: <DispatchPage /> },
-      { key: "customer-support", label: "Customer Support", component: <CustomerSupport /> },
+      {
+        key: "customer-support",
+        label: "Customer Support",
+        component: <CustomerSupport />,
+      },
     ],
     []
   );
@@ -66,8 +88,7 @@ const SuperAdminTabsPage: React.FC = () => {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem("superAdminActiveTab", activeTab)
-
+      sessionStorage.setItem("superAdminActiveTab", activeTab);
     } catch {}
   }, [activeTab]);
 
@@ -75,8 +96,19 @@ const SuperAdminTabsPage: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <DashboardHeader
         role="planning"
-        currentPage={activeTab === "dashboard" ? "Dashboard" : activeTab === "planning" ? "Planning" : activeTab}
-        onLogout={() => { try { localStorage.clear(); } catch {} window.location.href = "/login"; }}
+        currentPage={
+          activeTab === "dashboard"
+            ? "Dashboard"
+            : activeTab === "planning"
+            ? "Planning"
+            : activeTab
+        }
+        onLogout={() => {
+          try {
+            localStorage.clear();
+          } catch {}
+          window.location.href = "/login";
+        }}
         onNavigate={(page) => {
           const key = page.toLowerCase().replace(/\s+/g, "-");
           setActiveTab(key);
@@ -101,7 +133,6 @@ const SuperAdminTabsPage: React.FC = () => {
       <div className="flex-1 inner-header-main overflow-y-auto overflow-x-hidden">
         {current.component}
       </div>
-
     </div>
   );
 };

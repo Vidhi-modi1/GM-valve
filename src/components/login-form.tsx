@@ -202,6 +202,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [rememberMe, setRememberMe] = useState(false);
   // const [superAdminMode, setSuperAdminMode] = useState(false);
   const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -213,7 +214,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     setError("");
 
     try {
-      const response = await loginUser(email, password);
+     const response = await loginUser(identifier, password);
+
 
       // SUCCESS
       if (response?.status === true && response?.data) {
@@ -324,9 +326,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
         style={{ animationDelay: "0.1s" }}
       >
         <label htmlFor="email" className="text-gray-700 text-sm font-medium">
-          Email
+          Username or Email
         </label>
-        <Input
+        {/* <Input
           id="email"
           type="email"
           placeholder="Enter your email"
@@ -334,7 +336,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           onChange={(e) => setEmail(e.target.value)}
           required
           className="rounded-3xl h-12 px-4 bg-white/80 border-2 border-gray-200 hover:border-[#174a9f]/50 focus:border-[#174a9f] focus:ring-2 focus:ring-[#174a9f]/20 transition-all duration-300 shadow-sm hover:shadow-md"
-        />
+        /> */}
+        <Input
+  type="text"
+  placeholder="Enter username or email"
+  value={identifier}
+  onChange={(e) => setIdentifier(e.target.value)}
+  required
+   className="rounded-3xl h-12 px-4 bg-white/80 border-2 border-gray-200 hover:border-[#174a9f]/50 focus:border-[#174a9f] focus:ring-2 focus:ring-[#174a9f]/20 transition-all duration-300 shadow-sm hover:shadow-md"
+/>
       </div>
 
       {/* Password */}
