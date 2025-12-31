@@ -6539,13 +6539,28 @@ table {
   z-index: 99;
 }
 
-div[role="dialog"] {
+.z-50 {
+  z-index: 999999!important;
+}
+
+[data-radix-dialog-content],
+[data-radix-popover-content] {
+  pointer-events: auto;
+}
+
+/* div[role="dialog"] {
   z-index: 99999;
 }
 
 div[data-slot="dialog-overlay"]  {
   z-index: 999;
 }
+
+[data-radix-dialog-content],
+[data-radix-popover-content] {
+  pointer-events: auto;
+} */
+
 
 /* .table-head th {
   position: sticky !important;
