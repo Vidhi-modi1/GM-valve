@@ -1489,7 +1489,7 @@ function CustomerSupport() {
                       <td className="px-4 py-3 text-center text-gray-700 truncate">
                         {order.uniqueCode}
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-700 max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-center text-gray-700 max-w-[200px] truncate" title={order.party}>
                         {order.party}
                       </td>
                       <td className="px-4 py-3 text-center text-gray-700">
