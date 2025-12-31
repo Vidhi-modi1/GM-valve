@@ -115,7 +115,7 @@ function CustomerSupport() {
     pendingQty?: number;
   } | null>(null);
   const [page, setPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(20);
+  const [perPage, setPerPage] = useState<number>(100);
 
   // Real-time stage data fetched from API per pages convention
   const [dataByStage, setDataByStage] = useState<Record<string, OrderData[]>>(

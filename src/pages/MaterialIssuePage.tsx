@@ -97,7 +97,7 @@ export function MaterialIssuePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(20);
+  const [perPage, setPerPage] = useState<number>(100);
   const [total, setTotal] = useState<number>(0);
   const [lastPage, setLastPage] = useState<number>(1);
 
@@ -1419,7 +1419,7 @@ export function MaterialIssuePage() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Material Issue

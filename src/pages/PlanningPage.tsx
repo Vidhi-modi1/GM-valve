@@ -87,7 +87,7 @@ export function PlanningPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(20);
+  const [perPage, setPerPage] = useState<number>(100);
   const [total, setTotal] = useState<number>(0);
   const [lastPage, setLastPage] = useState<number>(1);
 
@@ -227,18 +227,33 @@ export function PlanningPage() {
         setOrders(sortOrders(apiOrders));
         setFullOrders(null);
         const p = res?.data?.pagination;
+        // if (p) {
+        //   const nextTotal = Number(p.total ?? apiOrders.length);
+        //   const nextPer = Number(p.per_page ?? perPage);
+        //   const nextPage = Number(p.current_page ?? page);
+        //   const lastRaw =
+        //     p.last_page ?? Math.ceil(nextTotal / Math.max(nextPer, 1));
+        //   const nextLast = Number(lastRaw || 1);
+        //   setTotal(nextTotal);
+        //   setPerPage(nextPer);
+        //   setPage(nextPage);
+        //   setLastPage(nextLast);
+        // } 
         if (p) {
-          const nextTotal = Number(p.total ?? apiOrders.length);
-          const nextPer = Number(p.per_page ?? perPage);
-          const nextPage = Number(p.current_page ?? page);
-          const lastRaw =
-            p.last_page ?? Math.ceil(nextTotal / Math.max(nextPer, 1));
-          const nextLast = Number(lastRaw || 1);
-          setTotal(nextTotal);
-          setPerPage(nextPer);
-          setPage(nextPage);
-          setLastPage(nextLast);
-        } else {
+  const nextTotal = Number(p.total ?? apiOrders.length);
+  const nextPage = Number(p.current_page ?? page);
+
+  const lastRaw =
+    p.last_page ?? Math.ceil(nextTotal / Math.max(perPage, 1));
+
+  const nextLast = Number(lastRaw || 1);
+
+  setTotal(nextTotal);
+  setPage(nextPage);
+  setLastPage(nextLast);
+}
+
+        else {
           const nextTotal = apiOrders.length;
           setTotal(nextTotal);
           setLastPage(Math.max(1, Math.ceil(nextTotal / Math.max(perPage, 1))));
@@ -1508,7 +1523,7 @@ export function PlanningPage() {
         {/* {loading && orders.length === 0 && <FullPageLoader />} */}
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Orders Management

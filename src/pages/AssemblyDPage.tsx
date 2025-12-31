@@ -1849,7 +1849,7 @@ export function AssemblyDPage() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Assembly D

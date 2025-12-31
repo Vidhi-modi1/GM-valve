@@ -6566,3 +6566,7 @@ div[data-slot="dialog-overlay"]  {
   position: sticky !important;
     top: 0 !important;
 } */
+
+/* .flex-wrap {
+  flex-wrap: wrap;
+} */
