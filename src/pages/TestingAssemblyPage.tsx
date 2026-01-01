@@ -36,8 +36,6 @@ import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
 
-import { useNavigate } from "react-router-dom";
-
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -49,10 +47,12 @@ import {
 import { DashboardHeader } from "../components/dashboard-header.tsx";
 import TablePagination from "../components/table-pagination";
 
+// const API_URL = 'http://192.168.1.17:2010/api';
+
 interface AssemblyOrderData {
   id: string;
-  assemblyLine: string;
   specialNotes: string;
+  assemblyLine: string;
   gmsoaNo: string;
   soaSrNo: string;
   assemblyDate: string;
@@ -77,12 +77,10 @@ interface AssemblyOrderData {
   painting: string;
   remarks: string;
   alertStatus: boolean;
-  originalIndex: number;
 }
 
-export function AssemblyAPage() {
-  const assignAbortRef = useRef<AbortController | null>(null);
-
+export function TestingAssemblyPage() {
+  // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
     toggleAlertStatus: toggleAlertStatusContext,
@@ -99,12 +97,14 @@ export function AssemblyAPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [perPage, setPerPage] = useState<number>(100);
-    
+
+  const [soaSort, setSoaSort] = useState<"asc" | "desc" | null>(null);
 
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showRemarksOnly, setShowRemarksOnly] = useState(false);
+
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
@@ -113,10 +113,6 @@ export function AssemblyAPage() {
   >("range");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
-
-  const navigate = useNavigate();
-
-  const [soaSort, setSoaSort] = useState<"asc" | "desc" | null>(null);
 
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
@@ -161,23 +157,20 @@ export function AssemblyAPage() {
     try {
       setLoading(true);
       setError(null);
-      const currentStage = "assembly-a";
+      const currentStage = "testing1";
       const stageLabel = getStepLabel(currentStage);
-
       const getCurrentUserRole = () => {
         try {
-          const userData = localStorage.getItem("user");
-          if (!userData) return "";
-          const parsed = JSON.parse(userData);
-          const rawRole =
-            typeof parsed.role === "object" ? parsed.role?.name : parsed.role;
-          return String(rawRole || "").toLowerCase();
+          const s = localStorage.getItem("user");
+          if (!s) return "";
+          const u = JSON.parse(s);
+          const raw = typeof u.role === "object" ? u.role?.name : u.role;
+          return String(raw || "").toLowerCase();
         } catch {
           return "";
         }
       };
       const isAdmin = getCurrentUserRole().includes("admin");
-
       const payload = { menu_name: stageLabel };
 
       const res = await axios.post(`${API_URL}/order-list`, payload, {
@@ -202,14 +195,12 @@ export function AssemblyAPage() {
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
             splittedCode: item.splitted_code || "",
-            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
             product: item.product || "",
             qty: Number(item.qty || 0),
             totalQty: Number(item.totalQty || item.total_qty || item.qty || 0),
-            // qty: Number(item.totalQty || item.total_qty || item.qty || 0),
             qtyExe: Number(item.qty_executed || 0),
             qtyPending: Number(item.qty_pending || 0),
             finishedValve: item.finished_valve || "",
@@ -252,6 +243,7 @@ export function AssemblyAPage() {
     }
   };
 
+  // 🔥 GLOBAL SEARCH FLAG
   const useGlobalSearch = useMemo(() => {
     const hasSearch = localSearchTerm.trim().length > 0;
     const hasFilters =
@@ -326,15 +318,8 @@ export function AssemblyAPage() {
       );
     }
 
-    if (assemblyLineFilter !== "all") {
-      const filterKey = assemblyLineFilter.startsWith("assembly-")
-        ? assemblyLineFilter.split("-")[1].toUpperCase()
-        : assemblyLineFilter.toUpperCase();
-      filtered = filtered.filter((o) => {
-        const line = String(o.assemblyLine || "").toUpperCase();
-        return line === filterKey || line.includes(filterKey);
-      });
-    }
+    if (assemblyLineFilter !== "all")
+      filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
     if (gmsoaFilter !== "all")
       filtered = filtered.filter((o) => o.gmsoaNo === gmsoaFilter);
     if (partyFilter !== "all")
@@ -404,10 +389,22 @@ export function AssemblyAPage() {
           String(o.product).toLowerCase().includes(term)
       );
     }
+
+    //  const seen = new Set<string>();
+    //     const makeRowKey = (o: AssemblyOrderData) =>
+    //       o.splittedCode || o.split_id || o.uniqueCode || o.id;
+    //     filtered = filtered.filter((o) => {
+    //       const key = makeRowKey(o);
+    //       if (seen.has(key)) return false;
+    //       seen.add(key);
+    //       return true;
+    //     });
+
     if (soaSort) {
       filtered = [...filtered].sort((a, b) => {
         const aNo = parseSoaSrNo(a.soaSrNo);
         const bNo = parseSoaSrNo(b.soaSrNo);
+
         return soaSort === "asc" ? aNo - bNo : bNo - aNo;
       });
     }
@@ -424,15 +421,9 @@ export function AssemblyAPage() {
     dateFilterMode,
     dateFrom,
     dateTo,
-    soaSort,
     getAlertStatus,
+    soaSort,
   ]);
-
-  const truncateWords = (text = "", wordLimit = 4) => {
-    const words = text.trim().split(/\s+/);
-    if (words.length <= wordLimit) return text;
-    return words.slice(0, wordLimit).join(" ") + "...";
-  };
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -452,12 +443,17 @@ export function AssemblyAPage() {
     showRemarksOnly,
   ]);
 
+  const truncateWords = (text = "", wordLimit = 4) => {
+    const words = text.trim().split(/\s+/);
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(" ") + "...";
+  };
+
   // selection helpers
-  const toggleRowSelection = (rowKey: string) => {
+  const toggleRowSelection = (key: string) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
-      if (copy.has(rowKey)) copy.delete(rowKey);
-      else copy.add(rowKey);
+      copy.has(key) ? copy.delete(key) : copy.add(key);
       return copy;
     });
   };
@@ -465,56 +461,104 @@ export function AssemblyAPage() {
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
-      const keys = filteredOrders.map(
-        (o) => o.splittedCode || o.split_id || o.uniqueCode || o.id
-      );
-      return new Set(keys);
+      return new Set(filteredOrders.map(getRowKey));
     });
   };
-
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
-  // const currentStep = "assembly";
-  const currentStep = "assembly-a"; // or derive from login role
-  const nextSteps = getNextSteps(currentStep);
+  // Quick Assign logic (local; you can replace with API calls as needed)
+  // const handleQuickAssign = (order: AssemblyOrderData) => {
+  //   setSelectedOrder(order);
+  //   setQuickAssignOpen(true);
+  //   // Match PlanningPage behavior: allow selecting any next step
+  //   setQuickAssignStep('');
+  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+  //   setSplitOrder(false);
+  //   setSplitAssignStep('');
+  //   setSplitAssignQty('');
+  //   setQuickAssignErrors({});
+  // };
 
-  // Branch Assembly next steps based on selected order's assembly line
-  const isLineD = (selectedOrder?.assemblyLine || "")
-    .toUpperCase()
-    .includes("D");
-  const effectiveNextSteps = nextSteps.filter((step) => {
-    if (step === "testing1" || step === "testing2") {
-      return isLineD ? step === "testing2" : step === "testing1";
+  // const validateQuickAssign = () => {
+  //   const errs: { [k: string]: string } = {};
+  //   const maxQty = Number(selectedOrder?.qtyPending ?? 0);
+  //   const mainQty = Number(quickAssignQty || 0);
+  //   const splitQty = Number(splitAssignQty || 0);
+
+  //   if (!quickAssignQty || mainQty <= 0) errs.quickAssignQty = 'Quantity is required and must be > 0';
+  //   if (mainQty > maxQty) errs.quickAssignQty = `Cannot exceed available (${maxQty})`;
+
+  //   if (splitOrder) {
+  //     if (!splitAssignStep) errs.splitAssignStep = 'Choose second step';
+  //     if (!splitAssignQty || splitQty <= 0) errs.splitAssignQty = 'Split qty required';
+  //     if (quickAssignStep && splitAssignStep && quickAssignStep === splitAssignStep) errs.sameEngineer = 'Choose different steps';
+  //     const total = mainQty + splitQty;
+  //     if (total !== maxQty) errs.totalQtyMismatch = `Split total must equal ${maxQty} (current ${total})`;
+  //   }
+
+  //   setQuickAssignErrors(errs);
+  //   return Object.keys(errs).length === 0;
+  // };
+  // const currentStep = "testing1";
+  // const currentStep = "testing1";
+  // const nextSteps = getNextSteps(currentStep);
+  // const nextSteps = useMemo(() => {
+  //   if (!selectedOrder) return [];
+  //   return getQuickAssignSteps(selectedOrder);
+  // }, [selectedOrder]);
+
+  // console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
+  // console.log("Is final step?", isFinalStep(currentStep)); // → false
+
+  // const handleQuickAssign = (order: AssemblyOrderData) => {
+  //   const currentStep = "testing1"; // 👈 set dynamically based on page
+  //   const nextSteps = getNextSteps(currentStep);
+
+  //   setSelectedOrder(order);
+  //   setQuickAssignOpen(true);
+
+  //   // Pre-select first next step if available
+  //   setQuickAssignStep(nextSteps[0] || "");
+  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+  //   // Reset split state
+  //   setSplitOrder(false);
+  //   setSplitAssignStep("");
+  //   setSplitAssignQty("");
+  //   setQuickAssignErrors({});
+  // };
+
+  const currentStep = "testing1";
+
+  const getQuickAssignSteps = (order: AssemblyOrderData): string[] => {
+    const line = order.assemblyLine?.toLowerCase();
+
+    if (line === "c" || line === "assembly c" || line === "assembly-c") {
+      return ["svs", "marking1"];
     }
-    return true;
-  });
 
-  console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
-  console.log("Is final step?", isFinalStep(currentStep)); // → false
+    return getNextSteps("testing1");
+  };
+
+  const nextSteps = useMemo(() => {
+    if (!selectedOrder) return [];
+    return getQuickAssignSteps(selectedOrder);
+  }, [selectedOrder]);
+
+  const getRowKey = (o: AssemblyOrderData) =>
+    o.splittedCode || o.split_id || o.uniqueCode || o.id;
 
   const handleQuickAssign = (order: AssemblyOrderData) => {
-    const currentStep = "assembly-a";
-    const nextSteps = getNextSteps(currentStep);
+    const steps = getQuickAssignSteps(order);
 
     setSelectedOrder(order);
     setQuickAssignOpen(true);
 
-    const isLineDQuick = (order.assemblyLine || "").toUpperCase().includes("D");
-    const branched = nextSteps.filter((step) => {
-      if (step === "testing1" || step === "testing2") {
-        return isLineDQuick ? step === "testing2" : step === "testing1";
-      }
-      return true;
-    });
-
-    setQuickAssignStep(branched[0] || nextSteps[0] || "");
+    // 👇 auto-select first option
+    setQuickAssignStep(steps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
-    setAssignStatus(null);
-    setIsAssigning(false);
-
-    // Reset split state
     setSplitOrder(false);
     setSplitAssignStep("");
     setSplitAssignQty("");
@@ -556,11 +600,6 @@ export function AssemblyAPage() {
   };
 
   const handleQuickAssignCancel = () => {
-    if (assignAbortRef.current) {
-      assignAbortRef.current.abort();
-      assignAbortRef.current = null;
-    }
-
     setIsAssigning(false);
     setAssignStatus(null);
     setQuickAssignOpen(false);
@@ -577,283 +616,279 @@ export function AssemblyAPage() {
   const selectedOrdersData = orders.filter((o) =>
     selectedRows.has(o.splittedCode || o.split_id || o.uniqueCode || o.id)
   );
-  const handleShowBinCard = () => setBinCardDialogOpen(true);
 
+  const handleShowBinCard = () => setBinCardDialogOpen(true);
   const handlePrintBinCard = () => {
     const cards = selectedOrdersData
       .map(
         (order) => `
-        <div class="bin-card">
-          <div class="content">
+      <div class="bin-card">
+        <div class="content">
 
-            <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
 
-            <h6 class="company-address">
-              Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-              Village Metoda, Dist. Rajkot-360 021
-            </h6>
+          <h6 class="company-address">
+            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+            Village Metoda, Dist. Rajkot-360 021
+          </h6>
 
-            <h3 class="tag-title process-border">In Process Material Tag</h3>
-            <div class="meta">
+          <h3 class="tag-title process-border">In Process Material Tag</h3>
+          <div class="meta">
+            <div class="meta-item">
+              <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+              <div>
+                <span class="label">SOA:</span>
+                ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+              </div>
+
+            </div>
+              <div class="title assembly-title">
+                <p>Assembly Line: ${order.assemblyLine}</p>
+              </div>
               <div class="meta-item">
-                <div><span class="label">Date:</span> ${
-                  order.assemblyDate
-                }</div>
-                <div>
-                  <span class="label">SOA:</span>
-                  ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
-                </div>
-
+                <p>GMV-L4-F-PRD 01 A</p>
+                <p>(02/10.09.2020)</p>
               </div>
-                <div class="title assembly-title">
-                  <p>Assembly Line: ${order.assemblyLine}</p>
-                </div>
-                <div class="meta-item">
-                  <p>GMV-L4-F-PRD 01 A</p>
-                  <p>(02/10.09.2020)</p>
-                </div>
+         </div>
+
+           
+
+          <div class="desc">
+            <div clas="description party-desc">
+              <span class="label">Party:</span><p>${order.party}</p>
+            </div>
+            <div clas="description item-label-description">
+              <span class="label item-label">Item:</span><p>${order.product}</p>
+            </div>
           </div>
 
-            
-
-            <div class="desc">
-              <div clas="description party-desc">
-                <span class="label">Party:</span><p>${order.party}</p>
-              </div>
-              <div clas="description item-label-description">
-                <span class="label item-label">Item:</span><p>${
-                  order.product
-                }</p>
-              </div>
+          <div class="qty-logo">
+           <div class="meta meta-logo">
+            <div class="meta-qty"><span class="label">QTY:</span> ${
+              order.qty
+            }</div>
+            <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
+              order.gmLogo
+            }</div>
+             </div>
+            <div class="detail-items"><span class="label ">Special Note:</span> <span>${
+              order.specialNotes || ""
+            }</span></div>
             </div>
 
-            <div class="qty-logo">
-            <div class="meta meta-logo">
-              <div class="meta-qty"><span class="label">QTY:</span> ${
-                order.qty
-              }</div>
-              <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
-                order.gmLogo
-              }</div>
-              </div>
-              <div class="detail-items"><span class="label ">Special Note:</span> <span>${
-                order.specialNotes || ""
-              }</span></div>
-              </div>
-
-            <div class="inspect">
-              <span class="label">Inspected by:</span>
-              <div class="inspect-line"></div>
-            </div>
-
+          <div class="inspect">
+            <span class="label">Inspected by:</span>
+            <div class="inspect-line"></div>
           </div>
-        </div>`
+
+        </div>
+      </div>`
       )
       .join("");
 
     const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Bin Card</title>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Bin Card</title>
 
-        <style>
-          @page {
-            size: 130mm 85mm;
-            margin: 0;
-          }
+      <style>
+        @page {
+          size: 130mm 85mm;
+          margin: 0;
+        }
 
-          html, body {
-            width: 130mm;
-            height: 85mm;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, Helvetica, sans-serif;
-          }
+        html, body {
+          width: 130mm;
+          height: 85mm;
+          margin: 0;
+          padding: 0;
+          font-family: Arial, Helvetica, sans-serif;
+        }
 
-          .item-label,
-          .party-desc {
-          padding-bottom: 2mm;}
+        .item-label,
+        .party-desc {
+        padding-bottom: 2mm;}
 
-          .item-label {
-          line-height: 1.8em;}
+        .item-label {
+        line-height: 1.8em;}
 
-          .bin-card {
-            width: 130mm;
-            height: 85mm;
-            padding: 6mm;
-            box-sizing: border-box;
-            page-break-after: always;
-          }
+        .bin-card {
+          width: 130mm;
+          height: 85mm;
+          padding: 6mm;
+          box-sizing: border-box;
+          page-break-after: always;
+        }
 
-        .item-label-description {
-        padding-top: 50px;}
+      .item-label-description {
+      padding-top: 50px;}
 
-          .meta-qty {
-          width: 50%;}
+        .meta-qty {
+        width: 50%;}
 
-          .process-border {
-          border-top:1px solid #000;
-          border-bottom:1px solid #000;
-          padding-top: 1.5mm;
-          padding-bottom: 1.5mm;
-          }
+        .process-border {
+        border-top:1px solid #000;
+        border-bottom:1px solid #000;
+        padding-top: 1.5mm;
+        padding-bottom: 1.5mm;
+        }
 
-          .detail-logo {
-            padding-bottom: 0.9mm;
-          }
+        .detail-logo {
+          padding-bottom: 0.9mm;
+        }
 
-          .description {
-            padding-bottom: 2mm;
-          }
+        .description {
+          padding-bottom: 2mm;
+        }
 
-          .content {
-            width: 100%;
-            height: 100%;
-            border: 1.5px solid #000;
-            border-radius: 10px;
-            padding-top: 2mm;
-            padding-bottom: 4mm;
-              padding-left: 6mm;
-                  padding-right: 6mm;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-          }
+        .content {
+          width: 100%;
+          height: 100%;
+          border: 1.5px solid #000;
+          border-radius: 10px;
+          padding-top: 2mm;
+          padding-bottom: 4mm;
+             padding-left: 6mm;
+                padding-right: 6mm;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
 
-          .meta-item {
-            padding-top: 2mm;
-          }
+        .meta-item {
+          padding-top: 2mm;
+        }
 
-          /* RESET DEFAULT P TAG SPACE */
-          p {
-            margin: 0;
-          }
+        /* RESET DEFAULT P TAG SPACE */
+        p {
+          margin: 0;
+        }
 
-          /* HEADER */
-          .company-name {
-            font-size: 12px;
-            font-weight: 700;
-            text-align: center;
-            margin: 0 0 1mm;
-            
-          }
+        /* HEADER */
+        .company-name {
+          font-size: 12px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1mm;
+          
+        }
 
-          .assembly-title p {
-          border: 1px solid #000;
-            display: inline-block;
-            padding-top: 1mm;
-            padding-bottom: 0.9mm;
-            padding-left: 1mm;
-            padding-right: 1mm;
-          }
+        .assembly-title p {
+        border: 1px solid #000;
+          display: inline-block;
+          padding-top: 1mm;
+          padding-bottom: 0.9mm;
+          padding-left: 1mm;
+          padding-right: 1mm;
+        }
 
-          .company-address {
-            font-size: 8px;
-            font-weight: 400;
-            text-align: center;
-            line-height: 1.2;
-            margin: 0 0 1.2mm;
-          }
+        .company-address {
+          font-size: 8px;
+          font-weight: 400;
+          text-align: center;
+          line-height: 1.2;
+          margin: 0 0 1.2mm;
+        }
 
-          .tag-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-align: center;
-            margin: 0 0 1.5mm;
-          }
+        .tag-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1.5mm;
+        }
 
-          .doc-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            margin-bottom: 0.5mm; /* 🔥 reduced */
-          }
+        .doc-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 9px;
+          margin-bottom: 0.5mm; /* 🔥 reduced */
+        }
 
-          /* ASSEMBLY LINE */
-          .title {
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            margin-top: 0;       /* 🔥 no top gap */
-            margin-bottom: 0.5mm;
-            //  border: 1px solid #000;
-            // display: inline-block;
-          }
+        /* ASSEMBLY LINE */
+        .title {
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 0;       /* 🔥 no top gap */
+          margin-bottom: 0.5mm;
+          //  border: 1px solid #000;
+          // display: inline-block;
+        }
 
-          .title-line {
-            border-bottom: 1px solid #000;
-            margin-bottom: 1.5mm;
-            margin-top: 0.5mm;
-          }
+        .title-line {
+          border-bottom: 1px solid #000;
+          margin-bottom: 1.5mm;
+          margin-top: 0.5mm;
+        }
 
-          /* META */
-          .meta {
-            font-size: 10px;
-            line-height: 1.25;
-            margin-bottom: 0.8mm;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-          }
+        /* META */
+        .meta {
+          font-size: 10px;
+          line-height: 1.25;
+          margin-bottom: 0.8mm;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
 
-          .meta div {
-            margin-bottom: 0.5mm;
-          }
+        .meta div {
+          margin-bottom: 0.5mm;
+        }
 
-          /* ITEM */
-          .desc {
-            font-size: 9px;
-            margin-bottom: 0.8mm;
-          }
+        /* ITEM */
+        .desc {
+          font-size: 9px;
+          margin-bottom: 0.8mm;
+        }
 
-          .desc p {
-          padding-bottom: 0.6mm;}
+        .desc p {
+        padding-bottom: 0.6mm;}
 
-          .desc span {
-            display: block;
-            padding-bottom: 0.1mm;
-          }
+        .desc span {
+          display: block;
+          padding-bottom: 0.1mm;
+        }
 
-          .desc .label {
-            display: block;
-            font-size: 10px;
-            margin-bottom: 0.8mm;
-            margin-top: 0.8mm;
-          }
+        .desc .label {
+          display: block;
+          font-size: 10px;
+          margin-bottom: 0.8mm;
+          margin-top: 0.8mm;
+        }
 
-          .desc .text {
-            word-break: break-word;
-            
-          }
+        .desc .text {
+          word-break: break-word;
+          
+        }
 
-          /* QTY */
-          .qty-logo {
-            font-size: 10px;
-            line-height: 1.3;
-            margin-bottom: 0.4mm;
-            margin-top: 0.8mm;
-          }
+        /* QTY */
+        .qty-logo {
+          font-size: 10px;
+          line-height: 1.3;
+          margin-bottom: 0.4mm;
+           margin-top: 0.8mm;
+        }
 
-          /* INSPECTION */
-          .inspect {
-            margin-top: auto;
-            font-size: 10px;
-          }
+        /* INSPECTION */
+        .inspect {
+          margin-top: auto;
+          font-size: 10px;
+        }
 
-          .inspect-line {
-            height: 3mm;
-            border-bottom: 1px solid #000;
-          }
+        .inspect-line {
+          height: 3mm;
+          border-bottom: 1px solid #000;
+        }
 
-          .label {
-            font-weight: 600;
-          }
-        </style>
-      </head>
+        .label {
+          font-weight: 600;
+        }
+      </style>
+    </head>
 
-      <body>${cards}</body>
-    </html>`;
+    <body>${cards}</body>
+  </html>`;
 
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
@@ -879,6 +914,32 @@ export function AssemblyAPage() {
     }, 300);
   };
 
+  // View details
+  const handleViewDetails = (order: AssemblyOrderData) => {
+    setViewedOrder(order);
+    setViewDetailsDialogOpen(true);
+  };
+
+  const rowKey = (o: AssemblyOrderData) =>
+    o.splittedCode || o.split_id
+      ? o.splittedCode || o.split_id
+      : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+          .map((v) => v ?? "")
+          .join("|");
+
+  const selectedTotals = useMemo(() => {
+    const selectedData = filteredOrders.filter((o) =>
+      selectedRows.has(rowKey(o))
+    );
+
+    return {
+      count: selectedData.length,
+      qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+      qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+      qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+    };
+  }, [selectedRows, filteredOrders]);
+
   const handleExport = () => {
     const isUrgentMode = showUrgentOnly === true;
     const isRemarksMode = showRemarksOnly === true;
@@ -902,26 +963,6 @@ export function AssemblyAPage() {
 
     exportToExcel(dataToExport);
   };
-
-  const rowKey = (o: AssemblyOrderData) =>
-    o.splittedCode || o.split_id
-      ? o.splittedCode || o.split_id
-      : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
-          .map((v) => v ?? "")
-          .join("|");
-
-  const selectedTotals = useMemo(() => {
-    const selectedData = filteredOrders.filter((o) =>
-      selectedRows.has(rowKey(o))
-    );
-
-    return {
-      count: selectedData.length,
-      qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
-      qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
-      qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
-    };
-  }, [selectedRows, filteredOrders]);
 
   const handleExportAll = () => {
     // Prefer fullOrders (global search mode), else fallback to orders
@@ -977,12 +1018,6 @@ export function AssemblyAPage() {
       new Blob([excelBuffer], { type: "application/octet-stream" }),
       `Orders_${new Date().toISOString().slice(0, 10)}.xlsx`
     );
-  };
-
-  // View details
-  const handleViewDetails = (order: AssemblyOrderData) => {
-    setViewedOrder(order);
-    setViewDetailsDialogOpen(true);
   };
 
   // Remarks dialog
@@ -1125,9 +1160,9 @@ export function AssemblyAPage() {
   const sortOrders = (list: AssemblyOrderData[]) => {
     return [...list].sort((a, b) => {
       // urgent first
-      // const aUrg = a.alertStatus ? 1 : 0;
-      // const bUrg = b.alertStatus ? 1 : 0;
-      // if (aUrg !== bUrg) return bUrg - aUrg;
+      const aUrg = a.alertStatus ? 1 : 0;
+      const bUrg = b.alertStatus ? 1 : 0;
+      if (aUrg !== bUrg) return bUrg - aUrg;
 
       // otherwise restore original order
       return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
@@ -1141,30 +1176,12 @@ export function AssemblyAPage() {
   } | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
 
+  // ✅ Assign order to next workflow stage
   // const handleAssignOrder = async () => {
   //   if (isAssigning) return;
   //   setIsAssigning(true);
   //   if (!selectedOrder) return;
   //   if (!validateQuickAssign()) return;
-
-  //       // 🔴 cancel any previous request
-  //   const controller = new AbortController();
-  //   assignAbortRef.current = controller;
-
-  //   setIsAssigning(true);
-
-  //   // 🔴 2️⃣ ONLY NOW do validations
-  //   if (!selectedOrder) {
-  //     assignAbortRef.current = null;
-  //     setIsAssigning(false);
-  //     return;
-  //   }
-
-  //   if (!validateQuickAssign()) {
-  //     assignAbortRef.current = null;
-  //     setIsAssigning(false);
-  //     return;
-  //   }
 
   //   setAssignStatus({
   //     type: "info",
@@ -1181,57 +1198,41 @@ export function AssemblyAPage() {
   //       return;
   //     }
 
-  //     const currentSteps = "assembly-a";
+  //     // ✅ Workflow step for this page
+  //     const currentStep = "testing1";
+  //     const currentStepLabel = getStepLabel(currentStep);
 
   //     const mainQty = Number(quickAssignQty || 0);
   //     const splitQty = Number(splitAssignQty || 0);
 
-  //     // workflow step label
-  //     const nextStepKey =
-  //       quickAssignStep ||
-  //       (Array.isArray(nextSteps) ? nextSteps[0] : "Assembly D");
-
+  //     // ✅ Determine next workflow step (manual override > default)
+  //     const defaultNext = getNextSteps(currentStep)[0] || "";
+  //     const nextStepKey = quickAssignStep || defaultNext;
   //     const nextStepLabel = getStepLabel(nextStepKey);
-  //     const currentStepLabel = getStepLabel(currentSteps);
 
   //     //
-  //     // ---------------------------
-  //     // MAIN ASSIGNMENT
-  //     // ---------------------------
+  //     // ✅ MAIN ASSIGNMENT PAYLOAD
   //     //
   //     const formData = new FormData();
   //     formData.append("orderId", String(selectedOrder.id));
-  //     formData.append(
-  //       "totalQty",
-  //       String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
-  //     );
+  //     formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
   //     formData.append("executedQty", String(mainQty));
-  //     formData.append("currentSteps", currentStepLabel);
-  //     formData.append("nextSteps", nextStepLabel);
+  //     formData.append("currentSteps", currentStepLabel); // ✅ REQUIRED FIELD
+  //     formData.append("nextSteps", nextStepLabel);       // ✅ SEND LABEL
   //     formData.append("split_id", String(selectedOrder.split_id || ""));
 
   //     console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
 
-  //   // cancel previous
-  // // if (assignAbortRef.current) {
-  // //   assignAbortRef.current.abort();
-  // // }
-
-  // // const controller = new AbortController();
-  // // assignAbortRef.current = controller;
-
-  // const responseMain = await axios.post(
-  //   `${API_URL}/assign-order`,
-  //   formData,
-  //   {
-  //     headers: { Authorization: `Bearer ${token}` },
-  //     signal: controller.signal,
-  //   }
-  // );
+  //     const responseMain = await axios.post(
+  //       `${API_URL}/assign-order`,
+  //       formData,
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
 
   //     const mainSuccess =
+  //       responseMain.data?.Resp_code === true ||
   //       responseMain.data?.Resp_code === "true" ||
-  //       responseMain.data?.Resp_code === true;
+  //       responseMain.data?.status === true;
 
   //     if (!mainSuccess) {
   //       setAssignStatus({
@@ -1244,36 +1245,32 @@ export function AssemblyAPage() {
   //     let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
   //     //
-  //     // ---------------------------
-  //     // SPLIT ASSIGNMENT
-  //     // ---------------------------
+  //     // ✅ SPLIT ASSIGNMENT (OPTIONAL)
   //     //
   //     if (splitOrder && splitQty > 0) {
   //       const formDataSplit = new FormData();
   //       formDataSplit.append("orderId", String(selectedOrder.id));
-  //       formDataSplit.append(
-  //         "totalQty",
-  //         String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0)
-  //       );
+  //       formDataSplit.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
   //       formDataSplit.append("executedQty", String(splitQty));
   //       formDataSplit.append("currentSteps", currentStepLabel);
   //       formDataSplit.append("nextSteps", nextStepLabel);
   //       formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
-  //       console.log("📤 SPLIT PAYLOAD:", Object.fromEntries(formDataSplit.entries()));
+  //       console.log(
+  //         "📤 SPLIT PAYLOAD:",
+  //         Object.fromEntries(formDataSplit.entries())
+  //       );
 
   //       const responseSplit = await axios.post(
   //         `${API_URL}/assign-order`,
   //         formDataSplit,
-  //         {
-  //           headers: { Authorization: `Bearer ${token}` },
-  //           signal: controller.signal,
-  //         }
+  //         { headers: { Authorization: `Bearer ${token}` } }
   //       );
 
   //       const splitSuccess =
+  //         responseSplit.data?.Resp_code === true ||
   //         responseSplit.data?.Resp_code === "true" ||
-  //         responseSplit.data?.Resp_code === true;
+  //         responseSplit.data?.status === true;
 
   //       if (splitSuccess) {
   //         successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
@@ -1288,60 +1285,39 @@ export function AssemblyAPage() {
   //     }
 
   //     //
-  //     // ---------------------------
-  //     // UPDATE UI INSTANTLY (NO DELETE)
-  //     // ---------------------------
+  //     // ✅ SUCCESS — UI FEEDBACK + REFRESH
   //     //
-  //     setOrders((prev) =>
-  //       prev.map((o) => {
-  //         if (o.id !== selectedOrder.id) return o;
+  //     setAssignStatus({ type: "success", message: successMessage });
 
-  //         const oldExe = o.qtyExe || 0;
-  //         const added = mainQty + (splitOrder ? splitQty : 0);
+  //     const makeKey = (o: AssemblyOrderData) =>
+  //       (o.splittedCode || o.split_id)
+  //         ? (o.splittedCode || o.split_id)
+  //         : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+  //             .map((v) => v ?? "")
+  //             .join("|");
+  //     const selectedKey = makeKey(selectedOrder);
 
-  //         const newExe = oldExe + added;
-  //         const newPending = (o.totalQty ?? o.qty) - newExe;
+  //     setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
+  //     setSelectedRows((prev) => {
+  //       const copy = new Set(prev);
+  //       copy.delete(selectedKey);
+  //       return copy;
+  //     });
 
-  //         return {
-  //           ...o,
-  //           qtyExe: newExe,
-  //           qtyPending: newPending,
-  //         };
-  //       })
-  //     );
-
-  //     //
-  //     // ---------------------------
-  //     // REFRESH LATEST FROM BACKEND
-  //     // ---------------------------
-  //     //
-  //     await fetchOrders();
-
-  //     // Close dialog
-  //     setTimeout(() => {
   //     setQuickAssignOpen(false);
   //     setAssignStatus(null);
-  //   }, 2000);
+  //   } catch (error: any) {
+  //     console.error("❌ Error assigning order:", error);
 
-  //   } catch (error) {
-  //     if (
-  //     error?.name === "CanceledError" ||
-  //     error?.code === "ERR_CANCELED"
-  //   ) {
-  //     console.log("⛔ Assign request cancelled by user");
-  //     return; // 🔥 VERY IMPORTANT
-  //   }
-
-  //   // ❌ REAL ERROR
-  //   console.error("❌ Error assigning order:", error);
-
-  //   setAssignStatus({
-  //     type: "error",
-  //     message: "Server error while assigning.",
+  //     setAssignStatus({
+  //       type: "error",
+  //       message:
+  //         error?.response?.data?.Resp_desc ||
+  //         error?.response?.data?.message ||
+  //         "Server error while assigning.",
   //     });
   //   } finally {
   //     setIsAssigning(false);
-  //     assignAbortRef.current = null;
   //   }
   // };
 
@@ -1352,11 +1328,7 @@ export function AssemblyAPage() {
 
     setIsAssigning(true);
 
-    // 🔴 cancel any previous request
-    const controller = new AbortController();
-    assignAbortRef.current = controller;
-
-    // show loading message
+    // 🔵 Show assigning message
     setAssignStatus({
       type: "info",
       message: "Assigning order, please wait...",
@@ -1372,22 +1344,21 @@ export function AssemblyAPage() {
         return;
       }
 
-      const currentSteps = "assembly-a";
+      // ✅ CURRENT WORKFLOW STEP
+      const currentStep = "testing1";
+      const currentStepLabel = getStepLabel(currentStep);
 
       const mainQty = Number(quickAssignQty || 0);
       const splitQty = Number(splitAssignQty || 0);
 
-      // workflow step
-      const nextStepKey =
-        quickAssignStep ||
-        (Array.isArray(nextSteps) ? nextSteps[0] : "Assembly D");
-
+      // ✅ NEXT STEP (manual > default)
+      const defaultNext = getNextSteps(currentStep)[0] || "";
+      const nextStepKey = quickAssignStep || defaultNext;
       const nextStepLabel = getStepLabel(nextStepKey);
-      const currentStepLabel = getStepLabel(currentSteps);
 
-      // ---------------------------
+      // ----------------------------
       // MAIN ASSIGNMENT
-      // ---------------------------
+      // ----------------------------
       const formData = new FormData();
       formData.append("orderId", String(selectedOrder.id));
       formData.append(
@@ -1399,18 +1370,18 @@ export function AssemblyAPage() {
       formData.append("nextSteps", nextStepLabel);
       formData.append("split_id", String(selectedOrder.split_id || ""));
 
+      console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
+
       const responseMain = await axios.post(
         `${API_URL}/assign-order`,
         formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const mainSuccess =
+        responseMain.data?.Resp_code === true ||
         responseMain.data?.Resp_code === "true" ||
-        responseMain.data?.Resp_code === true;
+        responseMain.data?.status === true;
 
       if (!mainSuccess) {
         setAssignStatus({
@@ -1420,11 +1391,11 @@ export function AssemblyAPage() {
         return;
       }
 
-      let successMessage = `Assigned ${mainQty} → ${nextStepLabel}`;
+      let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
-      // ---------------------------
-      // SPLIT ASSIGNMENT
-      // ---------------------------
+      // ----------------------------
+      // SPLIT ASSIGNMENT (OPTIONAL)
+      // ----------------------------
       if (splitOrder && splitQty > 0) {
         const formDataSplit = new FormData();
         formDataSplit.append("orderId", String(selectedOrder.id));
@@ -1437,18 +1408,21 @@ export function AssemblyAPage() {
         formDataSplit.append("nextSteps", nextStepLabel);
         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
 
+        console.log(
+          "📤 SPLIT PAYLOAD:",
+          Object.fromEntries(formDataSplit.entries())
+        );
+
         const responseSplit = await axios.post(
           `${API_URL}/assign-order`,
           formDataSplit,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         const splitSuccess =
+          responseSplit.data?.Resp_code === true ||
           responseSplit.data?.Resp_code === "true" ||
-          responseSplit.data?.Resp_code === true;
+          responseSplit.data?.status === true;
 
         if (splitSuccess) {
           successMessage += `\n✔ Split ${splitQty} → ${nextStepLabel}`;
@@ -1462,57 +1436,52 @@ export function AssemblyAPage() {
         }
       }
 
-      // ✅ SHOW SUCCESS MESSAGE (THIS WAS MISSING EARLIER)
+      // ----------------------------
+      // ✅ SHOW SUCCESS MESSAGE
+      // ----------------------------
       setAssignStatus({
         type: "success",
-        message: `✔ ${successMessage}`,
+        message: successMessage,
       });
 
-      // ---------------------------
-      // UPDATE UI INSTANTLY (NO DELETE)
-      // ---------------------------
-      setOrders((prev) =>
-        prev.map((o) => {
-          if (o.id !== selectedOrder.id) return o;
+      // ----------------------------
+      // REMOVE ROW IMMEDIATELY
+      // ----------------------------
+      const makeKey = (o: AssemblyOrderData) =>
+        o.splittedCode || o.split_id
+          ? o.splittedCode || o.split_id
+          : [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+              .map((v) => v ?? "")
+              .join("|");
 
-          const oldExe = o.qtyExe || 0;
-          const added = mainQty + (splitOrder ? splitQty : 0);
+      const selectedKey = makeKey(selectedOrder);
 
-          const newExe = oldExe + added;
-          const newPending = (o.totalQty ?? o.qty) - newExe;
+      setOrders((prev) => prev.filter((o) => makeKey(o) !== selectedKey));
+      setSelectedRows((prev) => {
+        const copy = new Set(prev);
+        copy.delete(selectedKey);
+        return copy;
+      });
 
-          return {
-            ...o,
-            qtyExe: newExe,
-            qtyPending: newPending,
-          };
-        })
-      );
-
-      // ---------------------------
-      // REFRESH FROM BACKEND
-      // ---------------------------
-      await fetchOrders();
-
-      // ⏱️ KEEP MESSAGE FOR 2 SECONDS → CLOSE POPUP
+      // ----------------------------
+      // ⏱️ WAIT 1.5s → CLOSE POPUP
+      // ----------------------------
       setTimeout(() => {
         setQuickAssignOpen(false);
         setAssignStatus(null);
       }, 1000);
     } catch (error: any) {
-      if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED") {
-        console.log("⛔ Assign request cancelled");
-        return;
-      }
-
       console.error("❌ Error assigning order:", error);
+
       setAssignStatus({
         type: "error",
-        message: "Server error while assigning.",
+        message:
+          error?.response?.data?.Resp_desc ||
+          error?.response?.data?.message ||
+          "Server error while assigning.",
       });
     } finally {
       setIsAssigning(false);
-      assignAbortRef.current = null;
     }
   };
 
@@ -1575,6 +1544,7 @@ export function AssemblyAPage() {
 
   // Clear filters
   const clearFilters = () => {
+    setAssemblyLineFilter("all");
     setGmsoaFilter("all");
     setPartyFilter("all");
     setDateFilterMode("range");
@@ -1600,24 +1570,24 @@ export function AssemblyAPage() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+          <div className="flex flex-wrap flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-                Assembly A
+                Testing 1
               </h1>
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
             </div>
 
-            <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
                 {/* Search */}
-                {/* <div className="relative max-input">
+                {/* <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
+                    placeholder="Search by Unique Code, GMSOA NO., or Party..."
                     value={localSearchTerm}
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
                     className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
@@ -1629,7 +1599,7 @@ export function AssemblyAPage() {
                     onClick={handleShowBinCard}
                     variant="outline"
                     disabled={selectedRows.size === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 ctm-btn-disable"
                   >
                     <Printer className="h-4 w-4" />
                     Print Bin Card
@@ -1640,7 +1610,7 @@ export function AssemblyAPage() {
                     className={`btn-urgent flex items-center gap-2 ${
                       showUrgentOnly
                         ? "bg-red-600 text-white"
-                        : "bg-red-50 text-red-700 btn-urgent"
+                        : "bg-red-50 text-red-700"
                     }`}
                   >
                     <Siren className="h-4 w-4" />
@@ -1663,25 +1633,18 @@ export function AssemblyAPage() {
 
                 <Button
                   onClick={handleExport}
-                  disabled={filteredOrders.length === 0}
                   className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export Data
                 </Button>
+
                 <Button
                   onClick={handleExportAll}
                   className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export all Data
-                </Button>
-                 <Button
-                  onClick={() => navigate("/testing-assembly")}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  
-                    Testing-1
                 </Button>
               </div>
               {/* Option row - could include more buttons */}
@@ -1691,7 +1654,9 @@ export function AssemblyAPage() {
           {/* Filters */}
           <div className="mt-4">
             <OrderFilters
-              currentStage="assembly-a"
+              currentStage="default"
+              searchTerm={localSearchTerm}
+              setSearchTerm={setLocalSearchTerm}
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}
@@ -1703,7 +1668,7 @@ export function AssemblyAPage() {
               assemblyLines={assemblyLines}
               onClearFilters={clearFilters}
               hasActiveFilters={
-                // assemblyLineFilter !== "all" ||
+                assemblyLineFilter !== "all" ||
                 gmsoaFilter !== "all" ||
                 partyFilter !== "all" ||
                 !!dateFrom ||
@@ -1793,7 +1758,6 @@ export function AssemblyAPage() {
                         <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
                           SOA NO.
                         </th>
-
                         <th
                           className="sticky left-274 z-20 bg-white px-3 py-2 text-center
              text-xs font-medium text-gray-500 uppercase tracking-wider
@@ -1855,6 +1819,7 @@ export function AssemblyAPage() {
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           SPECIAL NOTES
                         </th>
+
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           PRODUCT SPCL1
                         </th>
@@ -1896,26 +1861,10 @@ export function AssemblyAPage() {
                         >
                           <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-2 text-center border-r border-gray-200 w-12">
                             <Checkbox
-                              checked={selectedRows.has(
-                                order.splittedCode ||
-                                  order.split_id ||
-                                  order.uniqueCode ||
-                                  order.id
-                              )}
+                              checked={selectedRows.has(getRowKey(order))}
                               onCheckedChange={() =>
-                                toggleRowSelection(
-                                  order.splittedCode ||
-                                    order.split_id ||
-                                    order.uniqueCode ||
-                                    order.id
-                                )
+                                toggleRowSelection(getRowKey(order))
                               }
-                              aria-label={`Select row ${
-                                order.splittedCode ||
-                                order.split_id ||
-                                order.uniqueCode ||
-                                order.id
-                              }`}
                             />
                           </td>
 
@@ -1993,6 +1942,7 @@ export function AssemblyAPage() {
                               {order.specialNotes || "-"}
                             </div>
                           </td>
+                        
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.productSpcl1}
                           </td>
@@ -2066,6 +2016,7 @@ export function AssemblyAPage() {
                               </Button>
 
                               <Button
+                              disabled
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 w-7 p-0 hover:bg-green-100"
@@ -2076,14 +2027,14 @@ export function AssemblyAPage() {
                               </Button>
 
                               {/* <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
-                            title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
-                            onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
-                          >
-                            <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
-                          </Button> */}
+                          size="sm"
+                          variant="ghost"
+                          className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
+                          title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
+                          onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
+                        >
+                          <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
+                        </Button> */}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -2156,16 +2107,7 @@ export function AssemblyAPage() {
         />
 
         {/* Quick Assign Dialog */}
-        <Dialog
-          open={quickAssignOpen}
-          onOpenChange={(open) => {
-            if (!open) {
-              handleQuickAssignCancel();
-            } else {
-              setQuickAssignOpen(true);
-            }
-          }}
-        >
+        <Dialog open={quickAssignOpen} onOpenChange={setQuickAssignOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Quick Assign Order</DialogTitle>
@@ -2183,13 +2125,12 @@ export function AssemblyAPage() {
                     <Select
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
-                      disabled
                     >
                       <SelectTrigger id="assignStep">
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
-                        {effectiveNextSteps.map((step) => (
+                        {nextSteps.map((step) => (
                           <SelectItem key={step} value={step}>
                             {getStepLabel(step)}
                           </SelectItem>
@@ -2204,28 +2145,10 @@ export function AssemblyAPage() {
                       id="assignQty"
                       type="number"
                       value={quickAssignQty}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setQuickAssignQty(v);
-                        const max = Number(selectedOrder?.qtyPending ?? 0);
-                        const n = Number(v || 0);
-                        setQuickAssignErrors((prev) => {
-                          const next = { ...prev } as any;
-                          if (n > max)
-                            next.quickAssignQty = `Cannot exceed available (${max})`;
-                          else {
-                            if (next.quickAssignQty) delete next.quickAssignQty;
-                          }
-                          return next;
-                        });
-                      }}
+                      onChange={(e) => setQuickAssignQty(e.target.value)}
                       max={selectedOrder?.qtyPending}
+                      disabled
                     />
-                    {quickAssignErrors.quickAssignQty && (
-                      <div className="text-red-600 text-sm mt-1">
-                        {quickAssignErrors.quickAssignQty}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -2236,65 +2159,6 @@ export function AssemblyAPage() {
                   </span>
                 </div>
               </div>
-
-              {/* Split Order Section (same as PlanningPage) */}
-              {/* <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="splitOrder"
-                  checked={splitOrder}
-                  onCheckedChange={(val) => setSplitOrder(Boolean(val))}
-                />
-                <Label htmlFor="splitOrder" className="cursor-pointer">
-                  Split order to multiple workflow steps
-                </Label>
-              </div>
-
-              {splitOrder && (
-                <div className="space-y-4 pl-6 border-l-2 border-blue-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Second Workflow Step</Label>
-                      <Select value={splitAssignStep} onValueChange={setSplitAssignStep}>
-  <SelectTrigger>
-    <SelectValue placeholder="Select split step" />
-  </SelectTrigger>
-  <SelectContent>
-    {nextSteps.map((step) => (
-      <SelectItem key={step} value={step}>
-        {getStepLabel(step)}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Split Quantity</Label>
-                      <Input
-                        type="number"
-                        value={splitAssignQty}
-                        onChange={(e) => setSplitAssignQty(e.target.value)}
-                        max={selectedOrder?.qtyPending}
-                      />
-                    </div>
-                  </div>
-
-                  {quickAssignErrors.sameEngineer && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{quickAssignErrors.sameEngineer}</p>
-                    </div>
-                  )}
-
-                  {quickAssignErrors.totalQtyMismatch && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm text-amber-700">{quickAssignErrors.totalQtyMismatch}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div> */}
             </div>
 
             {/* Status Message */}
@@ -2325,7 +2189,7 @@ export function AssemblyAPage() {
               </Button>
               <Button
                 onClick={handleAssignOrder}
-                disabled={isAssigning || !!quickAssignErrors.quickAssignQty}
+                disabled={isAssigning}
                 className="bg-black hover:bg-gray-800 text-white"
               >
                 {isAssigning ? "Assigning..." : "Assign"}
@@ -2334,7 +2198,6 @@ export function AssemblyAPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Bin Card Dialog */}
         {/* Bin Card Dialog */}
         <Dialog open={binCardDialogOpen} onOpenChange={setBinCardDialogOpen}>
           <DialogContent className="!max-w-[700px] max-h-[90vh] overflow-y-auto dialog-content-wrp">
@@ -2719,4 +2582,4 @@ export function AssemblyAPage() {
   );
 }
 
-export default AssemblyAPage;
+export default TestingAssemblyPage;

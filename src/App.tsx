@@ -29,7 +29,7 @@ import CustomerSupport from "./pages/CustomerSupport";
 import { DashboardHeader } from "./components/dashboard-header";
 import SvsStock from "./pages/SvsStock";
 import PackagingPage from "./pages/PackagingPage";
-
+import TestingAssemblyPage from "./pages/TestingAssemblyPage";
 
 
 export default function App() {
@@ -51,6 +51,7 @@ export default function App() {
 
             <Route path="/svs-stock" element={<SvsStock />} />
           <Route path="/packaging" element={<PackagingPage />} />
+          <Route path="/testing-assembly" element={<TestingAssemblyPage />} />
 
             {/* Login Route */}
             <Route path="/login" element={<LoginPage />} />
