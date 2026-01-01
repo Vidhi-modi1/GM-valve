@@ -3947,12 +3947,12 @@
 
   @media (hover: hover) {
     .hover\:bg-blue-50\/50:hover {
-      background-color: color-mix(in srgb, oklch(.97 .014 254.604) 50%, transparent);
+      background-color: color-mix(in srgb, oklch(.97 .014 254.604) 100%, transparent);
     }
 
     @supports (color: color-mix(in lab, red, red)) {
       .hover\:bg-blue-50\/50:hover {
-        background-color: color-mix(in oklab, var(--color-blue-50) 50%, transparent);
+        background-color: color-mix(in oklab, var(--color-blue-50) 100%, transparent);
       }
     }
   }
