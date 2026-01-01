@@ -1604,13 +1604,16 @@ export function AssemblyAPage() {
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold flex gap-3">
                 Assembly A
-                 <Button
-                  onClick={() => navigate("/testing-assembly")}
-                   variant="outline"
+                <Button
+                  onClick={() =>
+                    navigate("/testing-assembly", {
+                      state: { source: "assembly-a" },
+                    })
+                  }
+                  variant="outline"
                   className="flex items-center gap-2"
                 >
-                  
-                    Testing-1
+                  Testing-1
                 </Button>
               </h1>
               <p className="text-sm text-gray-600">

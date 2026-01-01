@@ -96,7 +96,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole, children }
 
 
   // Allow admin full access
-  if (normalizedUserRole === "admin") {
+  if (normalizedUserRole === "admin" || normalizedUserRole === "planning") {
     return <>{children}</>;
   }
 
@@ -131,6 +131,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole, children }
   // ✅ CROSS ACCESS: Testing1 ↔ Assembly A
   if (userRole === "testing1" && allowed === "assembly-a") return true;
   if (userRole === "assembly-a" && allowed === "testing1") return true;
+
+  // ✅ SHARED ACCESS: All Assembly roles can access shared pages
+  if (userRole.startsWith("assembly-") && allowed === "assembly-shared") return true;
 
   return false;
 };

@@ -30,6 +30,7 @@ import { DashboardHeader } from "./components/dashboard-header";
 import SvsStock from "./pages/SvsStock";
 import PackagingPage from "./pages/PackagingPage";
 import TestingAssemblyPage from "./pages/TestingAssemblyPage";
+import TestingAssembly2Page from "./pages/TestingAssembly2Page";
 
 
 
@@ -52,7 +53,22 @@ export default function App() {
 
             <Route path="/svs-stock" element={<SvsStock />} />
           <Route path="/packaging" element={<PackagingPage />} />
-          <Route path="/testing-assembly" element={<TestingAssemblyPage />} />
+            <Route
+              path="/testing-assembly"
+              element={
+                <ProtectedRoute allowedRole="assembly-shared">
+                  <TestingAssemblyPage />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/testing-assembly-2"
+              element={
+                <ProtectedRoute allowedRole="assembly-shared">
+                  <TestingAssembly2Page />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Login Route */}
             <Route path="/login" element={<LoginPage />} />

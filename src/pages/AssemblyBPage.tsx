@@ -115,6 +115,8 @@ export function AssemblyBPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
+    const navigate = useNavigate();
+
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AssemblyOrderData | null>(
@@ -1584,8 +1586,19 @@ export function AssemblyBPage() {
         <div className="mb-8">
           <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
-              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
+              <h1 className="text-gray-900 mb-2 text-2xl font-semibold flex gap-3">
                 Assembly B
+                <Button
+                  onClick={() =>
+                    navigate("/testing-assembly", {
+                      state: { source: "assembly-b" },
+                    })
+                  }
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  Testing-1
+                </Button>
               </h1>
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
@@ -1661,11 +1674,14 @@ export function AssemblyBPage() {
                 </Button>
 
                  <Button
-                    onClick={() => navigate("/testing-assembly")}
+                    onClick={() =>
+                      navigate("/testing-assembly", {
+                        state: { source: "assembly-b" },
+                      })
+                    }
                     className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    
-                      Testing-1
+                    Testing-1
                   </Button>
               </div>
               {/* Option row - could include more buttons */}

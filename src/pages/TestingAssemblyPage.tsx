@@ -1,6 +1,6 @@
 // src/pages/PlanningPage.tsx
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Plus,
@@ -117,6 +117,9 @@ export function TestingAssemblyPage() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
     const navigate = useNavigate();
+    const location = useLocation();
+    // Default to assembly-a if no state provided, or handle gracefully
+    const source = location.state?.source || "assembly-a";
 
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
@@ -320,6 +323,14 @@ export function TestingAssemblyPage() {
       filtered = filtered.filter(
         (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
       );
+    }
+
+    if (source) {
+      const targetChar = source.replace("assembly-", "").toLowerCase(); // "a", "b", "c"
+      filtered = filtered.filter((o) => {
+        const line = (o.assemblyLine || "").toLowerCase();
+        return line.includes(targetChar);
+      });
     }
 
     if (assemblyLineFilter !== "all")
@@ -1560,8 +1571,8 @@ export function TestingAssemblyPage() {
   return (
     <>
       <DashboardHeader
-        role="svs"
-        currentPage="SVS"
+        role={source}
+        currentPage={`Testing Assembly (${source.replace("assembly-", "Line ").toUpperCase()})`}
         onLogout={() => {
           localStorage.removeItem("token");
           window.location.href = "/login";
@@ -1586,11 +1597,12 @@ export function TestingAssemblyPage() {
                 <Button
                   variant="outline"
                   className="flex items-center gap-2"
-                  onClick={() => navigate("/assembly-a")}
-                  title="Back to Assembly A"
+                  onClick={() => navigate(`/${source}`)}
+                  title={`Back to ${source.replace("-", " ").toUpperCase()}`}
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Assembly A
+                  Back to {source.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+
                 </Button>
               </div>
             </div>

@@ -1572,17 +1572,8 @@ export function Testing1Page() {
         <div className="mb-8">
           <div className="flex flex-wrap flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
-              <h1 className="text-gray-900 mb-2 text-2xl font-semibold flex gap-3">
+              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Testing 1
-                 <Button
-               variant="outline"
-    onClick={() => {
-      window.location.href = "/assembly-a";
-    }}
-     className="bg-btn-gradient"
-  >
-    Go to Assembly A
-  </Button>
               </h1>
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow

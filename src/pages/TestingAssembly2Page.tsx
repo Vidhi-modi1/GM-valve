@@ -1,11 +1,13 @@
 // src/pages/PlanningPage.tsx
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Plus,
   Calendar as CalendarIcon,
   Printer,
   ArrowRight,
+  ArrowLeft,
   Search,
   Siren,
   Eye,
@@ -79,7 +81,7 @@ interface AssemblyOrderData {
   alertStatus: boolean;
 }
 
-export function Testing2Page() {
+export function TestingAssembly2Page() {
   // context for remarks & alert status (from your existing order-context)
   const {
     updateRemark,
@@ -104,6 +106,7 @@ export function Testing2Page() {
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showRemarksOnly, setShowRemarksOnly] = useState(false);
+
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
@@ -112,6 +115,11 @@ export function Testing2Page() {
   >("range");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
+    const navigate = useNavigate();
+    const location = useLocation();
+    // Default to assembly-a if no state provided, or handle gracefully
+    const source = location.state?.source || "assembly-a";
 
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
@@ -158,21 +166,18 @@ export function Testing2Page() {
       setError(null);
       const currentStage = "testing2";
       const stageLabel = getStepLabel(currentStage);
-
       const getCurrentUserRole = () => {
         try {
-          const userData = localStorage.getItem("user");
-          if (!userData) return "";
-          const parsed = JSON.parse(userData);
-          const rawRole =
-            typeof parsed.role === "object" ? parsed.role?.name : parsed.role;
-          return String(rawRole || "").toLowerCase();
+          const s = localStorage.getItem("user");
+          if (!s) return "";
+          const u = JSON.parse(s);
+          const raw = typeof u.role === "object" ? u.role?.name : u.role;
+          return String(raw || "").toLowerCase();
         } catch {
           return "";
         }
       };
       const isAdmin = getCurrentUserRole().includes("admin");
-
       const payload = { menu_name: stageLabel };
 
       const res = await axios.post(`${API_URL}/order-list`, payload, {
@@ -197,7 +202,6 @@ export function Testing2Page() {
             assemblyDate: item.assembly_date || "",
             uniqueCode: item.unique_code || item.order_no || "",
             splittedCode: item.splitted_code || "",
-            split_id: item.split_id || item.splitted_code || "",
             party: item.party_name || item.party || "",
             customerPoNo: item.customer_po_no || "",
             codeNo: item.code_no || "",
@@ -299,6 +303,11 @@ export function Testing2Page() {
     [orders]
   );
 
+  const parseSoaSrNo = (val: string) => {
+    const n = parseInt(val, 10);
+    return isNaN(n) ? 0 : n;
+  };
+
   // Filter logic (search, assembly/pso filters, date, urgent)
   const filteredOrders = useMemo(() => {
     let filtered = orders.slice();
@@ -314,6 +323,14 @@ export function Testing2Page() {
       filtered = filtered.filter(
         (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
       );
+    }
+
+    if (source) {
+      const targetChar = source.replace("assembly-", "").toLowerCase(); // "a", "b", "c"
+      filtered = filtered.filter((o) => {
+        const line = (o.assemblyLine || "").toLowerCase();
+        return line.includes(targetChar);
+      });
     }
 
     if (assemblyLineFilter !== "all")
@@ -388,22 +405,15 @@ export function Testing2Page() {
       );
     }
 
-    //   const seen = new Set<string>();
-    // filtered = filtered.filter((o) => {
-    //   if (seen.has(o.id)) return false;
-    //   seen.add(o.id);
-    //   return true;
-    // });
-
-    const seen = new Set<string>();
-    const makeRowKey = (o: AssemblyOrderData) =>
-      o.splittedCode || o.split_id || o.uniqueCode || o.id;
-    filtered = filtered.filter((o) => {
-      const key = makeRowKey(o);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    //  const seen = new Set<string>();
+    //     const makeRowKey = (o: AssemblyOrderData) =>
+    //       o.splittedCode || o.split_id || o.uniqueCode || o.id;
+    //     filtered = filtered.filter((o) => {
+    //       const key = makeRowKey(o);
+    //       if (seen.has(key)) return false;
+    //       seen.add(key);
+    //       return true;
+    //     });
 
     if (soaSort) {
       filtered = [...filtered].sort((a, b) => {
@@ -463,16 +473,12 @@ export function Testing2Page() {
     });
   };
 
-  const getRowKey = (o: AssemblyOrderData) =>
-    o.splittedCode || o.split_id || o.uniqueCode || o.id;
-
   const toggleSelectAll = () => {
     setSelectedRows((prev) => {
       if (prev.size === filteredOrders.length) return new Set();
       return new Set(filteredOrders.map(getRowKey));
     });
   };
-
   const allRowsSelected =
     filteredOrders.length > 0 && selectedRows.size === filteredOrders.length;
 
@@ -510,24 +516,64 @@ export function Testing2Page() {
   //   return Object.keys(errs).length === 0;
   // };
   // const currentStep = "testing2";
-  const currentStep = "testing2"; // or derive from login role
-  const nextSteps = getNextSteps(currentStep);
+  // const currentStep = "testing2";
+  // const nextSteps = getNextSteps(currentStep);
+  // const nextSteps = useMemo(() => {
+  //   if (!selectedOrder) return [];
+  //   return getQuickAssignSteps(selectedOrder);
+  // }, [selectedOrder]);
 
-  console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
-  console.log("Is final step?", isFinalStep(currentStep)); // → false
+  // console.log("Next step(s):", nextSteps.map(getStepLabel)); // → ["Semi QC"]
+  // console.log("Is final step?", isFinalStep(currentStep)); // → false
+
+  // const handleQuickAssign = (order: AssemblyOrderData) => {
+  //   const currentStep = "testing2"; // 👈 set dynamically based on page
+  //   const nextSteps = getNextSteps(currentStep);
+
+  //   setSelectedOrder(order);
+  //   setQuickAssignOpen(true);
+
+  //   // Pre-select first next step if available
+  //   setQuickAssignStep(nextSteps[0] || "");
+  //   setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
+
+  //   // Reset split state
+  //   setSplitOrder(false);
+  //   setSplitAssignStep("");
+  //   setSplitAssignQty("");
+  //   setQuickAssignErrors({});
+  // };
+
+  const currentStep = "testing2";
+
+  const getQuickAssignSteps = (order: AssemblyOrderData): string[] => {
+    const line = order.assemblyLine?.toLowerCase();
+
+    if (line === "c" || line === "assembly c" || line === "assembly-c") {
+      return ["svs", "marking1"];
+    }
+
+    return getNextSteps("testing2");
+  };
+
+  const nextSteps = useMemo(() => {
+    if (!selectedOrder) return [];
+    return getQuickAssignSteps(selectedOrder);
+  }, [selectedOrder]);
+
+  const getRowKey = (o: AssemblyOrderData) =>
+    o.splittedCode || o.split_id || o.uniqueCode || o.id;
 
   const handleQuickAssign = (order: AssemblyOrderData) => {
-    const currentStep = "testing2"; // 👈 set dynamically based on page
-    const nextSteps = getNextSteps(currentStep);
+    const steps = getQuickAssignSteps(order);
 
     setSelectedOrder(order);
     setQuickAssignOpen(true);
 
-    // Pre-select first next step if available
-    setQuickAssignStep(nextSteps[0] || "");
+    // 👇 auto-select first option
+    setQuickAssignStep(steps[0] || "");
     setQuickAssignQty(String(order.qtyPending ?? order.qty ?? 0));
 
-    // Reset split state
     setSplitOrder(false);
     setSplitAssignStep("");
     setSplitAssignQty("");
@@ -591,277 +637,273 @@ export function Testing2Page() {
     const cards = selectedOrdersData
       .map(
         (order) => `
-        <div class="bin-card">
-          <div class="content">
+      <div class="bin-card">
+        <div class="content">
 
-            <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
+          <h1 class="company-name">G M Valve Pvt. Ltd.</h1>
 
-            <h6 class="company-address">
-              Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
-              Village Metoda, Dist. Rajkot-360 021
-            </h6>
+          <h6 class="company-address">
+            Plot no. 2732-33, Road No. 1-1, Kranti Gate, G.I.D.C. Lodhika,
+            Village Metoda, Dist. Rajkot-360 021
+          </h6>
 
-            <h3 class="tag-title process-border">In Process Material Tag</h3>
-            <div class="meta">
+          <h3 class="tag-title process-border">In Process Material Tag</h3>
+          <div class="meta">
+            <div class="meta-item">
+              <div><span class="label">Date:</span> ${order.assemblyDate}</div>
+              <div>
+                <span class="label">SOA:</span>
+                ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
+              </div>
+
+            </div>
+              <div class="title assembly-title">
+                <p>Assembly Line: ${order.assemblyLine}</p>
+              </div>
               <div class="meta-item">
-                <div><span class="label">Date:</span> ${
-                  order.assemblyDate
-                }</div>
-                <div>
-                  <span class="label">SOA:</span>
-                  ${String(order.gmsoaNo).replace(/^SOA/i, "")}-${order.soaSrNo}
-                </div>
-
+                <p>GMV-L4-F-PRD 01 A</p>
+                <p>(02/10.09.2020)</p>
               </div>
-                <div class="title assembly-title">
-                  <p>Assembly Line: ${order.assemblyLine}</p>
-                </div>
-                <div class="meta-item">
-                  <p>GMV-L4-F-PRD 01 A</p>
-                  <p>(02/10.09.2020)</p>
-                </div>
+         </div>
+
+           
+
+          <div class="desc">
+            <div clas="description party-desc">
+              <span class="label">Party:</span><p>${order.party}</p>
+            </div>
+            <div clas="description item-label-description">
+              <span class="label item-label">Item:</span><p>${order.product}</p>
+            </div>
           </div>
 
-            
-
-            <div class="desc">
-              <div clas="description party-desc">
-                <span class="label">Party:</span><p>${order.party}</p>
-              </div>
-              <div clas="description item-label-description">
-                <span class="label item-label">Item:</span><p>${
-                  order.product
-                }</p>
-              </div>
+          <div class="qty-logo">
+           <div class="meta meta-logo">
+            <div class="meta-qty"><span class="label">QTY:</span> ${
+              order.qty
+            }</div>
+            <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
+              order.gmLogo
+            }</div>
+             </div>
+            <div class="detail-items"><span class="label ">Special Note:</span> <span>${
+              order.specialNotes || ""
+            }</span></div>
             </div>
 
-            <div class="qty-logo">
-            <div class="meta meta-logo">
-              <div class="meta-qty"><span class="label">QTY:</span> ${
-                order.qty
-              }</div>
-              <div class="detail-items meta-qty detail-logo"><span class="label ">Logo:</span> ${
-                order.gmLogo
-              }</div>
-              </div>
-              <div class="detail-items"><span class="label ">Special Note:</span> <span>${
-                order.specialNotes || ""
-              }</span></div>
-              </div>
-
-            <div class="inspect">
-              <span class="label">Inspected by:</span>
-              <div class="inspect-line"></div>
-            </div>
-
+          <div class="inspect">
+            <span class="label">Inspected by:</span>
+            <div class="inspect-line"></div>
           </div>
-        </div>`
+
+        </div>
+      </div>`
       )
       .join("");
 
     const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Bin Card</title>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Bin Card</title>
 
-        <style>
-          @page {
-            size: 130mm 85mm;
-            margin: 0;
-          }
+      <style>
+        @page {
+          size: 130mm 85mm;
+          margin: 0;
+        }
 
-          html, body {
-            width: 130mm;
-            height: 85mm;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, Helvetica, sans-serif;
-          }
+        html, body {
+          width: 130mm;
+          height: 85mm;
+          margin: 0;
+          padding: 0;
+          font-family: Arial, Helvetica, sans-serif;
+        }
 
-          .item-label,
-          .party-desc {
-          padding-bottom: 2mm;}
+        .item-label,
+        .party-desc {
+        padding-bottom: 2mm;}
 
-          .item-label {
-          line-height: 1.8em;}
+        .item-label {
+        line-height: 1.8em;}
 
-          .bin-card {
-            width: 130mm;
-            height: 85mm;
-            padding: 6mm;
-            box-sizing: border-box;
-            page-break-after: always;
-          }
+        .bin-card {
+          width: 130mm;
+          height: 85mm;
+          padding: 6mm;
+          box-sizing: border-box;
+          page-break-after: always;
+        }
 
-        .item-label-description {
-        padding-top: 50px;}
+      .item-label-description {
+      padding-top: 50px;}
 
-          .meta-qty {
-          width: 50%;}
+        .meta-qty {
+        width: 50%;}
 
-          .process-border {
-          border-top:1px solid #000;
-          border-bottom:1px solid #000;
-          padding-top: 1.5mm;
-          padding-bottom: 1.5mm;
-          }
+        .process-border {
+        border-top:1px solid #000;
+        border-bottom:1px solid #000;
+        padding-top: 1.5mm;
+        padding-bottom: 1.5mm;
+        }
 
-          .detail-logo {
-            padding-bottom: 0.9mm;
-          }
+        .detail-logo {
+          padding-bottom: 0.9mm;
+        }
 
-          .description {
-            padding-bottom: 2mm;
-          }
+        .description {
+          padding-bottom: 2mm;
+        }
 
-          .content {
-            width: 100%;
-            height: 100%;
-            border: 1.5px solid #000;
-            border-radius: 10px;
-            padding-top: 2mm;
-            padding-bottom: 4mm;
-              padding-left: 6mm;
-                  padding-right: 6mm;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-          }
+        .content {
+          width: 100%;
+          height: 100%;
+          border: 1.5px solid #000;
+          border-radius: 10px;
+          padding-top: 2mm;
+          padding-bottom: 4mm;
+             padding-left: 6mm;
+                padding-right: 6mm;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
 
-          .meta-item {
-            padding-top: 2mm;
-          }
+        .meta-item {
+          padding-top: 2mm;
+        }
 
-          /* RESET DEFAULT P TAG SPACE */
-          p {
-            margin: 0;
-          }
+        /* RESET DEFAULT P TAG SPACE */
+        p {
+          margin: 0;
+        }
 
-          /* HEADER */
-          .company-name {
-            font-size: 12px;
-            font-weight: 700;
-            text-align: center;
-            margin: 0 0 1mm;
-            
-          }
+        /* HEADER */
+        .company-name {
+          font-size: 12px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1mm;
+          
+        }
 
-          .assembly-title p {
-          border: 1px solid #000;
-            display: inline-block;
-            padding-top: 1mm;
-            padding-bottom: 0.9mm;
-            padding-left: 1mm;
-            padding-right: 1mm;
-          }
+        .assembly-title p {
+        border: 1px solid #000;
+          display: inline-block;
+          padding-top: 1mm;
+          padding-bottom: 0.9mm;
+          padding-left: 1mm;
+          padding-right: 1mm;
+        }
 
-          .company-address {
-            font-size: 8px;
-            font-weight: 400;
-            text-align: center;
-            line-height: 1.2;
-            margin: 0 0 1.2mm;
-          }
+        .company-address {
+          font-size: 8px;
+          font-weight: 400;
+          text-align: center;
+          line-height: 1.2;
+          margin: 0 0 1.2mm;
+        }
 
-          .tag-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-align: center;
-            margin: 0 0 1.5mm;
-          }
+        .tag-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-align: center;
+          margin: 0 0 1.5mm;
+        }
 
-          .doc-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            margin-bottom: 0.5mm; /* 🔥 reduced */
-          }
+        .doc-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 9px;
+          margin-bottom: 0.5mm; /* 🔥 reduced */
+        }
 
-          /* ASSEMBLY LINE */
-          .title {
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            margin-top: 0;       /* 🔥 no top gap */
-            margin-bottom: 0.5mm;
-            //  border: 1px solid #000;
-            // display: inline-block;
-          }
+        /* ASSEMBLY LINE */
+        .title {
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 0;       /* 🔥 no top gap */
+          margin-bottom: 0.5mm;
+          //  border: 1px solid #000;
+          // display: inline-block;
+        }
 
-          .title-line {
-            border-bottom: 1px solid #000;
-            margin-bottom: 1.5mm;
-            margin-top: 0.5mm;
-          }
+        .title-line {
+          border-bottom: 1px solid #000;
+          margin-bottom: 1.5mm;
+          margin-top: 0.5mm;
+        }
 
-          /* META */
-          .meta {
-            font-size: 10px;
-            line-height: 1.25;
-            margin-bottom: 0.8mm;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-          }
+        /* META */
+        .meta {
+          font-size: 10px;
+          line-height: 1.25;
+          margin-bottom: 0.8mm;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
 
-          .meta div {
-            margin-bottom: 0.5mm;
-          }
+        .meta div {
+          margin-bottom: 0.5mm;
+        }
 
-          /* ITEM */
-          .desc {
-            font-size: 9px;
-            margin-bottom: 0.8mm;
-          }
+        /* ITEM */
+        .desc {
+          font-size: 9px;
+          margin-bottom: 0.8mm;
+        }
 
-          .desc p {
-          padding-bottom: 0.6mm;}
+        .desc p {
+        padding-bottom: 0.6mm;}
 
-          .desc span {
-            display: block;
-            padding-bottom: 0.1mm;
-          }
+        .desc span {
+          display: block;
+          padding-bottom: 0.1mm;
+        }
 
-          .desc .label {
-            display: block;
-            font-size: 10px;
-            margin-bottom: 0.8mm;
-            margin-top: 0.8mm;
-          }
+        .desc .label {
+          display: block;
+          font-size: 10px;
+          margin-bottom: 0.8mm;
+          margin-top: 0.8mm;
+        }
 
-          .desc .text {
-            word-break: break-word;
-            
-          }
+        .desc .text {
+          word-break: break-word;
+          
+        }
 
-          /* QTY */
-          .qty-logo {
-            font-size: 10px;
-            line-height: 1.3;
-            margin-bottom: 0.4mm;
-            margin-top: 0.8mm;
-          }
+        /* QTY */
+        .qty-logo {
+          font-size: 10px;
+          line-height: 1.3;
+          margin-bottom: 0.4mm;
+           margin-top: 0.8mm;
+        }
 
-          /* INSPECTION */
-          .inspect {
-            margin-top: auto;
-            font-size: 10px;
-          }
+        /* INSPECTION */
+        .inspect {
+          margin-top: auto;
+          font-size: 10px;
+        }
 
-          .inspect-line {
-            height: 3mm;
-            border-bottom: 1px solid #000;
-          }
+        .inspect-line {
+          height: 3mm;
+          border-bottom: 1px solid #000;
+        }
 
-          .label {
-            font-weight: 600;
-          }
-        </style>
-      </head>
+        .label {
+          font-weight: 600;
+        }
+      </style>
+    </head>
 
-      <body>${cards}</body>
-    </html>`;
+    <body>${cards}</body>
+  </html>`;
 
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
@@ -1133,9 +1175,9 @@ export function Testing2Page() {
   const sortOrders = (list: AssemblyOrderData[]) => {
     return [...list].sort((a, b) => {
       // urgent first
-      // const aUrg = a.alertStatus ? 1 : 0;
-      // const bUrg = b.alertStatus ? 1 : 0;
-      // if (aUrg !== bUrg) return bUrg - aUrg;
+      const aUrg = a.alertStatus ? 1 : 0;
+      const bUrg = b.alertStatus ? 1 : 0;
+      if (aUrg !== bUrg) return bUrg - aUrg;
 
       // otherwise restore original order
       return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
@@ -1171,21 +1213,17 @@ export function Testing2Page() {
   //       return;
   //     }
 
-  //     // ✅ Define page workflow step
-  //     const currentSteps = "testing2";
-  //     const currentStepLabel = getStepLabel(currentSteps);
+  //     // ✅ Workflow step for this page
+  //     const currentStep = "testing2";
+  //     const currentStepLabel = getStepLabel(currentStep);
 
   //     const mainQty = Number(quickAssignQty || 0);
   //     const splitQty = Number(splitAssignQty || 0);
 
-  //     // ✅ Determine next step (dropdown > workflow default)
-  // const nextStepKey =
-
-  //       quickAssignStep ||
-
-  //       (Array.isArray(nextSteps) ? nextSteps[0] : "testing2");
+  //     // ✅ Determine next workflow step (manual override > default)
+  //     const defaultNext = getNextSteps(currentStep)[0] || "";
+  //     const nextStepKey = quickAssignStep || defaultNext;
   //     const nextStepLabel = getStepLabel(nextStepKey);
-  //     const currentStepsLabel = getStepLabel(currentSteps);
 
   //     //
   //     // ✅ MAIN ASSIGNMENT PAYLOAD
@@ -1194,12 +1232,11 @@ export function Testing2Page() {
   //     formData.append("orderId", String(selectedOrder.id));
   //     formData.append("totalQty", String(selectedOrder.totalQty ?? selectedOrder.qty ?? 0));
   //     formData.append("executedQty", String(mainQty));
-  //     formData.append("currentSteps", currentStepsLabel); // ✅ REQUIRED by backend
-  //     formData.append("nextSteps", nextStepLabel);       // ✅ Human-readable label
+  //     formData.append("currentSteps", currentStepLabel); // ✅ REQUIRED FIELD
+  //     formData.append("nextSteps", nextStepLabel);       // ✅ SEND LABEL
   //     formData.append("split_id", String(selectedOrder.split_id || ""));
 
   //     console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
-  //     for (const p of formData.entries()) console.log(p[0], p[1]);
 
   //     const responseMain = await axios.post(
   //       `${API_URL}/assign-order`,
@@ -1208,8 +1245,8 @@ export function Testing2Page() {
   //     );
 
   //     const mainSuccess =
-  //       responseMain.data?.Resp_code === "true" ||
   //       responseMain.data?.Resp_code === true ||
+  //       responseMain.data?.Resp_code === "true" ||
   //       responseMain.data?.status === true;
 
   //     if (!mainSuccess) {
@@ -1223,7 +1260,7 @@ export function Testing2Page() {
   //     let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
   //     //
-  //     // ✅ SPLIT ASSIGNMENT
+  //     // ✅ SPLIT ASSIGNMENT (OPTIONAL)
   //     //
   //     if (splitOrder && splitQty > 0) {
   //       const formDataSplit = new FormData();
@@ -1246,8 +1283,8 @@ export function Testing2Page() {
   //       );
 
   //       const splitSuccess =
-  //         responseSplit.data?.Resp_code === "true" ||
   //         responseSplit.data?.Resp_code === true ||
+  //         responseSplit.data?.Resp_code === "true" ||
   //         responseSplit.data?.status === true;
 
   //       if (splitSuccess) {
@@ -1263,7 +1300,7 @@ export function Testing2Page() {
   //     }
 
   //     //
-  //     // ✅ COMPLETE UI SUCCESS UPDATE
+  //     // ✅ SUCCESS — UI FEEDBACK + REFRESH
   //     //
   //     setAssignStatus({ type: "success", message: successMessage });
 
@@ -1284,7 +1321,7 @@ export function Testing2Page() {
 
   //     setQuickAssignOpen(false);
   //     setAssignStatus(null);
-  //   } catch (error) {
+  //   } catch (error: any) {
   //     console.error("❌ Error assigning order:", error);
 
   //     setAssignStatus({
@@ -1322,22 +1359,21 @@ export function Testing2Page() {
         return;
       }
 
-      // ✅ Workflow step for Testing2
-      const currentSteps = "testing2";
-      const currentStepLabel = getStepLabel(currentSteps);
+      // ✅ CURRENT WORKFLOW STEP
+      const currentStep = "testing2";
+      const currentStepLabel = getStepLabel(currentStep);
 
       const mainQty = Number(quickAssignQty || 0);
       const splitQty = Number(splitAssignQty || 0);
 
-      // ✅ Next step logic
-      const nextStepKey =
-        quickAssignStep ||
-        (Array.isArray(nextSteps) ? nextSteps[0] : "testing2");
+      // ✅ NEXT STEP (manual > default)
+      const defaultNext = getNextSteps(currentStep)[0] || "";
+      const nextStepKey = quickAssignStep || defaultNext;
       const nextStepLabel = getStepLabel(nextStepKey);
 
-      // --------------------------
+      // ----------------------------
       // MAIN ASSIGNMENT
-      // --------------------------
+      // ----------------------------
       const formData = new FormData();
       formData.append("orderId", String(selectedOrder.id));
       formData.append(
@@ -1348,6 +1384,8 @@ export function Testing2Page() {
       formData.append("currentSteps", currentStepLabel);
       formData.append("nextSteps", nextStepLabel);
       formData.append("split_id", String(selectedOrder.split_id || ""));
+
+      console.log("📤 MAIN PAYLOAD:", Object.fromEntries(formData.entries()));
 
       const responseMain = await axios.post(
         `${API_URL}/assign-order`,
@@ -1370,9 +1408,9 @@ export function Testing2Page() {
 
       let successMessage = `✔ Assigned ${mainQty} → ${nextStepLabel}`;
 
-      // --------------------------
-      // SPLIT ASSIGNMENT
-      // --------------------------
+      // ----------------------------
+      // SPLIT ASSIGNMENT (OPTIONAL)
+      // ----------------------------
       if (splitOrder && splitQty > 0) {
         const formDataSplit = new FormData();
         formDataSplit.append("orderId", String(selectedOrder.id));
@@ -1384,6 +1422,11 @@ export function Testing2Page() {
         formDataSplit.append("currentSteps", currentStepLabel);
         formDataSplit.append("nextSteps", nextStepLabel);
         formDataSplit.append("split_id", String(selectedOrder.split_id || ""));
+
+        console.log(
+          "📤 SPLIT PAYLOAD:",
+          Object.fromEntries(formDataSplit.entries())
+        );
 
         const responseSplit = await axios.post(
           `${API_URL}/assign-order`,
@@ -1408,17 +1451,17 @@ export function Testing2Page() {
         }
       }
 
-      // --------------------------
+      // ----------------------------
       // ✅ SHOW SUCCESS MESSAGE
-      // --------------------------
+      // ----------------------------
       setAssignStatus({
         type: "success",
         message: successMessage,
       });
 
-      // --------------------------
+      // ----------------------------
       // REMOVE ROW IMMEDIATELY
-      // --------------------------
+      // ----------------------------
       const makeKey = (o: AssemblyOrderData) =>
         o.splittedCode || o.split_id
           ? o.splittedCode || o.split_id
@@ -1435,9 +1478,9 @@ export function Testing2Page() {
         return copy;
       });
 
-      // --------------------------
-      // ⏱️ CLOSE POPUP AFTER 1 SECOND
-      // --------------------------
+      // ----------------------------
+      // ⏱️ WAIT 1.5s → CLOSE POPUP
+      // ----------------------------
       setTimeout(() => {
         setQuickAssignOpen(false);
         setAssignStatus(null);
@@ -1528,8 +1571,8 @@ export function Testing2Page() {
   return (
     <>
       <DashboardHeader
-        role="svs"
-        currentPage="SVS"
+        role={source}
+        currentPage={`Testing 2`}
         onLogout={() => {
           localStorage.removeItem("token");
           window.location.href = "/login";
@@ -1542,29 +1585,41 @@ export function Testing2Page() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in bg-white min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+          <div className="flex flex-wrap flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
-                Testing 2
+                Testing Assembly 2 ({source.replace("assembly-", "Line ").toUpperCase()})
               </h1>
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => navigate(`/${source}`)}
+                  title={`Back to ${source.replace("-", " ").toUpperCase()}`}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to {source.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+
+                </Button>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center flex-inner-wrapper justify-end">
                 {/* Search */}
-                {/* <div className="relative max-input">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
-                      value={localSearchTerm}
-                      onChange={(e) => setLocalSearchTerm(e.target.value)}
-                      className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
-                    />
-                  </div> */}
+                {/* <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search by Unique Code, GMSOA NO., or Party..."
+                    value={localSearchTerm}
+                    onChange={(e) => setLocalSearchTerm(e.target.value)}
+                    className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
+                  />
+                </div> */}
 
                 <div className="flex items-center gap-3">
                   <Button
@@ -1610,6 +1665,7 @@ export function Testing2Page() {
                   <Download className="h-4 w-4 mr-2" />
                   Export Data
                 </Button>
+
                 <Button
                   onClick={handleExportAll}
                   className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
@@ -1651,35 +1707,35 @@ export function Testing2Page() {
 
         {/* Upload Section */}
         {/* <form onSubmit={handleUpload} className="bg-white shadow-md p-4 rounded-xl mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-700">Upload Order File</h2>
-          <div className="flex items-center gap-3 flex-wrap">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.csv"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="border p-2 rounded-md"
-            />
-            <Button
-              type="submit"
-              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white flex items-center gap-2"
-              disabled={uploading}
-            >
-              <Plus className="h-4 w-4" />
-              {uploading ? 'Uploading...' : 'Upload'}
-            </Button>
+        <h2 className="text-lg font-semibold mb-3 text-gray-700">Upload Order File</h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.csv"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="border p-2 rounded-md"
+          />
+          <Button
+            type="submit"
+            className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white flex items-center gap-2"
+            disabled={uploading}
+          >
+            <Plus className="h-4 w-4" />
+            {uploading ? 'Uploading...' : 'Upload'}
+          </Button>
 
-            <Button onClick={() => fetchOrders()} variant="outline" className="ml-2">
-              Refresh
-            </Button>
+          <Button onClick={() => fetchOrders()} variant="outline" className="ml-2">
+            Refresh
+          </Button>
 
-            <Button onClick={handlePrint} variant="outline" className="ml-2">
-              Export / Print
-            </Button>
-          </div>
+          <Button onClick={handlePrint} variant="outline" className="ml-2">
+            Export / Print
+          </Button>
+        </div>
 
-          {message && <div className="mt-3 text-sm text-yellow-800 bg-yellow-100 p-2 rounded">{message}</div>}
-        </form> */}
+        {message && <div className="mt-3 text-sm text-yellow-800 bg-yellow-100 p-2 rounded">{message}</div>}
+      </form> */}
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -1723,16 +1779,16 @@ export function Testing2Page() {
                           </button>
                         </th>
 
-                        <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-32">
+                        <th className="sticky left-10 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
                           Assembly Line
                         </th>
-                        <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">
+                        <th className="sticky left-164 z-20 bg-white px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-28">
                           SOA NO.
                         </th>
                         <th
                           className="sticky left-274 z-20 bg-white px-3 py-2 text-center
-              text-xs font-medium text-gray-500 uppercase tracking-wider
-              border-r border-gray-200 min-w-24 cursor-pointer select-none"
+             text-xs font-medium text-gray-500 uppercase tracking-wider
+             border-r border-gray-200 min-w-24 cursor-pointer select-none"
                           onClick={() =>
                             setSoaSort((prev) =>
                               prev === "asc"
@@ -1790,6 +1846,7 @@ export function Testing2Page() {
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           SPECIAL NOTES
                         </th>
+
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           PRODUCT SPCL1
                         </th>
@@ -1904,22 +1961,15 @@ export function Testing2Page() {
                             {order.namePlate}
                           </td>
                           <td className="px-3 py-2 text-center text-sm text-gray-900">
-
                             <div
-
                               className="line-clamp-2"
-
                               style={{ width: "200px" }}
-
                               title={order.specialNotes}
-
                             >
-
                               {order.specialNotes || "-"}
-
                             </div>
-
                           </td>
+                        
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.productSpcl1}
                           </td>
@@ -1967,12 +2017,12 @@ export function Testing2Page() {
                               {order.remarks?.trim() && (
                                 <div
                                   className="
-                                                          absolute bottom-full left-1/2 -translate-x-1/2 mb-2
-                                                          hidden group-hover:block
-                                                          bg-gray-900 text-white text-xs
-                                                          px-3 py-2 rounded-md shadow-lg
-                                                          max-w-[260px] break-words z-[999]
-                                                        "
+                                  absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                                  hidden group-hover:block
+                                  bg-gray-900 text-white text-xs
+                                  px-3 py-2 rounded-md shadow-lg
+                                  max-w-[260px] break-words z-[999]
+                                "
                                 >
                                   {order.remarks}
                                 </div>
@@ -1993,6 +2043,7 @@ export function Testing2Page() {
                               </Button>
 
                               <Button
+                              disabled
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 w-7 p-0 hover:bg-green-100"
@@ -2003,14 +2054,14 @@ export function Testing2Page() {
                               </Button>
 
                               {/* <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
-                            title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
-                            onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
-                          >
-                            <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
-                          </Button> */}
+                          size="sm"
+                          variant="ghost"
+                          className={`h-7 w-7 p-0 transition-all duration-200 ${getAlertStatus(order.id) || order.alertStatus ? 'bg-red-100 hover:bg-red-200 shadow-sm border border-red-200' : 'hover:bg-red-50'}`}
+                          title={getAlertStatus(order.id) || order.alertStatus ? 'Alert ON - Click to turn OFF' : 'Alert OFF - Click to turn ON'}
+                          onClick={() => { if (!getAlertStatus(order.id)) toggleAlertStatus(order.id); }} disabled={getAlertStatus(order.id)}
+                        >
+                          <Siren className={`h-4 w-4 ${getAlertStatus(order.id) || order.alertStatus ? 'text-red-600 animate-siren-pulse' : 'text-gray-400'}`} />
+                        </Button> */}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -2102,7 +2153,7 @@ export function Testing2Page() {
                       value={quickAssignStep}
                       onValueChange={setQuickAssignStep}
                     >
-                      <SelectTrigger id="assignStep" disabled>
+                      <SelectTrigger id="assignStep">
                         <SelectValue placeholder="Select next step" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2135,65 +2186,6 @@ export function Testing2Page() {
                   </span>
                 </div>
               </div>
-
-              {/* Split Order Section (same as PlanningPage) */}
-              {/* <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="splitOrder"
-                    checked={splitOrder}
-                    onCheckedChange={(val) => setSplitOrder(Boolean(val))}
-                  />
-                  <Label htmlFor="splitOrder" className="cursor-pointer">
-                    Split order to multiple workflow steps
-                  </Label>
-                </div>
-
-                {splitOrder && (
-                  <div className="space-y-4 pl-6 border-l-2 border-blue-200">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Second Workflow Step</Label>
-                        <Select value={splitAssignStep} onValueChange={setSplitAssignStep}>
-    <SelectTrigger>
-      <SelectValue placeholder="Select split step" />
-    </SelectTrigger>
-    <SelectContent>
-      {nextSteps.map((step) => (
-        <SelectItem key={step} value={step}>
-          {getStepLabel(step)}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Split Quantity</Label>
-                        <Input
-                          type="number"
-                          value={splitAssignQty}
-                          onChange={(e) => setSplitAssignQty(e.target.value)}
-                          max={selectedOrder?.qtyPending}
-                        />
-                      </div>
-                    </div>
-
-                    {quickAssignErrors.sameEngineer && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-600">{quickAssignErrors.sameEngineer}</p>
-                      </div>
-                    )}
-
-                    {quickAssignErrors.totalQtyMismatch && (
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <p className="text-sm text-amber-700">{quickAssignErrors.totalQtyMismatch}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div> */}
             </div>
 
             {/* Status Message */}
@@ -2617,4 +2609,4 @@ export function Testing2Page() {
   );
 }
 
-export default Testing2Page;
+export default TestingAssembly2Page;

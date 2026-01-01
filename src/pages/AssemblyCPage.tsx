@@ -35,6 +35,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
+import { useNavigate } from "react-router-dom";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -111,6 +112,8 @@ export function AssemblyCPage() {
   >("range");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
+  const navigate = useNavigate();
 
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
@@ -1561,8 +1564,19 @@ export function AssemblyCPage() {
         <div className="mb-8">
           <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
-              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
+              <h1 className="text-gray-900 mb-2 text-2xl font-semibold flex gap-3">
                 Assembly C
+                <Button
+                  onClick={() =>
+                    navigate("/testing-assembly", {
+                      state: { source: "assembly-c" },
+                    })
+                  }
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  Testing-1
+                </Button>
               </h1>
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
