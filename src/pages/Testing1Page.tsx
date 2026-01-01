@@ -1942,7 +1942,7 @@ export function Testing1Page() {
                               {order.specialNotes || "-"}
                             </div>
                           </td>
-                          <td className="px-3 py-2 text-center text-sm text-gray-900">
+                          {/* <td className="px-3 py-2 text-center text-sm text-gray-900">
                             <div
                               className="line-clamp-2"
                               style={{ width: "200px" }}
@@ -1950,7 +1950,7 @@ export function Testing1Page() {
                             >
                               {order.specialNotes || "-"}
                             </div>
-                          </td>
+                          </td> */}
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.productSpcl1}
                           </td>
