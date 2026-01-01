@@ -1602,8 +1602,16 @@ export function AssemblyAPage() {
         <div className="mb-8">
           <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-row-main">
-              <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
+              <h1 className="text-gray-900 mb-2 text-2xl font-semibold flex gap-3">
                 Assembly A
+                 <Button
+                  onClick={() => navigate("/testing-assembly")}
+                   variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  
+                    Testing-1
+                </Button>
               </h1>
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
@@ -1611,7 +1619,7 @@ export function AssemblyAPage() {
             </div>
 
             <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
                 {/* Search */}
                 {/* <div className="relative max-input">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
@@ -1624,7 +1632,7 @@ export function AssemblyAPage() {
                   />
                 </div> */}
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"
@@ -1676,13 +1684,7 @@ export function AssemblyAPage() {
                   <Download className="h-4 w-4 mr-2" />
                   Export all Data
                 </Button>
-                 <Button
-                  onClick={() => navigate("/testing-assembly")}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  
-                    Testing-1
-                </Button>
+                
               </div>
               {/* Option row - could include more buttons */}
             </div>

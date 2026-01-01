@@ -36,6 +36,8 @@ import { useOrderContext } from "../components/order-context";
 import { OrderFilters } from "../components/order-filters";
 import { API_URL } from "../config/api.ts";
 
+import { useNavigate } from "react-router-dom";
+
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -1657,6 +1659,14 @@ export function AssemblyBPage() {
                   <Download className="h-4 w-4 mr-2" />
                   Export all Data
                 </Button>
+
+                 <Button
+                    onClick={() => navigate("/testing-assembly")}
+                    className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    
+                      Testing-1
+                  </Button>
               </div>
               {/* Option row - could include more buttons */}
             </div>

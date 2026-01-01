@@ -6548,6 +6548,10 @@ table {
   pointer-events: auto;
 }
 
+.flex-inner-wrapper {
+  flex-wrap: wrap;
+}
+
 /* div[role="dialog"] {
   z-index: 99999;
 }

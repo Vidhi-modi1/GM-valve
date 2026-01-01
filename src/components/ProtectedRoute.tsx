@@ -105,19 +105,36 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole, children }
     return <>{children}</>;
   }
 
-  // Umbrella role access: allow parent roles to access sub-stages
+  // // Umbrella role access: allow parent roles to access sub-stages
+  // const hasUmbrellaAccess = (userRole: string, allowed: string) => {
+  //   // Testing umbrella can access testing1 and testing2
+  //   if (userRole === "testing" && (allowed === "testing1" || allowed === "testing2")) return true;
+
+  //   // Marking umbrella can access marking1 and marking2
+  //   if (userRole === "marking" && (allowed === "marking1" || allowed === "marking2")) return true;
+
+  //   // PDI umbrella can access pdi1 and pdi2
+  //   if (userRole === "pdi" && (allowed === "pdi1" || allowed === "pdi2")) return true;
+
+  //   return false;
+  // };
   const hasUmbrellaAccess = (userRole: string, allowed: string) => {
-    // Testing umbrella can access testing1 and testing2
-    if (userRole === "testing" && (allowed === "testing1" || allowed === "testing2")) return true;
+  // Testing umbrella can access testing1 and testing2
+  if (userRole === "testing" && (allowed === "testing1" || allowed === "testing2")) return true;
 
-    // Marking umbrella can access marking1 and marking2
-    if (userRole === "marking" && (allowed === "marking1" || allowed === "marking2")) return true;
+  // Marking umbrella can access marking1 and marking2
+  if (userRole === "marking" && (allowed === "marking1" || allowed === "marking2")) return true;
 
-    // PDI umbrella can access pdi1 and pdi2
-    if (userRole === "pdi" && (allowed === "pdi1" || allowed === "pdi2")) return true;
+  // PDI umbrella can access pdi1 and pdi2
+  if (userRole === "pdi" && (allowed === "pdi1" || allowed === "pdi2")) return true;
 
-    return false;
-  };
+  // ✅ CROSS ACCESS: Testing1 ↔ Assembly A
+  if (userRole === "testing1" && allowed === "assembly-a") return true;
+  if (userRole === "assembly-a" && allowed === "testing1") return true;
+
+  return false;
+};
+
 
   if (hasUmbrellaAccess(normalizedUserRole, normalizedAllowedRole)) {
     return <>{children}</>;

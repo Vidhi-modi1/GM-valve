@@ -1,11 +1,13 @@
 // src/pages/PlanningPage.tsx
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Plus,
   Calendar as CalendarIcon,
   Printer,
   ArrowRight,
+  ArrowLeft,
   Search,
   Siren,
   Eye,
@@ -113,6 +115,8 @@ export function TestingAssemblyPage() {
   >("range");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
+    const navigate = useNavigate();
 
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
@@ -1578,10 +1582,21 @@ export function TestingAssemblyPage() {
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => navigate("/assembly-a")}
+                  title="Back to Assembly A"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Assembly A
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center flex-inner-wrapper justify-end">
                 {/* Search */}
                 {/* <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
