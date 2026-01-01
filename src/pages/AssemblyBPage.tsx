@@ -1673,16 +1673,7 @@ export function AssemblyBPage() {
                   Export all Data
                 </Button>
 
-                 <Button
-                    onClick={() =>
-                      navigate("/testing-assembly", {
-                        state: { source: "assembly-b" },
-                      })
-                    }
-                    className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    Testing-1
-                  </Button>
+               
               </div>
               {/* Option row - could include more buttons */}
             </div>
