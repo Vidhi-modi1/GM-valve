@@ -1587,7 +1587,7 @@ export function AssemblyCPage() {
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
                
 
-                <div className="flex items-center gap-3 flex-inner-wrapper">
+                <div className="flex items-center gap-4 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"

@@ -1635,7 +1635,7 @@ export function TestingAssembly2Page() {
                   />
                 </div> */}
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"
