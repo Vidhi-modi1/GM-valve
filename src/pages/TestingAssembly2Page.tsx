@@ -1597,7 +1597,21 @@ export function TestingAssembly2Page() {
                 <Button
                   variant="outline"
                   className="flex items-center gap-2"
-                  onClick={() => navigate(`/${source}`)}
+                  onClick={() => {
+                    try {
+                      const s = localStorage.getItem("user");
+                      const u = s ? JSON.parse(s) : null;
+                      const rawRole = u?.role?.name || u?.role || "";
+                      const role = String(rawRole || "").toLowerCase();
+                      if (role.includes("planning") || role.includes("admin")) {
+                        navigate("/planning");
+                      } else {
+                        navigate(`/${source}`);
+                      }
+                    } catch {
+                      navigate(`/${source}`);
+                    }
+                  }}
                   title={`Back to ${source.replace("-", " ").toUpperCase()}`}
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -1694,6 +1708,7 @@ export function TestingAssembly2Page() {
               setDateTo={setDateTo}
               assemblyLines={assemblyLines}
               onClearFilters={clearFilters}
+              disableAssemblyFilter={true}
               hasActiveFilters={
                 assemblyLineFilter !== "all" ||
                 gmsoaFilter !== "all" ||

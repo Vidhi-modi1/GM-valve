@@ -1523,7 +1523,7 @@ export function PlanningPage() {
         {/* {loading && orders.length === 0 && <FullPageLoader />} */}
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+          <div className="flex flex-wrap flex-col lg:flex-row lg:justify-between lg:items-start gap-4 flex-">
             <div className="flex-row-main">
               <h1 className="text-gray-900 mb-2 text-2xl font-semibold">
                 Orders Management
@@ -1535,20 +1535,8 @@ export function PlanningPage() {
             </div>
 
             <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
-                {/* Search */}
-                {/* <div className="relative max-input">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
-                    value={localSearchTerm}
-                    onChange={(e) => setLocalSearchTerm(e.target.value)}
-                    className="pl-10 w-full bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0 "
-                  />
-                </div> */}
-
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
+                <div className="flex items-center gap-4 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"
@@ -1583,11 +1571,9 @@ export function PlanningPage() {
                   >
                     {showRemarksOnly ? "Show All Projects" : "Remarks only"}
                   </Button>
+
                 </div>
-              </div>
-              {/* Option row - could include more buttons */}
-            </div>
-            <Button
+                  <Button
               onClick={handleExport}
               disabled={filteredOrders.length === 0}
               className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
@@ -1603,6 +1589,12 @@ export function PlanningPage() {
               <Download className="h-4 w-4 mr-2" />
               Export all Data
             </Button>
+
+                 
+              </div>
+              {/* Option row - could include more buttons */}
+            </div>
+           
           </div>
 
           {/* Filters */}

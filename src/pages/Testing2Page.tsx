@@ -1553,7 +1553,7 @@ export function Testing2Page() {
             </div>
 
             <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
                 {/* Search */}
                 {/* <div className="relative max-input">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
@@ -1566,7 +1566,7 @@ export function Testing2Page() {
                     />
                   </div> */}
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"
@@ -1906,15 +1906,10 @@ export function Testing2Page() {
                           <td className="px-3 py-2 text-center text-sm text-gray-900">
 
                             <div
-
                               className="line-clamp-2"
-
                               style={{ width: "200px" }}
-
                               title={order.specialNotes}
-
                             >
-
                               {order.specialNotes || "-"}
 
                             </div>

@@ -1404,20 +1404,10 @@ export function SemiQcPage() {
             </div>
 
             <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
-                {/* Search */}
-                {/* <div className="relative max-input">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search by Unique Code, GMSOA NO, Party ,Customer PO No,Code No.,Product..."
-                    value={localSearchTerm}
-                    onChange={(e) => setLocalSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-80 bg-white/80 backdrop-blur-sm border-gray-200/60 relative z-0"
-                  />
-                </div> */}
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
+               
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"

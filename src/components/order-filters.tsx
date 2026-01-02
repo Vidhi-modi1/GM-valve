@@ -46,6 +46,7 @@ interface OrderFiltersProps {
   assemblyLines: string[];
   onClearFilters: () => void;
   hasActiveFilters: boolean;
+  disableAssemblyFilter?: boolean;
 }
 
 export function OrderFilters({
@@ -63,6 +64,7 @@ export function OrderFilters({
   assemblyLines,
   onClearFilters,
   hasActiveFilters,
+  disableAssemblyFilter,
 }: OrderFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -160,7 +162,7 @@ const months = [
             {/* ASSEMBLY */}
             <div>
               <label className="text-xs text-[#174a9f]/70 pl-1">Assembly Line</label>
-             <Select value={assemblyLineFilter} onValueChange={setAssemblyLineFilter}>
+             <Select value={assemblyLineFilter} onValueChange={setAssemblyLineFilter} disabled={disableAssemblyFilter}>
                 <SelectTrigger className="h-10 bg-white/90 backdrop-blur-sm border-2 border-[#174a9f]/20 hover:border-[#174a9f]/40 focus:border-[#174a9f] transition-all duration-200 shadow-sm hover:shadow-md">
                   <SelectValue placeholder="Select Assembly" />
                 </SelectTrigger>

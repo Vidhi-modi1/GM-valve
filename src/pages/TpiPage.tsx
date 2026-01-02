@@ -1585,7 +1585,7 @@ export function TpiPage() {
             </div>
 
             <div className="flex flex-col gap-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end">
+              <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
                 {/* Search */}
                 {/* <div className="relative max-input">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 pointer-events-none text-gray-400" />
@@ -1598,7 +1598,7 @@ export function TpiPage() {
                   />
                 </div> */}
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
                     variant="outline"
@@ -1634,10 +1634,6 @@ export function TpiPage() {
                     {showRemarksOnly ? "Show All Projects" : "Remarks only"}
                   </Button>
                 </div>
-              </div>
-              {/* Option row - could include more buttons */}
-            </div>
-
             <Button
               onClick={handleExport}
               className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
@@ -1653,6 +1649,10 @@ export function TpiPage() {
               <Download className="h-4 w-4 mr-2" />
               Export all Data
             </Button>
+              </div>
+              {/* Option row - could include more buttons */}
+            </div>
+
           </div>
 
           {/* Filters */}

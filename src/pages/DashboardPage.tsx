@@ -373,7 +373,7 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
         {/* ---------------- Stage-wise Cards ---------------- */}
         <div>
           <div className="flex items-center justify-between">
-            <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
+            <h2 className="text-gray-900 flex items-center gap-2 top-title">
               <Clock className="h-5 w-5 text-[#174a9f]" />
               Stage-wise Pending Quantity
             </h2>
@@ -447,7 +447,7 @@ onChange={(e) => {
 
         {/* ---------------- Assembly Cards ---------------- */}
         <div>
-          <h2 className="text-gray-900 mb-4 flex items-center gap-2 top-title">
+          <h2 className="text-gray-900 flex items-center gap-2 top-title">
             <Clock className="text-[#174a9f] pt-5 mt-5" />
             Assembly Line-wise Pending Quantity
           </h2>
