@@ -1,4 +1,5 @@
-export const API_URL = "https://gmvalve.lvpro.live/api";
+// export const API_URL = "https://gmvalve.lvpro.live/api";
+export const API_URL = "https://plan.gmvalve.in/backend/api";
 
 export interface LoginResponse {
   status: boolean;

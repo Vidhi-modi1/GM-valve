@@ -278,7 +278,7 @@ export function DispatchPage() {
         },
       });
 
-      alert("Moved to Packaging successfully");
+      alert("OCL Number saved successfully");
 
       setPackagingDialogOpen(false);
       setPackagingOrder(null);
@@ -1994,7 +1994,7 @@ export function DispatchPage() {
                                     <DialogContent className="max-w-[400px]">
                                       <DialogHeader>
                                         <DialogTitle>
-                                          moved to packginng
+                                          Moved to Packaging
                                         </DialogTitle>
                                         <DialogDescription></DialogDescription>
                                       </DialogHeader>

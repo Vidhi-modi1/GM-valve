@@ -93,7 +93,13 @@ export function ModernStatCard({
                 change.positive ? "text-green-600" : "text-red-600"
               }`}
             >
-              <span className="text-base">{change.positive ? "↗" : "↘"}</span>
+             <span
+      className={`text-base transition-transform duration-300 ${
+        change.positive ? "" : "rotate-180-deg"
+      }`}
+    >
+      ↗
+    </span>
               <span className="font-medium">{change.value}</span>
               <span className="text-gray-500">from last month</span>
             </div>

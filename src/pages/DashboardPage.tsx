@@ -38,7 +38,8 @@ import {
   CardLoadingSkeleton,
 } from "../components/loading-skeleton";
 
-type SummaryRecord = Record<string, number>;
+type SummaryRecord = Record<string, number | string>;
+
 
 const ORDER_COUNTS_ENDPOINT = `${API_URL}/order-counts`;
 const POLL_INTERVAL_MS = 15000;
@@ -133,11 +134,11 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
       if (counts.totalOrdersCompare != null)
         out.totalOrdersCompare = counts.totalOrdersCompare;
 
-      if (counts.inProgressCompare != null)
-        out.inProgressCompare = counts.inProgressCompare;
+if (counts.inProgressCompare != null)
+  out.inProgressCompare = counts.inProgressCompare;
 
-      if (counts.completedCompare != null)
-        out.completedCompare = counts.completedCompare;
+if (counts.completedCompare != null)
+  out.completedCompare = counts.completedCompare;
 
       if (counts.efficiencyCompare != null)
         out.efficiencyCompare = counts.efficiencyCompare;
@@ -283,6 +284,15 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
 
   /* ============================================================= */
 
+const isPositive = (v?: string) => {
+  if (!v) return false;
+  const n = parseFloat(v.replace("%", ""));
+  return !isNaN(n) && n >= 0;
+};
+
+
+
+
   return (
     <div className="page-container">
       <div className="max-w-7xl mx-auto py-10 px-6 space-y-10 main-content">
@@ -331,9 +341,11 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
                 icon={Package}
                 gradient="blue"
                 change={{
-                  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-                  positive: true,
-                }}
+   value: String(summary.totalOrdersCompare ?? "—"),
+
+    positive: isPositive(summary.totalOrdersCompare),
+
+  }}
                 trend={[30, 40, 50, 60, 80]}
               />
               <ModernStatCard
@@ -341,10 +353,11 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
                 value={summary.inProgress ?? 0}
                 icon={Clock}
                 gradient="orange"
-                change={{
-                  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-                  positive: true,
-                }}
+               change={{
+    value: String(summary.inProgressCompare ?? "—"),
+positive: isPositive(summary.inProgressCompare),
+
+  }}
                 trend={[20, 30, 40, 60, 75]}
               />
               <ModernStatCard
@@ -353,9 +366,10 @@ export function DashboardPage({ onLogout }: { onLogout?: () => void }) {
                 icon={CheckCircle2}
                 gradient="green"
                 change={{
-                  value: `${summary.totalOrdersCompare ?? "+0%"}`,
-                  positive: true,
-                }}
+    value: String(summary.completedCompare ?? "—"),
+positive: isPositive(summary.completedCompare),
+
+  }}
                 trend={[40, 50, 70, 90, 100]}
               />
               {/* <ModernStatCard

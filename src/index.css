@@ -6574,3 +6574,12 @@ div[data-slot="dialog-overlay"]  {
 /* .flex-wrap {
   flex-wrap: wrap;
 } */
+
+.down-arrow {
+  background-color: transparent;
+  color: red;
+}
+
+.rotate-180-deg {
+  transform: rotate(90deg);
+}

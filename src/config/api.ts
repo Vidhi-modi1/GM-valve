@@ -1,5 +1,6 @@
 // Use dev proxy when running locally to avoid CORS.
-export const API_URL = import.meta.env.DEV ? "/api" : "https://gmvalve.lvpro.live/api";
+// export const API_URL = import.meta.env.DEV ? "/api" : "https://gmvalve.lvpro.live/api";
+export const API_URL = "https://plan.gmvalve.in/backend/api";
 
 export interface LoginResponse {
   status: boolean;
