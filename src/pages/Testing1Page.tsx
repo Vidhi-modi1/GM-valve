@@ -109,8 +109,8 @@ export function Testing1Page() {
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
   const [dateFilterMode, setDateFilterMode] = useState<
-    "year" | "month" | "range"
-  >("range");
+    "year" | "month" | "range" | "single"
+  >("single");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -361,18 +361,22 @@ export function Testing1Page() {
         if (dateFilterMode === "year" && dateFrom) {
           return orderDate.getFullYear() === dateFrom.getFullYear();
         }
+
         if (dateFilterMode === "month" && dateFrom) {
           return (
             orderDate.getFullYear() === dateFrom.getFullYear() &&
             orderDate.getMonth() === dateFrom.getMonth()
           );
         }
-        if (dateFilterMode === "range") {
+
+        /** 🔥 RANGE + SINGLE (same logic) */
+        if (dateFilterMode === "range" || dateFilterMode === "single") {
           if (dateFrom && dateTo)
             return orderDate >= dateFrom && orderDate <= dateTo;
           if (dateFrom) return orderDate >= dateFrom;
           if (dateTo) return orderDate <= dateTo;
         }
+
         return true;
       });
     }
@@ -1578,7 +1582,6 @@ export function Testing1Page() {
               <p className="text-sm text-gray-600">
                 Track and manage assembly line orders and manufacturing workflow
               </p>
-              
             </div>
 
             <div className="flex flex-col gap-4">
@@ -1633,16 +1636,18 @@ export function Testing1Page() {
                 </div>
 
                 <Button
+                variant="outline"
                   onClick={handleExport}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export Data
                 </Button>
 
                 <Button
+                variant="outline"
                   onClick={handleExportAll}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export all Data
@@ -1943,7 +1948,7 @@ export function Testing1Page() {
                               {order.specialNotes || "-"}
                             </div>
                           </td>
-                        
+
                           <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900">
                             {order.productSpcl1}
                           </td>

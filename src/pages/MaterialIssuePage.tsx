@@ -111,8 +111,8 @@ export function MaterialIssuePage() {
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
   const [dateFilterMode, setDateFilterMode] = useState<
-    "year" | "month" | "range"
-  >("range");
+    "year" | "month" | "range" | "single"
+  >("single");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -281,44 +281,180 @@ export function MaterialIssuePage() {
     showRemarksOnly,
   ]);
 
-  const source = useGlobalSearch && fullOrders ? fullOrders : orders;
-  useEffect(() => {
-    if (useGlobalSearch) {
-      if (!fullOrders) fetchAllPages();
-    } else {
-      setFullOrders(null);
-    }
-  }, [useGlobalSearch, perPage]);
+  // useEffect(() => {
+  //   if (!useGlobalSearch) {
+  //     fetchOrders();
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [page, perPage, useGlobalSearch]);
 
   useEffect(() => {
-    if (!useGlobalSearch) {
+    if (!useGlobalSearch && !loading) {
       fetchOrders();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, perPage, useGlobalSearch]);
+  }, [page, perPage]);
+
+  // const fetchAllPages = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const currentStage = "material-issue";
+  //     const stageLabel = getStepLabel(currentStage);
+  //     const first = await axios.post(
+  //       `${API_URL}/order-list`,
+  //       { menu_name: stageLabel, page: 1, per_page: perPage },
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+  //     const ok =
+  //       first?.data?.Resp_code === "true" ||
+  //       first?.data?.Resp_code === true ||
+  //       first?.data?.Resp_code === "RCS";
+  //     if (!ok) {
+  //       setFullOrders(null);
+  //       return;
+  //     }
+  //     const p = first?.data?.pagination;
+  //     const last = Number(p?.last_page || 1);
+  //     const requests: Promise<any>[] = [];
+  //     for (let pg = 2; pg <= last; pg++) {
+  //       requests.push(
+  //         axios.post(
+  //           `${API_URL}/order-list`,
+  //           { menu_name: stageLabel, page: pg, per_page: perPage },
+  //           { headers: { Authorization: `Bearer ${token}` } }
+  //         )
+  //       );
+  //     }
+  //     const responses = await Promise.all(requests);
+  //     let all: AssemblyOrderData[] = [];
+  //     for (const r of responses) {
+  //       if (Array.isArray(r?.data?.data)) {
+  //         const chunk: AssemblyOrderData[] = r.data.data.map(
+  //           (item: any, index: number) => ({
+  //             id: String(item.id),
+  //             assemblyLine: item.assembly_no || "",
+  //             gmsoaNo: item.soa_no || "",
+  //             soaSrNo: item.soa_sr_no || "",
+  //             assemblyDate: item.assembly_date || "",
+  //             uniqueCode: item.unique_code || item.order_no || "",
+  //             split_id: item.split_id || item.splitted_code || "",
+  //             splittedCode: item.splitted_code || "",
+  //             party: item.party_name || item.party || "",
+  //             customerPoNo: item.customer_po_no || "",
+  //             codeNo: item.code_no || "",
+  //             product: item.product || "",
+  //             qty: Number(item.qty || 0),
+  //             totalQty: Number(
+  //               item.totalQty || item.total_qty || item.qty || 0
+  //             ),
+  //             qtyExe: Number(item.qty_executed || 0),
+  //             qtyPending: Number(item.qty_pending || 0),
+  //             finishedValve: item.finished_valve || "",
+  //             gmLogo: item.gm_logo || "",
+  //             namePlate: item.name_plate || "",
+  //             specialNotes: item.special_notes || item.special_note || "",
+  //             productSpcl1: item.product_spc1 || "",
+  //             productSpcl2: item.product_spc2 || "",
+  //             productSpcl3: item.product_spc3 || "",
+  //             inspection: item.inspection || "",
+  //             painting: item.painting || "",
+  //             remarks: item.remarks || "",
+  //             alertStatus:
+  //               item.is_urgent === true ||
+  //               item.is_urgent === "true" ||
+  //               item.alert_status === true ||
+  //               item.alert_status === "true" ||
+  //               item.urgent === 1 ||
+  //               item.urgent === "1",
+  //             originalIndex: index,
+  //           })
+  //         );
+  //         all = all.concat(chunk);
+  //       }
+  //     }
+  //     // Do not deduplicate Material Issue; show all API rows reliably
+  //     setFullOrders(sortOrders(all));
+  //   } catch (e) {
+  //     setFullOrders(null);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const fetchAllPages = async () => {
     try {
       setLoading(true);
+
       const currentStage = "material-issue";
       const stageLabel = getStepLabel(currentStage);
+
+      // 🔹 Fetch FIRST page (pagination + data)
       const first = await axios.post(
         `${API_URL}/order-list`,
         { menu_name: stageLabel, page: 1, per_page: perPage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       const ok =
         first?.data?.Resp_code === "true" ||
         first?.data?.Resp_code === true ||
         first?.data?.Resp_code === "RCS";
+
       if (!ok) {
         setFullOrders(null);
         return;
       }
-      const p = first?.data?.pagination;
-      const last = Number(p?.last_page || 1);
+
+      const last = Number(first?.data?.pagination?.last_page || 1);
+
+      let globalIndex = 0;
+      let all: AssemblyOrderData[] = [];
+
+      // ✅ ADD PAGE-1 DATA
+      if (Array.isArray(first?.data?.data)) {
+        all.push(
+          ...first.data.data.map((item: any) => ({
+            id: String(item.id),
+            assemblyLine: item.assembly_no || "",
+            gmsoaNo: item.soa_no || "",
+            soaSrNo: item.soa_sr_no || "",
+            assemblyDate: item.assembly_date || "",
+            uniqueCode: item.unique_code || item.order_no || "",
+            split_id: item.split_id || "",
+            splittedCode: item.splitted_code || "",
+            party: item.party_name || item.party || "",
+            customerPoNo: item.customer_po_no || "",
+            codeNo: item.code_no || "",
+            product: item.product || "",
+            qty: Number(item.qty || 0),
+            totalQty: Number(item.total_qty || item.qty || 0),
+            qtyExe: Number(item.qty_executed || 0),
+            qtyPending: Number(item.qty_pending || 0),
+            finishedValve: item.finished_valve || "",
+            gmLogo: item.gm_logo || "",
+            namePlate: item.name_plate || "",
+            specialNotes: item.special_notes || item.special_note || "",
+            productSpcl1: item.product_spc1 || "",
+            productSpcl2: item.product_spc2 || "",
+            productSpcl3: item.product_spc3 || "",
+            inspection: item.inspection || "",
+            painting: item.painting || "",
+            remarks: item.remarks || "",
+            alertStatus:
+              item.is_urgent === true ||
+              item.is_urgent === "true" ||
+              item.alert_status === true ||
+              item.alert_status === "true" ||
+              item.urgent === 1 ||
+              item.urgent === "1",
+            originalIndex: globalIndex++,
+          }))
+        );
+      }
+
+      // 🔹 FETCH REMAINING PAGES (2 → last)
       const requests: Promise<any>[] = [];
-      for (let pg = 1; pg <= last; pg++) {
+      for (let pg = 2; pg <= last; pg++) {
         requests.push(
           axios.post(
             `${API_URL}/order-list`,
@@ -327,28 +463,27 @@ export function MaterialIssuePage() {
           )
         );
       }
+
       const responses = await Promise.all(requests);
-      let all: AssemblyOrderData[] = [];
+
       for (const r of responses) {
         if (Array.isArray(r?.data?.data)) {
-          const chunk: AssemblyOrderData[] = r.data.data.map(
-            (item: any, index: number) => ({
+          all.push(
+            ...r.data.data.map((item: any) => ({
               id: String(item.id),
               assemblyLine: item.assembly_no || "",
               gmsoaNo: item.soa_no || "",
               soaSrNo: item.soa_sr_no || "",
               assemblyDate: item.assembly_date || "",
               uniqueCode: item.unique_code || item.order_no || "",
-              split_id: item.split_id || item.splitted_code || "",
+              split_id: item.split_id || "",
               splittedCode: item.splitted_code || "",
               party: item.party_name || item.party || "",
               customerPoNo: item.customer_po_no || "",
               codeNo: item.code_no || "",
               product: item.product || "",
               qty: Number(item.qty || 0),
-              totalQty: Number(
-                item.totalQty || item.total_qty || item.qty || 0
-              ),
+              totalQty: Number(item.total_qty || item.qty || 0),
               qtyExe: Number(item.qty_executed || 0),
               qtyPending: Number(item.qty_pending || 0),
               finishedValve: item.finished_valve || "",
@@ -368,29 +503,31 @@ export function MaterialIssuePage() {
                 item.alert_status === "true" ||
                 item.urgent === 1 ||
                 item.urgent === "1",
-              originalIndex: index,
-            })
+              originalIndex: globalIndex++,
+            }))
           );
-          all = all.concat(chunk);
         }
       }
-      // Do not deduplicate Material Issue; show all API rows reliably
-      setFullOrders(sortOrders(all));
+
+      // 🔒 FINAL DUPLICATE GUARD (backend-safe)
+      const uniqueMap = new Map<string, AssemblyOrderData>();
+
+      for (const o of all) {
+        // key allows valid split rows but removes true duplicates
+        const key = `${o.uniqueCode}|${o.soaSrNo}|${o.split_id || ""}`;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, o);
+        }
+      }
+
+      setFullOrders(sortOrders(Array.from(uniqueMap.values())));
     } catch (e) {
+      console.error("fetchAllPages error:", e);
       setFullOrders(null);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (useGlobalSearch) {
-      if (!fullOrders) fetchAllPages();
-    } else {
-      setFullOrders(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useGlobalSearch, perPage]);
 
   // filter option lists
   const assemblyLines = useMemo(
@@ -477,21 +614,42 @@ export function MaterialIssuePage() {
 
         if (!orderDate || isNaN(orderDate.getTime())) return false;
 
+        // if (dateFilterMode === "year" && dateFrom) {
+        //   return orderDate.getFullYear() === dateFrom.getFullYear();
+        // }
+        // if (dateFilterMode === "month" && dateFrom) {
+        //   return (
+        //     orderDate.getFullYear() === dateFrom.getFullYear() &&
+        //     orderDate.getMonth() === dateFrom.getMonth()
+        //   );
+        // }
+        // if (dateFilterMode === "range") {
+        //   if (dateFrom && dateTo)
+        //     return orderDate >= dateFrom && orderDate <= dateTo;
+        //   if (dateFrom) return orderDate >= dateFrom;
+        //   if (dateTo) return orderDate <= dateTo;
+        // }
         if (dateFilterMode === "year" && dateFrom) {
           return orderDate.getFullYear() === dateFrom.getFullYear();
         }
+
         if (dateFilterMode === "month" && dateFrom) {
           return (
             orderDate.getFullYear() === dateFrom.getFullYear() &&
             orderDate.getMonth() === dateFrom.getMonth()
           );
         }
-        if (dateFilterMode === "range") {
+
+        /** 🔥 RANGE + SINGLE (same logic) */
+        if (dateFilterMode === "range" || dateFilterMode === "single") {
           if (dateFrom && dateTo)
             return orderDate >= dateFrom && orderDate <= dateTo;
           if (dateFrom) return orderDate >= dateFrom;
           if (dateTo) return orderDate <= dateTo;
         }
+
+        return true;
+
         return true;
       });
     }
@@ -541,6 +699,7 @@ export function MaterialIssuePage() {
   };
 
   const paginatedOrders = useMemo(() => {
+    if (useGlobalSearch) return filteredOrders;
     const start = (page - 1) * perPage;
     return filteredOrders.slice(start, start + perPage);
   }, [filteredOrders, page, perPage]);
@@ -559,6 +718,20 @@ export function MaterialIssuePage() {
     showRemarksOnly,
   ]);
 
+  const fetchingAllRef = useRef(false);
+  useEffect(() => {
+    if (useGlobalSearch) {
+      if (!fullOrders && !fetchingAllRef.current) {
+        fetchingAllRef.current = true;
+        fetchAllPages().finally(() => {
+          fetchingAllRef.current = false;
+        });
+      }
+    } else {
+      setFullOrders(null);
+    }
+  }, [useGlobalSearch, perPage]);
+
   // selection helpers
   const rowKey = (o: AssemblyOrderData) => {
     if (o.splittedCode) return String(o.splittedCode);
@@ -566,7 +739,14 @@ export function MaterialIssuePage() {
     const hasComposite =
       o.uniqueCode || o.soaSrNo || o.gmsoaNo || o.codeNo || o.assemblyLine;
     if (hasComposite) {
-      return [o.uniqueCode, o.soaSrNo, o.gmsoaNo, o.codeNo, o.assemblyLine]
+      return [
+        o.id,
+        o.uniqueCode,
+        o.soaSrNo,
+        o.gmsoaNo,
+        o.codeNo,
+        o.assemblyLine,
+      ]
         .map((v) => v ?? "")
         .join("|");
     }
@@ -1467,25 +1647,26 @@ export function MaterialIssuePage() {
                     {showRemarksOnly ? "Show All Projects" : "Remarks only"}
                   </Button>
                 </div>
-            <Button
-              disabled={filteredOrders.length === 0}
-              onClick={handleExport}
-              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
-            </Button>
+                <Button
+                variant="outline"
+                  // disabled={filteredOrders.length === 0}
+                  onClick={handleExport}
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Data
+                </Button>
 
-            <Button
-              onClick={handleExportAll}
-              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export all Data
-            </Button>
+                <Button
+                variant="outline"
+                  onClick={handleExportAll}
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export all Data
+                </Button>
               </div>
             </div>
-
           </div>
 
           {/* Filters */}

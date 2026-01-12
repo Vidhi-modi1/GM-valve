@@ -116,7 +116,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            // ❌ don't manually set multipart header
           },
         }
       );
@@ -132,12 +131,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         setFile(null);
         fileInputRef.current && (fileInputRef.current.value = "");
         onUploadSuccess?.();
-        // setTimeout(() => {
         setIsDialogOpen(false);
         try {
           window.location.reload();
         } catch {}
-        // }, 300);
       } else if (Resp_desc?.toLowerCase().includes("header mismatch")) {
         setStatusType("error");
         setStatusMessage("⚠️ Header mismatch found in your Excel file.");
@@ -163,7 +160,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     }
   };
 
-  // ✅ File handling (drag-drop + input)
   const handleFileSelect = (file: File) => {
     const allowedTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -410,8 +406,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
                     {/* ➕ Add New Order Button */}
                     <Button
+                    variant="outline"
                       onClick={() => setIsDialogOpen(true)}
-                      className="flex items-center gap-2 bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-md transition-all"
+                      className="flex items-center gap-2 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                     >
                       <Plus className="h-4 w-4" />
                       Add New Order
@@ -553,7 +550,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   </span>
                 </div>
 
-                {/* 🧾 Show mismatch link if available */}
+                {/* Show mismatch link if available */}
                 {mismatchFileUrl && (
                   <div className="mt-2">
                     <p className="text-sm font-medium text-gray-700">

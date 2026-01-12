@@ -471,8 +471,9 @@ export default function SvsStock() {
               </Button>
 
               <Button
+              variant="outline"
                 onClick={handleExport}
-                className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export Data

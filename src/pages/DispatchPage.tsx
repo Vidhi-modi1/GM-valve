@@ -78,6 +78,7 @@ interface AssemblyOrderData {
   remarks: string;
   alertStatus: boolean;
   packaging: number;
+  oclAdded?: boolean;
   originalIndex: number;
 }
 
@@ -106,13 +107,14 @@ export function DispatchPage() {
   // search / selection / filters / dialogs etc.
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+    const [showOclAddedOnly, setShowOclAddedOnly] = useState(false);
   const [showRemarksOnly, setShowRemarksOnly] = useState(false);
   const [assemblyLineFilter, setAssemblyLineFilter] = useState("all");
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
   const [dateFilterMode, setDateFilterMode] = useState<
-    "year" | "month" | "range"
-  >("range");
+    "year" | "month" | "range" | "single"
+  >("single");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -243,6 +245,7 @@ export function DispatchPage() {
     setPackagingDialogOpen(true);
   };
 
+
   const handleConfirmPackaging = async () => {
     console.log("CONFIRM CLICKED", packagingOrder, oclNo);
 
@@ -277,6 +280,11 @@ export function DispatchPage() {
           Authorization: `Bearer ${token}`,
         },
       });
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === packagingOrder.id ? { ...o, oclAdded: true } : o
+        )
+      );
 
       alert("OCL Number saved successfully");
 
@@ -360,6 +368,8 @@ export function DispatchPage() {
             painting: item.painting || "",
             remarks: item.remarks || "",
             packaging: item.packaging === 1 || item.packaging === "1" ? 1 : 0,
+            oclAdded: Boolean(item.ocl_no), 
+
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
             alertStatus:
@@ -464,6 +474,10 @@ export function DispatchPage() {
         (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
       );
     }
+    if (showOclAddedOnly) {
+  filtered = filtered.filter((o) => o.oclAdded === true);
+}
+
 
     if (assemblyLineFilter !== "all")
       filtered = filtered.filter((o) => o.assemblyLine === assemblyLineFilter);
@@ -508,18 +522,22 @@ export function DispatchPage() {
         if (dateFilterMode === "year" && dateFrom) {
           return orderDate.getFullYear() === dateFrom.getFullYear();
         }
+
         if (dateFilterMode === "month" && dateFrom) {
           return (
             orderDate.getFullYear() === dateFrom.getFullYear() &&
             orderDate.getMonth() === dateFrom.getMonth()
           );
         }
-        if (dateFilterMode === "range") {
+
+        /** 🔥 RANGE + SINGLE (same logic) */
+        if (dateFilterMode === "range" || dateFilterMode === "single") {
           if (dateFrom && dateTo)
             return orderDate >= dateFrom && orderDate <= dateTo;
           if (dateFrom) return orderDate >= dateFrom;
           if (dateTo) return orderDate <= dateTo;
         }
+
         return true;
       });
     }
@@ -552,6 +570,7 @@ export function DispatchPage() {
     localSearchTerm,
     showUrgentOnly,
     showRemarksOnly,
+        showOclAddedOnly,
     assemblyLineFilter,
     gmsoaFilter,
     partyFilter,
@@ -561,6 +580,7 @@ export function DispatchPage() {
     getAlertStatus,
     soaSort,
   ]);
+  
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -578,6 +598,7 @@ export function DispatchPage() {
     dateTo,
     showUrgentOnly,
     showRemarksOnly,
+    showOclAddedOnly
   ]);
 
   const truncateWords = (text = "", wordLimit = 4) => {
@@ -1511,8 +1532,6 @@ export function DispatchPage() {
 
             <div className="flex flex-col gap-4 w-full">
               <div className="flex flex-col sm:flex-row gap-4 lg:items-center justify-end flex-inner-wrapper">
-              
-
                 <div className="flex items-center gap-4 flex-inner-wrapper">
                   <Button
                     onClick={handleShowBinCard}
@@ -1549,32 +1568,46 @@ export function DispatchPage() {
                     {showRemarksOnly ? "Show All Projects" : "Remarks only"}
                   </Button>
                 </div>
-                  <Button
-                    disabled={filteredOrders.length === 0}
-                    onClick={handleExport}
-                    className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Data
-                  </Button>
+                <Button
+                  variant="outline"
+                  s
+                  // disabled={filteredOrders.length === 0}
+                  onClick={handleExport}
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Data
+                </Button>
 
-                  <Button
-                    onClick={handleExportAll}
-                    className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export all Data
-                  </Button>
-                  <Button
-                    className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] text-white shadow-lg hover:shadow-xl"
-                    onClick={() => navigate("/packaging")}
-                  >
-                    Completed Projects
-                  </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportAll}
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export all Data
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+                  onClick={() => navigate("/packaging")}
+                >
+                  Completed Projects
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowOclAddedOnly(true);
+                    setShowUrgentOnly(false);
+                    setShowRemarksOnly(false);
+                  }}
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
+                >
+                  OCL Only
+                </Button>
               </div>
               {/* Option row - could include more buttons */}
             </div>
-
           </div>
 
           {/* Filters */}

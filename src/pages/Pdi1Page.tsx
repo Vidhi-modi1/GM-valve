@@ -106,8 +106,8 @@ export function Pdi1Page() {
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
   const [dateFilterMode, setDateFilterMode] = useState<
-    "year" | "month" | "range"
-  >("range");
+    "year" | "month" | "range" | "single"
+  >("single");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -364,18 +364,22 @@ export function Pdi1Page() {
         if (dateFilterMode === "year" && dateFrom) {
           return orderDate.getFullYear() === dateFrom.getFullYear();
         }
+
         if (dateFilterMode === "month" && dateFrom) {
           return (
             orderDate.getFullYear() === dateFrom.getFullYear() &&
             orderDate.getMonth() === dateFrom.getMonth()
           );
         }
-        if (dateFilterMode === "range") {
+
+        /** 🔥 RANGE + SINGLE (same logic) */
+        if (dateFilterMode === "range" || dateFilterMode === "single") {
           if (dateFrom && dateTo)
             return orderDate >= dateFrom && orderDate <= dateTo;
           if (dateFrom) return orderDate >= dateFrom;
           if (dateTo) return orderDate <= dateTo;
         }
+
         return true;
       });
     }
@@ -1471,17 +1475,19 @@ export function Pdi1Page() {
                 </div>
 
                 <Button
-                  disabled={filteredOrders.length === 0}
+                variant="outline"
+                  // disabled={filteredOrders.length === 0}
                   onClick={handleExport}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export Data
                 </Button>
 
                 <Button
+                variant="outline"
                   onClick={handleExportAll}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export all Data

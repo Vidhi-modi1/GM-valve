@@ -109,8 +109,8 @@ export function AssemblyAPage() {
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
   const [dateFilterMode, setDateFilterMode] = useState<
-    "year" | "month" | "range"
-  >("range");
+    "year" | "month" | "range" | "single"
+  >("single");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -185,6 +185,7 @@ export function AssemblyAPage() {
           Authorization: `Bearer ${token}`,
         },
       });
+      
 
       // Accept both string "true" or boolean-like "RCS" responses — adapt per your backend
       const ok =
@@ -194,7 +195,7 @@ export function AssemblyAPage() {
 
       if (ok && Array.isArray(res.data.data)) {
         const apiOrders: AssemblyOrderData[] = res.data.data.map(
-          (item: any) => ({
+          (item: any, index: number) => ({
             id: String(item.id),
             assemblyLine: item.assembly_no || "",
             gmsoaNo: item.soa_no || "",
@@ -222,6 +223,7 @@ export function AssemblyAPage() {
             inspection: item.inspection || "",
             painting: item.painting || "",
             remarks: item.remarks || "",
+            originalIndex: index,
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
             alertStatus:
@@ -232,10 +234,23 @@ export function AssemblyAPage() {
               item.urgent === 1 ||
               item.urgent === "1",
           })
+
+          
         );
+        
 
         console.log("✅ Orders fetched:", apiOrders.length, "records");
-        setOrders(sortOrders(apiOrders));
+        const uniqueMap = new Map<string, AssemblyOrderData>();
+
+apiOrders.forEach((o, idx) => {
+  const key = `${o.uniqueCode}|${o.soaSrNo}|${o.split_id || ""}`;
+  if (!uniqueMap.has(key)) {
+    uniqueMap.set(key, { ...o, originalIndex: idx });
+  }
+});
+
+setOrders(sortOrders(Array.from(uniqueMap.values())));
+
         setFullOrders(null);
         setError(null);
         setMessage(null);
@@ -251,6 +266,7 @@ export function AssemblyAPage() {
       setLoading(false);
     }
   };
+  
 
   const useGlobalSearch = useMemo(() => {
     const hasSearch = localSearchTerm.trim().length > 0;
@@ -373,37 +389,97 @@ export function AssemblyAPage() {
 
         if (!orderDate || isNaN(orderDate.getTime())) return false;
 
-        if (dateFilterMode === "year" && dateFrom) {
-          return orderDate.getFullYear() === dateFrom.getFullYear();
-        }
-        if (dateFilterMode === "month" && dateFrom) {
-          return (
-            orderDate.getFullYear() === dateFrom.getFullYear() &&
-            orderDate.getMonth() === dateFrom.getMonth()
-          );
-        }
-        if (dateFilterMode === "range") {
-          if (dateFrom && dateTo)
-            return orderDate >= dateFrom && orderDate <= dateTo;
-          if (dateFrom) return orderDate >= dateFrom;
-          if (dateTo) return orderDate <= dateTo;
-        }
-        return true;
+        // if (dateFilterMode === "year" && dateFrom) {
+        //   return orderDate.getFullYear() === dateFrom.getFullYear();
+        // }
+        // if (dateFilterMode === "month" && dateFrom) {
+        //   return (
+        //     orderDate.getFullYear() === dateFrom.getFullYear() &&
+        //     orderDate.getMonth() === dateFrom.getMonth()
+        //   );
+        // }
+        // if (dateFilterMode === "range") {
+        //   if (dateFrom && dateTo)
+        //     return orderDate >= dateFrom && orderDate <= dateTo;
+        //   if (dateFrom) return orderDate >= dateFrom;
+        //   if (dateTo) return orderDate <= dateTo;
+        // }
+
+if (dateFilterMode === "year" && dateFrom) {
+  return orderDate.getFullYear() === dateFrom.getFullYear();
+}
+
+if (dateFilterMode === "month" && dateFrom) {
+  return (
+    orderDate.getFullYear() === dateFrom.getFullYear() &&
+    orderDate.getMonth() === dateFrom.getMonth()
+  );
+}
+
+/** 🔥 RANGE + SINGLE (same logic) */
+if ((dateFilterMode === "range" || dateFilterMode === "single")) {
+  if (dateFrom && dateTo)
+    return orderDate >= dateFrom && orderDate <= dateTo;
+  if (dateFrom) return orderDate >= dateFrom;
+  if (dateTo) return orderDate <= dateTo;
+}
+
+return true;
+
       });
     }
+if (localSearchTerm.trim()) {
+  const raw = localSearchTerm.trim().toLowerCase();
 
-    if (localSearchTerm.trim()) {
-      const term = localSearchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (o) =>
-          String(o.uniqueCode).toLowerCase().includes(term) ||
-          String(o.party).toLowerCase().includes(term) ||
-          String(o.gmsoaNo).toLowerCase().includes(term) ||
-          String(o.customerPoNo).toLowerCase().includes(term) ||
-          String(o.codeNo).toLowerCase().includes(term) ||
-          String(o.product).toLowerCase().includes(term)
-      );
+  const normalize = (v: string) =>
+    v.toLowerCase().replace(/[\s\/_-]+/g, "");
+
+  const termN = normalize(raw);
+
+  filtered = filtered.filter((o) => {
+    const soa = normalize(o.gmsoaNo || "");
+    const sr = normalize(String(o.soaSrNo || ""));
+    const soaSr = normalize(`${o.gmsoaNo}-${o.soaSrNo}`);
+    const unique = normalize(o.uniqueCode || "");
+
+    // ✅ CASE 1: User typed SOA + SR (SOA2714-6)
+    if (raw.includes("-") || raw.includes("/")) {
+      return soaSr === termN;
     }
+
+    // ✅ CASE 2: User typed full SOA number only (SOA2714)
+    if (raw.startsWith("soa") && raw.length >= 7) {
+      return soa === termN;
+    }
+
+    // ✅ CASE 3: General / free text search
+    return (
+      unique.includes(termN) ||
+      soa.includes(termN) ||
+      sr.includes(termN) ||
+      normalize(o.party || "").includes(termN) ||
+      normalize(o.customerPoNo || "").includes(termN) ||
+      normalize(o.codeNo || "").includes(termN) ||
+      normalize(o.product || "").includes(termN)
+    );
+  });
+}
+
+
+
+
+    // if (localSearchTerm.trim()) {
+    //   const term = localSearchTerm.toLowerCase();
+    //   filtered = filtered.filter(
+    //     (o) =>
+    //       String(o.uniqueCode).toLowerCase().includes(term) ||
+    //       String(o.party).toLowerCase().includes(term) ||
+    //       String(o.gmsoaNo).toLowerCase().includes(term) ||
+    //       String(o.customerPoNo).toLowerCase().includes(term) ||
+    //       String(o.codeNo).toLowerCase().includes(term) ||
+    //       String(o.product).toLowerCase().includes(term)
+    //   );
+    // }
     if (soaSort) {
       filtered = [...filtered].sort((a, b) => {
         const aNo = parseSoaSrNo(a.soaSrNo);
@@ -1673,16 +1749,18 @@ export function AssemblyAPage() {
                 </div>
 
                 <Button
+                variant="outline"
                   onClick={handleExport}
-                  disabled={filteredOrders.length === 0}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  // disabled={filteredOrders.length === 0}
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export Data
                 </Button>
                 <Button
+                variant="outline"
                   onClick={handleExportAll}
-                  className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export all Data
@@ -1697,6 +1775,8 @@ export function AssemblyAPage() {
           <div className="mt-4">
             <OrderFilters
               currentStage="assembly-a"
+                searchTerm={localSearchTerm}
+  setSearchTerm={setLocalSearchTerm}
               assemblyLineFilter={assemblyLineFilter}
               setAssemblyLineFilter={setAssemblyLineFilter}
               dateFilterMode={dateFilterMode}

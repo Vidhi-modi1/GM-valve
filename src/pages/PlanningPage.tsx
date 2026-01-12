@@ -100,8 +100,8 @@ export function PlanningPage() {
   const [gmsoaFilter, setGmsoaFilter] = useState("all");
   const [partyFilter, setPartyFilter] = useState("all");
   const [dateFilterMode, setDateFilterMode] = useState<
-    "year" | "month" | "range"
-  >("range");
+    "year" | "month" | "range" | "single"
+  >("single");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -550,13 +550,15 @@ export function PlanningPage() {
           );
         }
 
-        // Range filter mode
-        if (dateFilterMode === "range") {
-          if (dateFrom && dateTo)
-            return orderDate >= dateFrom && orderDate <= dateTo;
-          if (dateFrom) return orderDate >= dateFrom;
-          if (dateTo) return orderDate <= dateTo;
-        }
+// Range + Single (same logic)
+if (dateFilterMode === "range" || dateFilterMode === "single") {
+  if (dateFrom && dateTo)
+    return orderDate >= dateFrom && orderDate <= dateTo;
+
+  if (dateFrom) return orderDate >= dateFrom;
+  if (dateTo) return orderDate <= dateTo;
+}
+
 
         return true;
       });
@@ -1574,17 +1576,19 @@ export function PlanningPage() {
 
                 </div>
                   <Button
+                  variant="outline"
               onClick={handleExport}
-              disabled={filteredOrders.length === 0}
-              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              // disabled={filteredOrders.length === 0}
+              className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
             >
               <Download className="h-4 w-4 mr-2" />
               Export Data
             </Button>
 
             <Button
+              variant="outline"
               onClick={handleExportAll}
-              className="bg-gradient-to-r from-[#174a9f] to-[#1a5cb8] hover:from-[#123a80] hover:to-[#174a9f] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
             >
               <Download className="h-4 w-4 mr-2" />
               Export all Data
