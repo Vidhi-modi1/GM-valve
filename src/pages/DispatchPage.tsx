@@ -78,7 +78,7 @@ interface AssemblyOrderData {
   remarks: string;
   alertStatus: boolean;
   packaging: number;
-  oclAdded?: boolean;
+  // oclAdded?: boolean;
   originalIndex: number;
 }
 
@@ -368,7 +368,7 @@ export function DispatchPage() {
             painting: item.painting || "",
             remarks: item.remarks || "",
             packaging: item.packaging === 1 || item.packaging === "1" ? 1 : 0,
-            oclAdded: Boolean(item.ocl_no), 
+            // oclAdded: Boolean(item.ocl_no), 
 
 
             // ✅ Preserve urgent flag properly (backend sends 0 or 1)
@@ -474,9 +474,10 @@ export function DispatchPage() {
         (o) => typeof o.remarks === "string" && o.remarks.trim().length > 0
       );
     }
-    if (showOclAddedOnly) {
-  filtered = filtered.filter((o) => o.oclAdded === true);
+if (showOclAddedOnly) {
+  filtered = filtered.filter((o) => o.packaging === 1);
 }
+
 
 
     if (assemblyLineFilter !== "all")
@@ -1595,16 +1596,21 @@ export function DispatchPage() {
                   Completed Projects
                 </Button>
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowOclAddedOnly(true);
-                    setShowUrgentOnly(false);
-                    setShowRemarksOnly(false);
-                  }}
-                  className="flex items-center gap-0 border-[#174a9f] text-[#174a9f] hover:bg-[#e8f0f9] transition-all shadow-sm"
-                >
-                  OCL Only
-                </Button>
+  variant="outline"
+  onClick={() => {
+    setShowOclAddedOnly((prev) => !prev);
+    setShowUrgentOnly(false);
+    setShowRemarksOnly(false);
+  }}
+  className={`flex items-center gap-0 border-[#174a9f] transition-all ${
+    showOclAddedOnly
+      ? "bg-[#174a9f] text-white"
+      : "text-[#174a9f] hover:bg-[#e8f0f9]"
+  }`}
+>
+  {showOclAddedOnly ? "Show All Projects" : "OCL Only"}
+</Button>
+
               </div>
               {/* Option row - could include more buttons */}
             </div>
