@@ -1041,18 +1041,32 @@ if (showOclAddedOnly) {
           .map((v) => v ?? "")
           .join("|");
 
-  const selectedTotals = useMemo(() => {
-    const selectedData = filteredOrders.filter((o) =>
-      selectedRows.has(rowKey(o))
-    );
+  // const selectedTotals = useMemo(() => {
+  //   const selectedData = filteredOrders.filter((o) =>
+  //     selectedRows.has(rowKey(o))
+  //   );
 
-    return {
-      count: selectedData.length,
-      qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
-      qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
-      qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
-    };
-  }, [selectedRows, filteredOrders]);
+  //   return {
+  //     count: selectedData.length,
+  //     qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+  //     qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+  //     qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+  //   };
+  // }, [selectedRows, filteredOrders]);
+
+  const selectedTotals = useMemo(() => {
+  const selectedData = filteredOrders.filter((o) =>
+    selectedRows.has(o.id) // ✅ FIX
+  );
+
+  return {
+    count: selectedData.length,
+    qty: selectedData.reduce((s, o) => s + (o.totalQty || o.qty || 0), 0),
+    qtyExe: selectedData.reduce((s, o) => s + (o.qtyExe || 0), 0),
+    qtyPending: selectedData.reduce((s, o) => s + (o.qtyPending || 0), 0),
+  };
+}, [selectedRows, filteredOrders]);
+
 
   const handleExport = () => {
     const isUrgentMode = showUrgentOnly === true;
